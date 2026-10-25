@@ -1,0 +1,4 @@
+warp-lang
+numpy
+pillow
+opencv-python-headless

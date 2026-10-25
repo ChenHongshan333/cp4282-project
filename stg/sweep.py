@@ -1,0 +1,94 @@
+"""The experiment design of the proposal as lists of runs, one list per stage.
+
+    validation   the swept hyperparameters (s_min, acc_ratio) on the Jockey validation clip
+    test         the main experiment (288 fits) and the 30-frame Jockey clip (48 fits)
+    synthetic    the four models on the synthetic clip with known paths
+
+Each run is a list of arguments for ``stg.run``. A Slurm array job runs one of them per task:
+
+    python -m stg.sweep --stage test --count              # number of runs
+    python -m stg.sweep --stage test --list               # the commands
+    python -m stg.sweep --stage test --index $SLURM_ARRAY_TASK_ID --device cuda
+"""
+
+from __future__ import annotations
+
+import argparse
+import itertools
+
+from stg.data import SEQUENCES
+
+BUDGETS = (3000, 6000, 12000, 24000)
+SEEDS = (0, 1, 2)
+STRIDES = (1, 3)
+S_MINS = (0.05, 0.1, 0.2)
+ACC_RATIOS = (0.3, 1.0, 3.0)
+
+# A Jockey segment that does not overlap frames 0-29 and shows the galloping horse with the camera
+# panning. To be chosen after watching the sequence; at stride 3 the clip spans 28 frames.
+VALIDATION_START = None
+
+# Chosen on the validation clip, then used for every test run. Fill in after the validation stage.
+CHOSEN = {"s_min": 0.1, "acc_ratio": 1.0}
+
+
+def _args(model, budget, sequence, stride, seed, start=0, frames=10, s_min=None, acc_ratio=None):
+    s_min = CHOSEN["s_min"] if s_min is None else s_min
+    acc_ratio = CHOSEN["acc_ratio"] if acc_ratio is None else acc_ratio
+    return ["--model", model, "--budget", str(budget), "--sequence", sequence, "--start", str(start),
+            "--frames", str(frames), "--stride", str(stride), "--seed", str(seed),
+            "--s-min", str(s_min), "--acc-ratio", str(acc_ratio)]
+
+
+def validation_runs():
+    if VALIDATION_START is None:
+        raise SystemExit("set VALIDATION_START in stg/sweep.py to the first frame of the validation clip")
+    runs = []
+    for budget, stride in itertools.product(BUDGETS, STRIDES):
+        common = dict(budget=budget, sequence="Jockey", stride=stride, seed=0, start=VALIDATION_START)
+        runs.append(_args("M0", **common))
+        runs += [_args("M1", acc_ratio=r, **common) for r in ACC_RATIOS]
+        runs += [_args("M2", s_min=s, **common) for s in S_MINS]
+        runs += [_args("M3", s_min=s, acc_ratio=r, **common) for s, r in itertools.product(S_MINS, ACC_RATIOS)]
+    return runs
+
+
+def test_runs():
+    runs = [_args(model, budget, sequence, stride, seed)
+            for sequence, stride, budget, model, seed
+            in itertools.product(SEQUENCES, STRIDES, BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+    # 30-frame Jockey clip at stride 1, budgets tripled so that each frame gets the same budget
+    runs += [_args(model, 3 * budget, "Jockey", 1, seed, frames=30)
+             for budget, model, seed in itertools.product(BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+    return runs
+
+
+def synthetic_runs():
+    return [_args(model, budget, "synthetic", 1, seed)
+            for budget, model, seed in itertools.product(BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+
+
+STAGES = {"validation": validation_runs, "test": test_runs, "synthetic": synthetic_runs}
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description="Runs of one stage of the experiment.")
+    p.add_argument("--stage", choices=sorted(STAGES), required=True)
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--count", action="store_true")
+    group.add_argument("--list", action="store_true")
+    group.add_argument("--index", type=int)
+    a, extra = p.parse_known_args(argv)         # extra arguments go to every run, e.g. --device cuda
+    runs = STAGES[a.stage]()
+    if a.count:
+        print(len(runs))
+    elif a.list:
+        for i, r in enumerate(runs):
+            print(i, "python -m stg.run", " ".join(r + extra))
+    else:
+        from stg import run
+        run.main(runs[a.index] + extra)
+
+
+if __name__ == "__main__":
+    main()
