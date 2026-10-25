@@ -3,10 +3,12 @@
 1. The slicing step alone, in double precision: for a random upstream gradient G on the sliced
    centre, Cholesky factor and colour, compare d(G . slice)/d(parameter) with central differences.
    The test points have w above and below s_min, so both branches of the shrinking are checked.
-2. The whole clip loss through the course renderer, as in the course's ``gradient_check``: a cut of
+2. The whole clip loss through ``ClipRenderer``, as in the course's ``gradient_check``: a cut of
    6 standard deviations in space and in time, so that the support does not change under the steps.
+3. ``ClipRenderer`` against the course's kernels frame by frame, on the synthetic clip at full size:
+   the renders and the gradients must agree up to the order of the float32 atomic sums.
 
-    python -m stg.check --device cpu
+    python -m stg.check --device cuda
 """
 
 from __future__ import annotations
@@ -16,8 +18,9 @@ import argparse
 import numpy as np
 import warp as wp
 
-from stg.model import MODELS, SpaceTimeGaussians
-from stg.render import loss_and_gradients, render_clip
+from stg import data
+from stg.model import MODELS, SpaceTimeGaussians, initial
+from stg.render import ClipRenderer, loss_and_gradients_reference, render_clip_reference
 from stg.slicing import slice_at, slice_backward
 
 S_MIN = 0.3
@@ -74,12 +77,13 @@ def check_clip(device, step=1e-2):
     rng = np.random.default_rng(1)
     n_frames, size = 4, 40
     frames = rng.uniform(0, 1, (n_frames, size, size, 3)).astype(np.float32)
+    renderer = ClipRenderer(n_frames, size, size, device, targets=frames, cut=6.0, time_cut=6.0)
     for spec in MODELS.values():
         g = _random_gaussians(spec, 5, size, size, n_frames, rng, np.float32)
-        _, grads, _ = loss_and_gradients(g, frames, device, S_MIN, cut=6.0, time_cut=6.0)
+        _, grads, _ = renderer.loss_and_gradients(g, S_MIN)
 
         def loss(h):
-            images = render_clip(h, n_frames, size, size, device, S_MIN, cut=6.0, time_cut=6.0)
+            images = renderer.render(h, S_MIN)
             return float(np.mean((images.astype(np.float64) - frames) ** 2))
 
         worst = 0.0
@@ -97,13 +101,35 @@ def check_clip(device, step=1e-2):
         assert worst < 0.02
 
 
+def check_against_course(device):
+    frames = data.synthetic_clip()[0]
+    n_frames, height, width, _ = frames.shape
+    renderer = ClipRenderer(n_frames, height, width, device, targets=frames)
+    for spec in MODELS.values():
+        g = initial(spec, 12000, frames, seed=0)
+        rng = np.random.default_rng(2)                  # move the Gaussians off their initial values
+        g.vel[:] = rng.normal(0, 2, g.vel.shape)
+        if spec.accel:
+            g.acc[:] = rng.normal(0, 0.3, g.acc.shape)
+        g.chol[:, 1] = rng.normal(0, 3, len(g))
+        reference = render_clip_reference(g, n_frames, width, height, device, S_MIN)
+        image_error = np.abs(renderer.render(g, S_MIN) - reference).max()
+        loss_ref, grads_ref, _ = loss_and_gradients_reference(g, frames, device, S_MIN)
+        loss, grads, _ = renderer.loss_and_gradients(g, S_MIN, want_images=True)
+        grad_error = max(np.abs(grads[n] - grads_ref[n]).max() / np.abs(grads_ref[n]).max() for n in grads)
+        print(f"against the course kernels, {spec.name}: largest pixel difference {image_error:.1e}, "
+              f"loss {loss:.6f} vs {loss_ref:.6f}, largest gradient difference (relative) {grad_error:.1e}")
+        assert image_error < 1e-4 and abs(loss - loss_ref) < 1e-6 and grad_error < 1e-4
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("--device", default="cpu")
+    p.add_argument("--device", default="cuda")
     a = p.parse_args(argv)
     wp.init()
     check_slicing()
     check_clip(a.device)
+    check_against_course(a.device)
 
 
 if __name__ == "__main__":

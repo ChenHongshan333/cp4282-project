@@ -9,7 +9,7 @@ import numpy as np
 from gaussian_image_video import MIN_SCALE
 from stg.metrics import psnr_per_frame
 from stg.model import SpaceTimeGaussians
-from stg.render import loss_and_gradients
+from stg.render import ClipRenderer
 
 # Learning rates per step. mu, chol and colour are the course's; the others are starting points to
 # be checked on the validation clip. The rate of ``acc`` is ``acc_ratio`` times the rate of ``vel``.
@@ -25,11 +25,13 @@ def fit(g: SpaceTimeGaussians, frames: np.ndarray, iterations: int, device, s_mi
     names = list(g.params)
     first = {n: np.zeros_like(g.params[n]) for n in names}
     second = {n: np.zeros_like(g.params[n]) for n in names}
+    renderer = ClipRenderer(*frames.shape[:3], device, targets=frames)
     trace = []
     start = time.perf_counter()
     for step in range(1, iterations + 1):
-        loss, grads, images = loss_and_gradients(g, frames, device, s_min)
-        if trace_every and (step == 1 or step % trace_every == 0):
+        tracing = trace_every and (step == 1 or step % trace_every == 0)
+        loss, grads, images = renderer.loss_and_gradients(g, s_min, want_images=tracing)
+        if tracing:
             value = float(np.mean(psnr_per_frame(images, frames)))
             trace.append((step - 1, loss, value, time.perf_counter() - start))
             log(f"  step {step - 1:5d}  loss {loss:.6f}  PSNR {value:.2f}  {trace[-1][3]:.1f}s")

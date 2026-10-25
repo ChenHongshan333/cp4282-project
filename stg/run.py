@@ -27,7 +27,7 @@ from stg import data, flow
 from stg.fit import RATES, fit
 from stg.metrics import masked_psnr, psnr_per_frame, ssim
 from stg.model import MODELS, initial
-from stg.render import render_clip
+from stg.render import ClipRenderer
 
 
 def parser():
@@ -99,8 +99,11 @@ def main(argv=None):
     train_seconds = time.perf_counter() - start
     g.save(out / "params.npz")
 
+    renderer = ClipRenderer(n_frames, height, width, a.device)
+    renderer.render(g, a.s_min)                     # first call outside the timing
+    wp.synchronize_device(a.device)
     start = time.perf_counter()
-    images = render_clip(g, n_frames, width, height, a.device, a.s_min)
+    images = renderer.render(g, a.s_min)            # copies the frames back, so it waits for the GPU
     render_seconds = (time.perf_counter() - start) / n_frames
     per_frame = psnr_per_frame(images, frames)
     masks, mask_kind = load_masks(a, frames)

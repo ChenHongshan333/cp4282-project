@@ -13,8 +13,10 @@ CP4282 project: do the curved (acceleration) and shrinking extensions of space-t
 ## Layout
 
 ```
-gaussian_image_video.py   course program (Unit 16): 2D renderer and gradient kernels, used unchanged
+gaussian_image_video.py   course program (Unit 16): 2D renderer and gradient kernels, unchanged
 stg/                      this project (see stg/__init__.py for one line per module)
+stg/kernels.py            the course kernels with one thread per row of a Gaussian's box and all
+                          frames in one launch; `stg.check` compares them with the course kernels
 slurm/array.sh            one fit per Slurm array task
 data/uvg/<Sequence>/      UVG .yuv file or frame images (not in the repository)
 data/masks/<Sequence>/    hand-drawn masks, <frame>.png (optional; flow masks otherwise)
@@ -31,7 +33,7 @@ python -m venv .venv
 ## Commands
 
 ```
-python -m stg.check --device cpu                                     # gradient checks, all models
+python -m stg.check --device cuda                                    # gradient checks, all models
 python -m stg.run --model M1 --budget 6000 --sequence synthetic --iterations 300 --device cuda
 python -m stg.sweep --stage test --list                              # every run of the main experiment
 sbatch --array=0-335 slurm/array.sh test                             # on the cluster

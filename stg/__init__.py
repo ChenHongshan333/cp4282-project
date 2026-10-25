@@ -5,7 +5,9 @@ The 2D renderer and its hand-written gradients are the course's (``gaussian_imag
 
     model.py      the stored parameters of a space-time Gaussian, the models, the storage budget
     slicing.py    slicing a space-time Gaussian at frame t, and its backward pass
-    render.py     rendering a clip and the gradient of the joint loss, via the course kernels
+    kernels.py    the course's render and gradient kernels, one thread per row, all frames in one launch
+    render.py     rendering a clip and the gradient of the joint loss (and a frame-by-frame reference
+                  that calls the course's functions unchanged)
     fit.py        Adam over all frames of a clip
     data.py       UVG loader with frame stride, and the synthetic clip
     metrics.py    PSNR, SSIM, and PSNR inside and outside a mask
