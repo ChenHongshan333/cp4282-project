@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -50,6 +51,7 @@ def main(argv=None):
             lines.append(f"| {model} | {cell[0]} | {cell[1]} | {cell[2]} | {value:.2f} | {'✓' if s == best else ''} |")
     (a.root / "chosen.json").write_text(json.dumps(chosen, indent=1))
     (a.root / "selection.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")       # a Chinese Windows console defaults to GBK
     print("\n".join(lines))
     print(json.dumps(chosen, indent=1))
 

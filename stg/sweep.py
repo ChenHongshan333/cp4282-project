@@ -78,6 +78,21 @@ def validation_runs():
     return runs
 
 
+def validation_extension_runs():
+    """The validation stage chose a rate of v of 0.1 for every model and acc_ratio 0.3 for M1 and M3,
+    both at the edge of their grids. This adds the next values around those choices: rate of v
+    0.2, and acc_ratio 0.1. 8 settings x 4 budgets x 2 strides = 64 runs, written with the validation
+    runs (``--out runs/validation``) so that ``stg.select`` compares them all."""
+    settings = [("M0", 0.2, 0.1, 1.0),
+                ("M1", 0.2, 0.1, 0.3), ("M1", 0.1, 0.1, 0.1), ("M1", 0.2, 0.1, 0.1),
+                ("M2", 0.2, 0.1, 1.0),
+                ("M3", 0.2, 0.1, 0.3), ("M3", 0.1, 0.1, 0.1), ("M3", 0.2, 0.1, 0.1)]
+    return [_args(model, budget, "Jockey", stride, 0, start=VALIDATION_START, lr_vel=lr_vel, s_min=s_min,
+                  acc_ratio=acc_ratio)
+            for budget, stride in itertools.product(BUDGETS, STRIDES)
+            for model, lr_vel, s_min, acc_ratio in settings]
+
+
 def test_runs():
     runs = [_args(model, budget, sequence, stride, seed)
             for sequence, stride, budget, model, seed
@@ -93,7 +108,8 @@ def synthetic_runs():
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
 
 
-STAGES = {"validation": validation_runs, "test": test_runs, "synthetic": synthetic_runs}
+STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
+          "synthetic": synthetic_runs}
 
 
 def main(argv=None):

@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 KEYS = ("sequence", "start", "frames", "stride", "model", "budget", "lr_vel", "s_min", "acc_ratio")
-VALUES = ("psnr", "ssim", "psnr_in_mask", "psnr_out_mask", "gaussians", "stored_numbers", "bytes",
+VALUES = ("psnr", "ssim", "vmaf", "psnr_in_mask", "psnr_out_mask", "gaussians", "stored_numbers", "bytes",
           "seconds_per_iteration", "render_seconds_per_frame")
 
 
@@ -23,6 +23,7 @@ def load(root: Path) -> list[dict]:
     for path in sorted(root.glob("*/metrics.json")):
         m = json.loads(path.read_text())
         m.setdefault("lr_vel", 0.05)        # runs made before the rate of v was recorded used the default
+        m.setdefault("vmaf", float("nan"))  # added afterwards by stg.vmaf
         m["psnr_in_mask"] = float(np.nanmean(m["psnr_in_mask_per_frame"]))
         m["psnr_out_mask"] = float(np.nanmean(m["psnr_out_mask_per_frame"]))
         rows.append({k: m[k] for k in KEYS + ("seed",) + VALUES} | {"run": path.parent.name})
@@ -38,7 +39,7 @@ def summarise(rows: list[dict]) -> list[dict]:
         row = dict(zip(KEYS, key), seeds=len(group))
         for v in VALUES:
             values = np.array([g[v] for g in group], float)
-            row[f"{v}_mean"], row[f"{v}_min"], row[f"{v}_max"] = values.mean(), values.min(), values.max()
+            row[f"{v}_mean"], row[f"{v}_min"], row[f"{v}_max"] = np.nanmean(values), np.nanmin(values), np.nanmax(values)
         out.append(row)
     return out
 
