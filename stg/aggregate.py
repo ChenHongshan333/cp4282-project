@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-KEYS = ("sequence", "start", "frames", "stride", "model", "budget", "s_min", "acc_ratio")
+KEYS = ("sequence", "start", "frames", "stride", "model", "budget", "lr_vel", "s_min", "acc_ratio")
 VALUES = ("psnr", "ssim", "psnr_in_mask", "psnr_out_mask", "gaussians", "stored_numbers", "bytes",
           "seconds_per_iteration", "render_seconds_per_frame")
 
@@ -22,6 +22,7 @@ def load(root: Path) -> list[dict]:
     rows = []
     for path in sorted(root.glob("*/metrics.json")):
         m = json.loads(path.read_text())
+        m.setdefault("lr_vel", 0.05)        # runs made before the rate of v was recorded used the default
         m["psnr_in_mask"] = float(np.nanmean(m["psnr_in_mask_per_frame"]))
         m["psnr_out_mask"] = float(np.nanmean(m["psnr_out_mask_per_frame"]))
         rows.append({k: m[k] for k in KEYS + ("seed",) + VALUES} | {"run": path.parent.name})

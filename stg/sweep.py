@@ -4,17 +4,22 @@
     test         the main experiment (288 fits) and the 30-frame Jockey clip (48 fits)
     synthetic    the four models on the synthetic clip with known paths
 
-Each run is a list of arguments for ``stg.run``. A Slurm array job runs one of them per task:
+Each run is a list of arguments for ``stg.run``, and writes to ``runs/<stage>/`` by default. A Slurm
+array job runs one of them per task; ``--all`` runs the whole stage in one process and skips the
+runs that already have a metrics.json, so it can be stopped and restarted:
 
     python -m stg.sweep --stage test --count              # number of runs
     python -m stg.sweep --stage test --list               # the commands
     python -m stg.sweep --stage test --index $SLURM_ARRAY_TASK_ID --device cuda
+    python -m stg.sweep --stage synthetic --all --device cuda
 """
 
 from __future__ import annotations
 
 import argparse
 import itertools
+import json
+from pathlib import Path
 
 from stg.data import SEQUENCES
 
@@ -23,29 +28,49 @@ SEEDS = (0, 1, 2)
 STRIDES = (1, 3)
 S_MINS = (0.05, 0.1, 0.2)
 ACC_RATIOS = (0.3, 1.0, 3.0)
+# The synthetic stage showed that the gain of M1 depends on the learning rate of v (step 7 of
+# PROGRESS.md), so every model, M0 included, also gets its own rate of v. The rate of a is acc_ratio
+# times the rate of v.
+LR_VELS = (0.02, 0.05, 0.1)
+MODELS = ("M0", "M1", "M2", "M3")
 
 # A Jockey segment that does not overlap frames 0-29 and shows the galloping horse with the camera
-# panning. To be chosen after watching the sequence; at stride 3 the clip spans 28 frames.
-VALIDATION_START = None
+# panning: frames 60-69 at stride 1 and 60-87 at stride 3. The camera zooms in over the sequence, and
+# from frame 60 the whole horse is still in view at about the scale of the test clips.
+VALIDATION_START = 60
 
-# Chosen on the validation clip, then used for every test run. Fill in after the validation stage.
-CHOSEN = {"s_min": 0.1, "acc_ratio": 1.0}
+# The settings before tuning, used by the synthetic stage.
+DEFAULT = {"lr_vel": 0.05, "s_min": 0.1, "acc_ratio": 1.0}
+
+# Chosen per model on the validation clip by ``stg.select``, then used for every test run; a model's
+# s_min or acc_ratio is ignored when it has no shrinking or acceleration. Until the validation stage
+# is done, the defaults.
+CHOSEN_FILE = Path("runs/validation/chosen.json")
+CHOSEN = {model: dict(DEFAULT) for model in MODELS}
+if CHOSEN_FILE.exists():
+    CHOSEN.update({model: {k: v[k] for k in DEFAULT} for model, v in json.loads(CHOSEN_FILE.read_text()).items()})
 
 
-def _args(model, budget, sequence, stride, seed, start=0, frames=10, s_min=None, acc_ratio=None):
-    s_min = CHOSEN["s_min"] if s_min is None else s_min
-    acc_ratio = CHOSEN["acc_ratio"] if acc_ratio is None else acc_ratio
+def _args(model, budget, sequence, stride, seed, start=0, frames=10, lr_vel=None, s_min=None, acc_ratio=None,
+          settings=None):
+    settings = settings or CHOSEN[model]
+    lr_vel = settings["lr_vel"] if lr_vel is None else lr_vel
+    s_min = settings["s_min"] if s_min is None else s_min
+    acc_ratio = settings["acc_ratio"] if acc_ratio is None else acc_ratio
     return ["--model", model, "--budget", str(budget), "--sequence", sequence, "--start", str(start),
             "--frames", str(frames), "--stride", str(stride), "--seed", str(seed),
-            "--s-min", str(s_min), "--acc-ratio", str(acc_ratio)]
+            "--lr-vel", str(lr_vel), "--s-min", str(s_min), "--acc-ratio", str(acc_ratio)]
 
 
 def validation_runs():
+    """For each budget and stride: M0 x 3 rates of v, M1 x 3 x 3 acc_ratio, M2 x 3 x 3 s_min,
+    M3 x 3 x 3 x 3: 48 runs, so 384 in all."""
     if VALIDATION_START is None:
         raise SystemExit("set VALIDATION_START in stg/sweep.py to the first frame of the validation clip")
     runs = []
-    for budget, stride in itertools.product(BUDGETS, STRIDES):
-        common = dict(budget=budget, sequence="Jockey", stride=stride, seed=0, start=VALIDATION_START)
+    for budget, stride, lr_vel in itertools.product(BUDGETS, STRIDES, LR_VELS):
+        common = dict(budget=budget, sequence="Jockey", stride=stride, seed=0, start=VALIDATION_START,
+                      lr_vel=lr_vel, settings=DEFAULT)
         runs.append(_args("M0", **common))
         runs += [_args("M1", acc_ratio=r, **common) for r in ACC_RATIOS]
         runs += [_args("M2", s_min=s, **common) for s in S_MINS]
@@ -56,16 +81,16 @@ def validation_runs():
 def test_runs():
     runs = [_args(model, budget, sequence, stride, seed)
             for sequence, stride, budget, model, seed
-            in itertools.product(SEQUENCES, STRIDES, BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+            in itertools.product(SEQUENCES, STRIDES, BUDGETS, MODELS, SEEDS)]
     # 30-frame Jockey clip at stride 1, budgets tripled so that each frame gets the same budget
     runs += [_args(model, 3 * budget, "Jockey", 1, seed, frames=30)
-             for budget, model, seed in itertools.product(BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
     return runs
 
 
 def synthetic_runs():
-    return [_args(model, budget, "synthetic", 1, seed)
-            for budget, model, seed in itertools.product(BUDGETS, ("M0", "M1", "M2", "M3"), SEEDS)]
+    return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
+            for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
 
 
 STAGES = {"validation": validation_runs, "test": test_runs, "synthetic": synthetic_runs}
@@ -78,16 +103,30 @@ def main(argv=None):
     group.add_argument("--count", action="store_true")
     group.add_argument("--list", action="store_true")
     group.add_argument("--index", type=int)
+    group.add_argument("--all", action="store_true")
     a, extra = p.parse_known_args(argv)         # extra arguments go to every run, e.g. --device cuda
-    runs = STAGES[a.stage]()
+    if "--out" not in extra:
+        extra = extra + ["--out", f"runs/{a.stage}"]
+    runs = [r + extra for r in STAGES[a.stage]()]
     if a.count:
         print(len(runs))
     elif a.list:
         for i, r in enumerate(runs):
-            print(i, "python -m stg.run", " ".join(r + extra))
-    else:
+            print(i, "python -m stg.run", " ".join(r))
+    elif a.index is not None:
         from stg import run
-        run.main(runs[a.index] + extra)
+        run.main(runs[a.index])
+    else:
+        import time
+        from pathlib import Path
+        from stg import run
+        start = time.perf_counter()
+        for i, r in enumerate(runs):
+            args = run.parser().parse_args(r)
+            if (Path(args.out) / (args.name or run.run_name(args)) / "metrics.json").exists():
+                continue
+            print(f"[{i + 1}/{len(runs)}] {time.perf_counter() - start:.0f}s", flush=True)
+            run.main(r)
 
 
 if __name__ == "__main__":

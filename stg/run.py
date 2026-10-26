@@ -56,8 +56,13 @@ def parser():
 
 
 def run_name(a) -> str:
-    return (f"{a.sequence}_k{a.start}_n{a.frames}_s{a.stride}_{a.model}_B{a.budget}_seed{a.seed}"
+    name = (f"{a.sequence}_k{a.start}_n{a.frames}_s{a.stride}_{a.model}_B{a.budget}_seed{a.seed}"
             f"_smin{a.s_min}_acc{a.acc_ratio}")
+    # The rate of v enters the name only when it differs from the default, so that the names of the
+    # runs made before it was tuned stay the same.
+    if a.lr_vel != RATES["vel"]:
+        name += f"_lrv{a.lr_vel}"
+    return name
 
 
 def load_masks(a, frames) -> tuple[np.ndarray, str]:
@@ -109,7 +114,7 @@ def main(argv=None):
     masks, mask_kind = load_masks(a, frames)
     metrics = {
         "model": a.model, "budget": a.budget, "sequence": a.sequence, "start": a.start, "frames": a.frames,
-        "stride": a.stride, "seed": a.seed, "s_min": a.s_min, "acc_ratio": a.acc_ratio,
+        "stride": a.stride, "seed": a.seed, "lr_vel": a.lr_vel, "s_min": a.s_min, "acc_ratio": a.acc_ratio,
         "gaussians": len(g), "stored_numbers": g.stored_numbers(), "bytes": 4 * g.stored_numbers(),
         "psnr": float(per_frame.mean()),
         "psnr_per_frame": per_frame.tolist(),
