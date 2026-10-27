@@ -103,13 +103,20 @@ def test_runs():
     return runs
 
 
+def still_runs():
+    """Plan A (PROGRESS.md): frame 0 of each sequence repeated 10 times, so the clip has no motion.
+    4 images x 4 models x 2 budgets x 3 seeds = 96 runs, with the settings chosen for the test runs."""
+    return [_args(model, budget, f"still_{sequence}", 1, seed)
+            for sequence, budget, model, seed in itertools.product(SEQUENCES, (3000, 12000), MODELS, SEEDS)]
+
+
 def synthetic_runs():
     return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
 
 
 STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
-          "synthetic": synthetic_runs}
+          "synthetic": synthetic_runs, "still": still_runs}
 
 
 def main(argv=None):

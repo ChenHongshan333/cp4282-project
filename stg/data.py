@@ -72,6 +72,10 @@ def load_clip(data_root: Path, sequence: str, start: int, n_frames: int, stride:
     """Frames start, start + stride, ... of a sequence, as float32 (T, H, W, 3) in [0, 1]."""
     if sequence == "synthetic":
         return synthetic_clip(n_frames, stride, size)[0]
+    if sequence.startswith("still_"):
+        # A clip with no motion at all: frame ``start`` of the sequence, repeated (PROGRESS.md, plan A).
+        frame = load_clip(data_root, sequence[len("still_"):], start, 1, 1, size)
+        return np.repeat(frame, n_frames, axis=0)
     folder = Path(data_root) / sequence
     indices = frame_indices(start, n_frames, stride)
     yuv = sorted(folder.glob("*.yuv"))

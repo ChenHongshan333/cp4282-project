@@ -69,6 +69,9 @@ def load_masks(a, frames) -> tuple[np.ndarray, str]:
     """Object masks if present for every frame of the clip, else optical-flow masks."""
     folder = a.mask_root / a.sequence
     indices = data.frame_indices(a.start, a.frames, a.stride)
+    if a.sequence.startswith("still_"):            # the repeated frame's mask, repeated
+        folder = a.mask_root / a.sequence[len("still_"):]
+        indices = [a.start] * a.frames
     paths = [folder / f"{k:04d}.png" for k in indices]
     if all(p.exists() for p in paths):
         from PIL import Image
