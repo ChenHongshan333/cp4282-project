@@ -14,7 +14,9 @@ from pathlib import Path
 import numpy as np
 
 SIZE = (480, 270)           # width, height, as in Unit 16
-SEQUENCES = ("Jockey", "ShakeNDry", "YachtRide")
+# Bosphorus was added after the motion measurement (PROGRESS.md, step 12): YachtRide's water makes
+# its motion less straight than planned, and Bosphorus has the smallest acceleration of all clips.
+SEQUENCES = ("Jockey", "ShakeNDry", "YachtRide", "Bosphorus")
 
 
 def frame_indices(start: int, n_frames: int, stride: int) -> list[int]:

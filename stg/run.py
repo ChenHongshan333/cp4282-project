@@ -47,7 +47,7 @@ def parser():
         p.add_argument(f"--lr-{name.replace('_', '-')}", type=float, default=rate)
     p.add_argument("--data-root", type=Path, default=Path("data/uvg"))
     p.add_argument("--mask-root", type=Path, default=Path("data/masks"),
-                   help="hand-drawn masks <mask-root>/<Sequence>/<frame>.png; otherwise flow masks are used")
+                   help="object masks <mask-root>/<Sequence>/<frame>.png (stg.masks); otherwise flow masks")
     p.add_argument("--out", type=Path, default=Path("runs"))
     p.add_argument("--name", help="run directory name; by default built from the arguments")
     p.add_argument("--device", default="cuda")
@@ -66,7 +66,7 @@ def run_name(a) -> str:
 
 
 def load_masks(a, frames) -> tuple[np.ndarray, str]:
-    """Hand-drawn masks if present for every frame of the clip, else optical-flow masks."""
+    """Object masks if present for every frame of the clip, else optical-flow masks."""
     folder = a.mask_root / a.sequence
     indices = data.frame_indices(a.start, a.frames, a.stride)
     paths = [folder / f"{k:04d}.png" for k in indices]
@@ -74,7 +74,7 @@ def load_masks(a, frames) -> tuple[np.ndarray, str]:
         from PIL import Image
         h, w = frames.shape[1:3]
         return np.stack([np.asarray(Image.open(p).convert("L").resize((w, h), Image.NEAREST)) > 127
-                         for p in paths]), "hand"
+                         for p in paths]), "object"
     return flow.motion_masks(frames), "flow"
 
 

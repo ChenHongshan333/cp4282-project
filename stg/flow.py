@@ -21,22 +21,37 @@ def flows(frames: np.ndarray) -> np.ndarray:
                      for a, b in zip(gray[:-1], gray[1:])])
 
 
-def motion_stats(frames: np.ndarray) -> dict:
-    """Mean displacement per frame (speed) and mean change of displacement between consecutive
-    frame pairs (acceleration), with and without the median (camera) flow of each frame.
+def _change_along_motion(f: np.ndarray) -> list[np.ndarray]:
+    """For each pixel p of frame k, |d_{k+1}(p + d_k(p)) - d_k(p)|: how much the displacement of the
+    point that starts at p changes over the next frame. Pixels that leave the frame are NaN."""
+    import cv2
+    height, width = f.shape[1:3]
+    yy, xx = np.mgrid[0:height, 0:width].astype(np.float32)
+    out = []
+    for d, d_next in zip(f[:-1], f[1:]):
+        mx, my = xx + d[..., 0], yy + d[..., 1]
+        sampled = cv2.remap(d_next, mx, my, cv2.INTER_LINEAR)
+        change = np.linalg.norm(sampled - d, axis=-1)
+        change[(mx < 0) | (mx > width - 1) | (my < 0) | (my > height - 1)] = np.nan
+        out.append(change)
+    return out
 
-    The change is taken at the same pixel, not along the motion, so it is a rough measure."""
+
+def motion_stats(frames: np.ndarray) -> dict:
+    """How fast and how curved the motion of a clip is, from the flow between consecutive frames.
+
+    speed           mean displacement per frame, in pixels
+    acceleration    mean change of displacement between consecutive frames, followed along the
+                    motion (``_change_along_motion``), in pixels per frame^2
+    curvature       acceleration / speed: how far the motion is from straight and uniform
+    *_p90           the 90th percentile over pixels, for the fastest-changing tenth of the frame
+    The camera is included: a steady pan adds speed but little acceleration."""
     f = flows(frames)
-    camera = np.median(f.reshape(len(f), -1, 2), axis=1)[:, None, None, :]
-    rel = f - camera
-    out = {
-        "speed": float(np.linalg.norm(f, axis=-1).mean()),
-        "speed_relative": float(np.linalg.norm(rel, axis=-1).mean()),
-        "camera_speed": float(np.linalg.norm(camera, axis=-1).mean()),
-    }
-    if len(f) > 1:
-        out["acceleration"] = float(np.linalg.norm(np.diff(f, axis=0), axis=-1).mean())
-        out["acceleration_relative"] = float(np.linalg.norm(np.diff(rel, axis=0), axis=-1).mean())
+    speed = np.linalg.norm(f, axis=-1)
+    change = np.stack(_change_along_motion(f))
+    out = {"speed": float(speed.mean()), "speed_p90": float(np.percentile(speed, 90)),
+           "acceleration": float(np.nanmean(change)), "acceleration_p90": float(np.nanpercentile(change, 90))}
+    out["curvature"] = out["acceleration"] / max(out["speed"], 1e-6)
     return out
 
 
