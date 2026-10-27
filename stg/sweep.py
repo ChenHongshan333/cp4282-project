@@ -110,13 +110,24 @@ def still_runs():
             for sequence, budget, model, seed in itertools.product(SEQUENCES, (3000, 12000), MODELS, SEEDS)]
 
 
+def long_runs():
+    """Does the gain over M0 survive longer training? (PROGRESS.md, step 18.) Jockey, stride 3, seed 0,
+    10000 iterations instead of 3000: all models at budgets 6000 and 24000 of the test runs, and M0
+    and M3 at 192000 (16000 Gaussians of M0). The learning rates fall to a quarter over the run, as in
+    every fit, so the schedule is stretched rather than continued."""
+    runs = [_args(model, budget, "Jockey", 3, 0) + ["--iterations", "10000"]
+            for budget, model in itertools.product((6000, 24000), MODELS)]
+    runs += [_args(model, 192000, "Jockey", 3, 0) + ["--iterations", "10000"] for model in ("M0", "M3")]
+    return runs
+
+
 def synthetic_runs():
     return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
 
 
 STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
-          "synthetic": synthetic_runs, "still": still_runs}
+          "synthetic": synthetic_runs, "still": still_runs, "long": long_runs}
 
 
 def main(argv=None):
