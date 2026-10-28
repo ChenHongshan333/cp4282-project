@@ -121,13 +121,66 @@ def long_runs():
     return runs
 
 
+def converge_runs():
+    """How many iterations until the fits stop improving? (PROGRESS.md, step 19.) Jockey, stride 3,
+    seed 0, 30000 iterations: all models at budgets 6000 and 24000 with their chosen settings, and at
+    budget 6000 again with half the rate of v, to see whether longer training prefers another rate."""
+    runs = [_args(model, budget, "Jockey", 3, 0) + ["--iterations", "30000"]
+            for budget, model in itertools.product((6000, 24000), MODELS)]
+    runs += [_args(model, 6000, "Jockey", 3, 0, lr_vel=CHOSEN[model]["lr_vel"] / 2) + ["--iterations", "30000"]
+             for model in MODELS]
+    return runs
+
+
+def long_validation_runs():
+    """The rate of v chosen again for fully trained fits (PROGRESS.md, plan 1b): the validation stage
+    chose it at 3000 iterations, but the fits need about 20000-24000 to stop improving (step 19).
+    Jockey validation clip, stride 3, seed 0, 30000 iterations; acc_ratio and s_min stay as chosen.
+    4 models x 3 rates x 2 budgets = 24 runs; ``stg.select --root runs/long_validation`` picks a rate
+    per model."""
+    return [_args(model, budget, "Jockey", 3, 0, start=VALIDATION_START, lr_vel=lr_vel) + ["--iterations", "30000"]
+            for budget, model, lr_vel in itertools.product((6000, 24000), MODELS, (0.05, 0.1, 0.2))]
+
+
+# The rates of v chosen for fully trained fits by ``long_validation`` (PROGRESS.md, step 20).
+LONG_CHOSEN_FILE = Path("runs/long_validation/chosen.json")
+LONG_CHOSEN = json.loads(LONG_CHOSEN_FILE.read_text()) if LONG_CHOSEN_FILE.exists() else {}
+
+# A ShakeNDry segment that does not overlap frames 0-29: frames 100-127 at stride 3, the dog still
+# shaking off water at the start and walking towards the camera after.
+SHAKE_VALIDATION_START = 100
+
+
+def long_transfer_runs():
+    """Does the rate of v chosen on Jockey also suit ShakeNDry? (PROGRESS.md, plan 1c.) ShakeNDry
+    validation clip, stride 3, seed 0, budget 6000, 30000 iterations: each model with its chosen rate
+    and with 0.1, or 0.2 for M2 whose chosen rate is 0.1. 8 runs."""
+    runs = []
+    for model in MODELS:
+        chosen = LONG_CHOSEN[model]["lr_vel"]
+        for lr_vel in (chosen, 0.2 if chosen == 0.1 else 0.1):
+            runs.append(_args(model, 6000, "ShakeNDry", 3, 0, start=SHAKE_VALIDATION_START, lr_vel=lr_vel)
+                        + ["--iterations", "30000"])
+    return runs
+
+
+def long_test_runs():
+    """The main experiment again with fully trained fits (PROGRESS.md, plan 2 and step 23): every
+    sequence at stride 3, every budget, model and seed, 30000 iterations, with the rates of v chosen
+    by ``long_validation``. 192 runs, seed by seed, so that a stopped stage has whole seeds done."""
+    return [_args(model, budget, sequence, 3, seed, settings=LONG_CHOSEN[model]) + ["--iterations", "30000"]
+            for seed, sequence, budget, model in itertools.product(SEEDS, SEQUENCES, BUDGETS, MODELS)]
+
+
 def synthetic_runs():
     return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
 
 
 STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
-          "synthetic": synthetic_runs, "still": still_runs, "long": long_runs}
+          "synthetic": synthetic_runs, "still": still_runs, "long": long_runs, "converge": converge_runs,
+          "long_validation": long_validation_runs, "long_transfer": long_transfer_runs,
+          "long_test": long_test_runs}
 
 
 def main(argv=None):
