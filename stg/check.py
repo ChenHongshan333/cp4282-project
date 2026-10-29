@@ -1,4 +1,4 @@
-"""Finite-difference checks of the hand-written gradients, for all four models.
+"""Finite-difference checks of the hand-written gradients, for all models (M0 to M3, D3, D7).
 
 1. The slicing step alone, in double precision: for a random upstream gradient G on the sliced
    centre, Cholesky factor and colour, compare d(G . slice)/d(parameter) with central differences.
@@ -19,7 +19,7 @@ import numpy as np
 import warp as wp
 
 from stg import data
-from stg.model import MODELS, SpaceTimeGaussians, initial
+from stg.model import MODELS, SpaceTimeGaussians, is_stored, initial
 from stg.render import ClipRenderer, loss_and_gradients_reference, render_clip_reference
 from stg.slicing import slice_at, slice_backward
 
@@ -31,14 +31,13 @@ def _random_gaussians(spec, n, width, height, n_frames, rng, dtype):
         "mu": rng.uniform(0.35, 0.65, (n, 2)) * (width, height),
         "vel": rng.uniform(-1.5, 1.5, (n, 2)),
         "acc": rng.uniform(-0.3, 0.3, (n, 2)),
+        "poly": rng.uniform(-0.3, 0.3, (n, spec.extra_powers, 2)),
         "t0": rng.uniform(0.5, n_frames - 1.5, n),
         "sigma_t": rng.uniform(0.8, 1.6, n),
         "chol": np.column_stack([rng.uniform(1.5, 3, n), rng.uniform(-1, 1, n), rng.uniform(1.5, 3, n)]),
         "colour": rng.uniform(0.2, 0.8, (n, 3)),
     }
-    if not spec.accel:
-        del arrays["acc"]
-    return SpaceTimeGaussians(spec, **{k: v.astype(dtype) for k, v in arrays.items()})
+    return SpaceTimeGaussians(spec, **{k: v.astype(dtype) for k, v in arrays.items() if is_stored(spec, k)})
 
 
 def check_slicing(step=1e-6):
@@ -111,6 +110,8 @@ def check_against_course(device):
         g.vel[:] = rng.normal(0, 2, g.vel.shape)
         if spec.accel:
             g.acc[:] = rng.normal(0, 0.3, g.acc.shape)
+        if spec.extra_powers:
+            g.poly[:] = rng.normal(0, 0.3, g.poly.shape)
         g.chol[:, 1] = rng.normal(0, 3, len(g))
         reference = render_clip_reference(g, n_frames, width, height, device, S_MIN)
         image_error = np.abs(renderer.render(g, S_MIN) - reference).max()

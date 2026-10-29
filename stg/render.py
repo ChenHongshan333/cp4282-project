@@ -22,10 +22,14 @@ from stg.slicing import Slice, slice_at, slice_backward, TIME_CUT
 
 class ClipRenderer:
     """Renders ``n_frames`` frames of ``height`` x ``width``; with ``targets`` (T, H, W, 3) it also
-    gives the loss and its gradients. Buffers are allocated once and reused."""
+    gives the loss and its gradients. Buffers are allocated once and reused. The frames are at the
+    clip times 0, 1, ..., or at ``times``, which may lie between them (``stg.unseen``)."""
 
-    def __init__(self, n_frames, height, width, device, targets=None, cut=course.CUT, time_cut=TIME_CUT):
+    def __init__(self, n_frames, height, width, device, targets=None, cut=course.CUT, time_cut=TIME_CUT,
+                 times=None):
         self.n_frames, self.height, self.width = n_frames, height, width
+        self.times = list(range(n_frames)) if times is None else list(times)
+        assert len(self.times) == n_frames
         self.device, self.cut, self.time_cut = device, cut, time_cut
         pixels = n_frames * height * width
         self.image = wp.zeros(pixels, dtype=wp.vec3, device=device)
@@ -37,7 +41,7 @@ class ClipRenderer:
             self.image_grad = wp.zeros(pixels, dtype=wp.vec3, device=device)
 
     def _slices(self, g, s_min):
-        slices = [slice_at(g, t, s_min, self.time_cut) for t in range(self.n_frames)]
+        slices = [slice_at(g, t, s_min, self.time_cut) for t in self.times]
         mu = np.concatenate([s.mu for s in slices]).astype(np.float32)
         chol = np.concatenate([s.chol for s in slices]).astype(np.float32)
         colour = np.concatenate([s.colour for s in slices]).astype(np.float32)

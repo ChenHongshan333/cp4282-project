@@ -2,8 +2,10 @@
 
 Every Gaussian stores its centre mu (2 numbers), peak time t0 (1), duration sigma_t (1), velocity
 v (2), the Cholesky factor of its slice covariance (3) and its colour (3): 12 numbers. The models
-with acceleration (M1, M3) also store a (2), so 14. All numbers are float32, so a budget of B
-stored numbers is 4B bytes.
+with acceleration (M1, M3) also store a (2), so 14. The extension models D3 and D7 (PROGRESS.md,
+plan 2c) have a centre path of degree 3 or 7: a, and ``poly`` (degree - 2, 2) for the powers 3 and
+up, so 12 + 2 (degree - 1) numbers. All numbers are float32, so a budget of B stored numbers is 4B
+bytes.
 """
 
 from __future__ import annotations
@@ -20,10 +22,16 @@ class ModelSpec:
     name: str
     accel: bool       # centre mu + v tau + a tau^2
     shrink: bool      # slice covariance scaled by max(w, s_min)
+    degree: int = 0   # with accel, the degree of the centre path if above 2 (slicing.py)
+
+    @property
+    def extra_powers(self) -> int:
+        """Number of powers of tau above 2 in the centre path."""
+        return max(self.degree - 2, 0)
 
     @property
     def numbers_per_gaussian(self) -> int:
-        return 12 + (2 if self.accel else 0)
+        return 12 + (2 if self.accel else 0) + 2 * self.extra_powers
 
     def count(self, budget: int) -> int:
         """Number of Gaussians that fit in a budget of stored numbers."""
@@ -35,10 +43,17 @@ MODELS = {s.name: s for s in (
     ModelSpec("M1", accel=True, shrink=False),
     ModelSpec("M2", accel=False, shrink=True),
     ModelSpec("M3", accel=True, shrink=True),
+    ModelSpec("D3", accel=True, shrink=False, degree=3),     # extension, no shrinking, as M1
+    ModelSpec("D7", accel=True, shrink=False, degree=7),     # the default degree of VeGaS
 )}
 
-# Shapes per Gaussian of every stored attribute. ``acc`` exists only for models with acceleration.
-SHAPES = {"mu": (2,), "vel": (2,), "acc": (2,), "t0": (), "sigma_t": (), "chol": (3,), "colour": (3,)}
+# Shapes per Gaussian of every stored attribute. ``acc`` exists only for models with acceleration,
+# ``poly`` (extra_powers, 2) only for D3 and D7.
+SHAPES = {"mu": (2,), "vel": (2,), "acc": (2,), "poly": (2,), "t0": (), "sigma_t": (), "chol": (3,), "colour": (3,)}
+
+
+def is_stored(spec: ModelSpec, name: str) -> bool:
+    return (name != "acc" or spec.accel) and (name != "poly" or spec.extra_powers > 0)
 
 
 class SpaceTimeGaussians:
@@ -46,7 +61,7 @@ class SpaceTimeGaussians:
 
     def __init__(self, spec: ModelSpec, **arrays):
         self.spec = spec
-        names = [n for n in SHAPES if n != "acc" or spec.accel]
+        names = [n for n in SHAPES if is_stored(spec, n)]
         missing = set(names) - set(arrays)
         if missing:
             raise ValueError(f"missing attributes {sorted(missing)} for {spec.name}")
@@ -105,11 +120,11 @@ def initial(spec: ModelSpec, budget: int, frames: np.ndarray, seed: int, sigma_t
         "mu": mu,
         "vel": np.zeros((n_max, 2)),
         "acc": np.zeros((n_max, 2)),
+        "poly": np.zeros((n_max, spec.extra_powers, 2)),
         "t0": t0,
         "sigma_t": np.full(n_max, sigma_t_init),
         "chol": np.tile((scale, 0.0, scale), (n_max, 1)),
         "colour": 0.5 * frames[k, y, x],
     }
-    if not spec.accel:
-        del arrays["acc"]
-    return SpaceTimeGaussians(spec, **{name: a[:n].astype(np.float32) for name, a in arrays.items()})
+    return SpaceTimeGaussians(spec, **{name: a[:n].astype(np.float32) for name, a in arrays.items()
+                                       if is_stored(spec, name)})

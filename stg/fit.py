@@ -12,7 +12,8 @@ from stg.model import SpaceTimeGaussians
 from stg.render import ClipRenderer
 
 # Learning rates per step. mu, chol and colour are the course's; the others are starting points to
-# be checked on the validation clip. The rate of ``acc`` is ``acc_ratio`` times the rate of ``vel``.
+# be checked on the validation clip. The rate of ``acc`` is ``acc_ratio`` times the rate of ``vel``,
+# and so is the rate of ``poly`` (D3, D7), which is not tuned (PROGRESS.md, plan 2c).
 RATES = {"mu": 0.25, "vel": 0.05, "t0": 0.05, "sigma_t": 0.05, "chol": 0.05, "colour": 0.01}
 SIGMA_T_MIN = 0.3      # lower bound on the duration, in frames
 
@@ -21,7 +22,7 @@ def fit(g: SpaceTimeGaussians, frames: np.ndarray, iterations: int, device, s_mi
         rates: dict | None = None, acc_ratio: float = 1.0, trace_every: int = 0, log=print):
     """Fit ``g`` in place. Returns a trace of (step, loss, mean PSNR, seconds since start)."""
     rates = dict(RATES, **(rates or {}))
-    rates["acc"] = acc_ratio * rates["vel"]
+    rates["acc"] = rates["poly"] = acc_ratio * rates["vel"]
     names = list(g.params)
     first = {n: np.zeros_like(g.params[n]) for n in names}
     second = {n: np.zeros_like(g.params[n]) for n in names}

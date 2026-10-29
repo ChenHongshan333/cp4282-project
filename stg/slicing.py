@@ -8,12 +8,19 @@ Writing tau = t - t0, the slice at frame t is the 2D Gaussian of the course rend
 
 Shrinking scales the covariance L L^T by s, so it scales the Cholesky factor by sqrt(s).
 
+D3 and D7 add to the centre p_k tau^2 (tau / T)^(k - 2) for k = 3 .. degree, with T = POLY_TIME
+frames. The power k of tau alone would reach 9^7 = 5e6 across a 10-frame clip, so a step of Adam on
+p_7 would move the centre by thousands of pixels; measured in units of T, every power moves the
+centre by about as much as a tau^2 does at |tau| = T, and the k = 2 term is the a tau^2 of M1.
+
 The backward pass takes the gradients of the loss with respect to the sliced 2D attributes, which
 the course's gradient kernel returns, and adds the gradients with respect to the stored attributes:
 
     d/d mu  = g_mu                      d/d v = tau g_mu              d/d a = tau^2 g_mu
+    d/d p_k = tau^2 (tau / T)^(k - 2) g_mu
     d/d c   = w g_c                     d/d L = sqrt(s) g_L
-    dL/dtau = (v + 2 a tau) . g_mu  +  dL/dw * dw/dtau,        dw/dtau   = -w tau / sigma_t^2
+    dL/dtau = (v + 2 a tau + sum_k k p_k tau (tau / T)^(k - 2)) . g_mu  +  dL/dw * dw/dtau,
+                                        dw/dtau   = -w tau / sigma_t^2
     dL/dw   = c . g_c  (+ (L . g_L) / (2 sqrt(s))  for shrinking models where w > s_min)
     d/d t0  = -dL/dtau                  d/d sigma_t = dL/dw * w tau^2 / sigma_t^3
 """
@@ -30,6 +37,9 @@ from stg.model import SpaceTimeGaussians
 # A Gaussian is skipped in a frame where |tau| >= TIME_CUT sigma_t, where w < exp(-TIME_CUT^2 / 2) =
 # 0.002: the same rule in time as the course renderer's cut in space.
 TIME_CUT = CUT
+
+# The time unit of the powers above 2 of D3 and D7: half of a 10-frame clip.
+POLY_TIME = 4.5
 
 
 @dataclass
@@ -53,6 +63,8 @@ def slice_at(g: SpaceTimeGaussians, t: float, s_min: float, time_cut: float = TI
     mu = g.mu[index] + g.vel[index] * tau[:, None]
     if spec.accel:
         mu = mu + g.acc[index] * (tau ** 2)[:, None]
+    for j in range(spec.extra_powers):          # the power k = j + 3
+        mu = mu + g.poly[index, j] * (tau ** 2 * (tau / POLY_TIME) ** (j + 1))[:, None]
     s = np.maximum(w, s_min) if spec.shrink else np.ones_like(w)
     chol = g.chol[index] * np.sqrt(s)[:, None]
     colour = g.colour[index] * w[:, None]
@@ -72,6 +84,10 @@ def slice_backward(g: SpaceTimeGaussians, sl: Slice, s_min: float, g_mu, g_chol,
     if spec.accel:
         grads["acc"][i] += (tau ** 2)[:, None] * g_mu
         d_tau += 2.0 * tau * np.sum(g.acc[i] * g_mu, axis=1)
+    for j in range(spec.extra_powers):
+        unit = (tau / POLY_TIME) ** (j + 1)
+        grads["poly"][i, j] += (tau ** 2 * unit)[:, None] * g_mu
+        d_tau += (j + 3) * tau * unit * np.sum(g.poly[i, j] * g_mu, axis=1)
     grads["colour"][i] += w[:, None] * g_colour
     grads["chol"][i] += r[:, None] * g_chol
     d_w = np.sum(g.colour[i] * g_colour, axis=1)

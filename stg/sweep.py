@@ -172,6 +172,15 @@ def long_test_runs():
             for seed, sequence, budget, model in itertools.product(SEEDS, SEQUENCES, BUDGETS, MODELS)]
 
 
+def poly_runs():
+    """The extension (PROGRESS.md, plan 2c): centre paths of degree 3 and 7, against degree 1 (M0) and
+    2 (M1) of ``long_test``. Jockey and ShakeNDry at stride 3, budgets 6000 and 24000, 3 seeds, 30000
+    iterations, with the settings chosen for M1 (no shrinking). 24 runs."""
+    return [_args(model, budget, sequence, 3, seed, settings=LONG_CHOSEN["M1"]) + ["--iterations", "30000"]
+            for seed, sequence, budget, model
+            in itertools.product(SEEDS, ("Jockey", "ShakeNDry"), (6000, 24000), ("D3", "D7"))]
+
+
 def synthetic_runs():
     return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
@@ -180,7 +189,7 @@ def synthetic_runs():
 STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
           "synthetic": synthetic_runs, "still": still_runs, "long": long_runs, "converge": converge_runs,
           "long_validation": long_validation_runs, "long_transfer": long_transfer_runs,
-          "long_test": long_test_runs}
+          "long_test": long_test_runs, "poly": poly_runs}
 
 
 def main(argv=None):
