@@ -34,7 +34,7 @@ def parser():
     p = argparse.ArgumentParser(description="Fit one clip with space-time Gaussians.")
     p.add_argument("--model", choices=sorted(MODELS), required=True)
     p.add_argument("--budget", type=int, required=True, help="stored numbers (float32) for the whole clip")
-    p.add_argument("--sequence", required=True, help=f"one of {data.SEQUENCES} or 'synthetic'")
+    p.add_argument("--sequence", required=True, help=f"one of {data.SEQUENCES}, 'synthetic' or 'arc<angle>'")
     p.add_argument("--start", type=int, default=0, help="first frame of the clip in the sequence")
     p.add_argument("--frames", type=int, default=10)
     p.add_argument("--stride", type=int, default=1)
@@ -67,6 +67,8 @@ def run_name(a) -> str:
 
 def load_masks(a, frames) -> tuple[np.ndarray, str]:
     """Object masks if present for every frame of the clip, else optical-flow masks."""
+    if a.sequence.startswith("arc"):                # the ball, known exactly
+        return data.arc_clip(a.sequence, a.start, a.frames, a.stride, frames.shape[2:0:-1])[1], "object"
     folder = a.mask_root / a.sequence
     indices = data.frame_indices(a.start, a.frames, a.stride)
     if a.sequence.startswith("still_"):            # the repeated frame's mask, repeated

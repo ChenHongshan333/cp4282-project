@@ -181,6 +181,38 @@ def poly_runs():
             in itertools.product(SEEDS, ("Jockey", "ShakeNDry"), (6000, 24000), ("D3", "D7"))]
 
 
+def arc_runs(style="arc"):
+    """Does the gain of bending on the frames between grow with the bend of the motion? (PROGRESS.md,
+    plan 2e.) One ball on an arc of 0-360 degrees (``data.arc_clip``), stride 3, M0 and M1, budgets
+    6000 and 24000, 3 seeds, 30000 iterations with the rates chosen for fully trained fits. 60 runs,
+    seed by seed."""
+    from stg.data import ARC_ANGLES
+    return [_args(model, budget, f"{style}{angle}", 3, seed, settings=LONG_CHOSEN[model]) + ["--iterations", "30000"]
+            for seed, angle, budget, model in itertools.product(SEEDS, ARC_ANGLES, (6000, 24000), ("M0", "M1"))]
+
+
+def arc_slow_pilot_runs():
+    """Can M0 learn the motion of the slower arc clips (PROGRESS.md, plan 2e')? The straight path and
+    the full circle, M0, both budgets, seed 0: 4 runs, written with the stage ``arc_slow``."""
+    return [_args("M0", budget, f"arcs{angle}", 3, 0, settings=LONG_CHOSEN["M0"]) + ["--iterations", "30000"]
+            for angle, budget in itertools.product((0, 360), (6000, 24000))]
+
+
+# Segments not used before (PROGRESS.md, plan 2g): the dog still shaking off water (it does until
+# about frame 115) and two of the galloping horse; at stride 5 a clip spans 46 frames.
+CONFIRM_CLIPS = (("ShakeNDry", 30), ("Jockey", 120), ("Jockey", 200))
+
+
+def confirm_runs():
+    """Does bending help on the frames between on real video (PROGRESS.md, plan 2g)? The segments of
+    CONFIRM_CLIPS at strides 3 and 5, M0 and M1, budgets 6000 and 24000, 3 seeds, 30000 iterations with
+    the rates chosen for fully trained fits. 72 runs, seed by seed."""
+    return [_args(model, budget, sequence, stride, seed, start=start, settings=LONG_CHOSEN[model])
+            + ["--iterations", "30000"]
+            for seed, (sequence, start), stride, budget, model
+            in itertools.product(SEEDS, CONFIRM_CLIPS, (3, 5), (6000, 24000), ("M0", "M1"))]
+
+
 def synthetic_runs():
     return [_args(model, budget, "synthetic", 1, seed, settings=DEFAULT)
             for budget, model, seed in itertools.product(BUDGETS, MODELS, SEEDS)]
@@ -189,7 +221,8 @@ def synthetic_runs():
 STAGES = {"validation": validation_runs, "validation_extension": validation_extension_runs, "test": test_runs,
           "synthetic": synthetic_runs, "still": still_runs, "long": long_runs, "converge": converge_runs,
           "long_validation": long_validation_runs, "long_transfer": long_transfer_runs,
-          "long_test": long_test_runs, "poly": poly_runs}
+          "long_test": long_test_runs, "poly": poly_runs, "arc": arc_runs,
+          "arc_slow": lambda: arc_runs("arcs"), "arc_slow_pilot": arc_slow_pilot_runs, "confirm": confirm_runs}
 
 
 def main(argv=None):

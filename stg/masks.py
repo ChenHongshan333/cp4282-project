@@ -8,6 +8,7 @@ Writes ``<mask_root>/<Sequence>/<frame>.png`` (white = object), which ``stg.run`
 overlay image per sequence for checking.
 
     python -m stg.masks                        # frames 0-29 of every sequence, on the CPU
+    python -m stg.masks --sequences Jockey --start 120 --frames 46
 """
 
 from __future__ import annotations
@@ -24,6 +25,9 @@ from stg import data
 PERSON, BOAT, DOG, HORSE = 1, 9, 18, 19
 CLASSES = {"Jockey": (HORSE, PERSON), "ShakeNDry": (DOG,), "YachtRide": (BOAT, PERSON), "Bosphorus": (BOAT, PERSON)}
 SCORE = 0.5
+# Classes tried when a frame has none of the sequence's classes: in a few blurred frames of the shaking
+# dog the model sees a horse instead (there is none in the sequence).
+FALLBACK = {"ShakeNDry": (HORSE,)}
 SEGMENT_SIZE = (960, 540)
 
 
@@ -66,10 +70,15 @@ def overlay(frame, mask):
     return tinted
 
 
+def overlay_name(a):
+    return "overlay.png" if a.start == 0 else f"overlay_{a.start:04d}.png"
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--sequences", nargs="*", default=list(data.SEQUENCES))
-    p.add_argument("--frames", type=int, default=30, help="frames 0 .. frames-1 of each sequence")
+    p.add_argument("--start", type=int, default=0)
+    p.add_argument("--frames", type=int, default=30, help="frames start .. start+frames-1 of each sequence")
     p.add_argument("--data-root", type=Path, default=Path("data/uvg"))
     p.add_argument("--mask-root", type=Path, default=Path("data/masks"))
     p.add_argument("--clean-only", action="store_true",
@@ -80,37 +89,39 @@ def main(argv=None):
     if a.clean_only:
         for sequence in a.sequences:
             folder = a.mask_root / sequence
-            small = data.load_clip(a.data_root, sequence, 0, a.frames, 1)
+            small = data.load_clip(a.data_root, sequence, a.start, a.frames, 1)
             shares, tiles = [], []
-            for k in range(a.frames):
+            for i, k in enumerate(range(a.start, a.start + a.frames)):
                 mask = largest_component(np.asarray(Image.open(folder / f"{k:04d}.png")) > 127)
                 Image.fromarray(mask.astype(np.uint8) * 255).save(folder / f"{k:04d}.png")
                 shares.append(mask.mean())
-                if k % 9 == 0:
-                    tiles.append(overlay(small[k], mask))
-            Image.fromarray(np.round(np.concatenate(tiles, axis=1) * 255).astype(np.uint8)).save(folder / "overlay.png")
+                if i % 9 == 0:
+                    tiles.append(overlay(small[i], mask))
+            Image.fromarray(np.round(np.concatenate(tiles, axis=1) * 255).astype(np.uint8)).save(folder / overlay_name(a))
             print(f"{sequence}: object share of the frame {np.mean(shares):.1%} "
                   f"(min {np.min(shares):.1%}, max {np.max(shares):.1%})", flush=True)
         return
     model = load_model()
     for sequence in a.sequences:
-        frames = data.load_clip(a.data_root, sequence, 0, a.frames, 1, size=SEGMENT_SIZE)
-        small = data.load_clip(a.data_root, sequence, 0, a.frames, 1)
+        frames = data.load_clip(a.data_root, sequence, a.start, a.frames, 1, size=SEGMENT_SIZE)
+        small = data.load_clip(a.data_root, sequence, a.start, a.frames, 1)
         folder = a.mask_root / sequence
         folder.mkdir(parents=True, exist_ok=True)
         shares, tiles = [], []
-        for k, frame in enumerate(frames):
+        for i, (k, frame) in enumerate(zip(range(a.start, a.start + a.frames), frames)):
             mask, kept = segment(model, frame, CLASSES[sequence])
+            if not kept and sequence in FALLBACK:
+                mask, kept = segment(model, frame, FALLBACK[sequence])
             mask = np.asarray(Image.fromarray(mask.astype(np.uint8) * 255).resize((width, height), Image.BILINEAR)) > 127
             mask = largest_component(mask)
             Image.fromarray(mask.astype(np.uint8) * 255).save(folder / f"{k:04d}.png")
             shares.append(mask.mean())
-            if k % 9 == 0:
-                tiles.append(overlay(small[k], mask))
+            if i % 9 == 0:
+                tiles.append(overlay(small[i], mask))
             print(f"{sequence} frame {k}: {len(kept)} objects {[(l, round(s, 2)) for l, s in kept]}, "
                   f"{mask.mean():.1%} of the frame", flush=True)
         sheet = np.concatenate(tiles, axis=1)
-        Image.fromarray(np.round(sheet * 255).astype(np.uint8)).save(folder / "overlay.png")
+        Image.fromarray(np.round(sheet * 255).astype(np.uint8)).save(folder / overlay_name(a))
         print(f"{sequence}: object share of the frame {np.mean(shares):.1%} "
               f"(min {np.min(shares):.1%}, max {np.max(shares):.1%})", flush=True)
 
