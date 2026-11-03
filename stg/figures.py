@@ -112,6 +112,13 @@ def tables(runs: Runs) -> dict:
 
     t["test_fail"] = failure_table(test)
     t["long_fail"] = failure_table(long)
+    t["test_fail_short"] = failure_summary(test)
+    t["long_fail_short"] = failure_summary(long)
+
+    # Storage: blobs per budget.
+    t["budget"] = {"head": ["Model", "Numbers per blob", "Blobs at 3,000", "6,000", "12,000", "24,000"],
+                   "rows": [[m, str(n)] + [f"{b // n:,}" for b in BUDGETS]
+                            for m, n in (("M0, M2", 12), ("M1, M3", 14), ("D3", 16), ("D7", 24))]}
 
     # Step 14: the 30-frame Jockey clip.
     rows = []
@@ -147,6 +154,11 @@ def tables(runs: Runs) -> dict:
         rows.append([seq] + [f"{signed(np.mean([cell.where(budget=b).gain(m)[0] for b in BUDGETS]))} / "
                              f"{signed(np.mean([old.where(budget=b).gain(m)[0] for b in BUDGETS]))}" for m in MODELS[1:]])
     t["long_avg"] = {"head": ["Sequence", "M1 − M0", "M2 − M0", "M3 − M0"], "rows": rows}
+    # The same, one condition per table, for the main text.
+    for name, source in (("long_avg_trained", long), ("test_avg_s3", test.where(stride=3))):
+        t[name] = {"head": ["Sequence", "M1 curved", "M2 shrinking", "M3 both"],
+                   "rows": [[seq] + [signed(np.mean([source.where(sequence=seq, budget=b).gain(m)[0] for b in BUDGETS]))
+                                     for m in MODELS[1:]] for seq in SEQUENCES]}
     rows = []
     for seq in SEQUENCES:
         cell = long.where(sequence=seq)
@@ -232,6 +244,9 @@ def tables(runs: Runs) -> dict:
         rows.append(row)
     t["confirm"] = {"head": ["Clip", "Stride 3, 6,000", "Stride 3, 24,000", "Stride 5, 6,000", "Stride 5, 24,000"],
                     "rows": rows, "passed": passed}
+    # The mean and the pass mark only, for the main text.
+    t["confirm_short"] = {"head": t["confirm"]["head"],
+                          "rows": [[r[0]] + [c.split(" [")[0] + " " + c[-1] for c in r[1:]] for r in rows]}
     rows = []
     for value, label in (("psnr_in", "Fitted frames, object"), ("unseen", "Frames between, whole frame"),
                          ("psnr", "Fitted frames, whole frame")):
@@ -244,6 +259,24 @@ def tables(runs: Runs) -> dict:
         rows.append([f"Frames between, object: mean over stride {stride}", signed(np.mean(g))])
     t["confirm_other"] = {"head": ["M1 − M0 on", "Range over the 12 cells"], "rows": rows}
     return t
+
+
+def failure_summary(runs: Runs) -> dict:
+    """The failure test in short: at how many of the 4 budgets each model beats M0 by the margin."""
+    rows = []
+    for m in MODELS[1:]:
+        row, passes = [LABEL[m]], []
+        for seq in ("Jockey", "ShakeNDry"):
+            beats = 0
+            for b in BUDGETS:
+                cell = runs.where(sequence=seq, stride=3, budget=b)
+                g = cell.gain(m)[0]
+                beats += g > THRESHOLD and g > max(cell.seed_range(m), cell.seed_range("M0"))
+            row.append(f"{beats} of 4")
+            passes.append(beats >= 3)
+        row.append("passes" if all(passes) else "fails")
+        rows.append(row)
+    return {"head": ["Model", "Jockey", "ShakeNDry", "Verdict"], "rows": rows}
 
 
 def failure_table(runs: Runs) -> dict:

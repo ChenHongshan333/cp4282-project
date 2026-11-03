@@ -1,5 +1,5 @@
 // The interactive parts of the project page: tables from data/tables.json, the single-blob demo, the
-// budget bars, the training curves, the player of fitted models, the arc demo, and slide mode.
+// budget bars, the training curves, the player of fitted models and the arc demo.
 
 import { WIDTH, HEIGHT, SPECS, numbersPerGaussian, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
          ARC } from "./gauss.js";
@@ -38,19 +38,31 @@ async function fillTables() {
     const t = tables[el.dataset.table];
     if (!t) continue;
     el.classList.add("table-wrap");
+    // data-shade: grey out gains within ±0.3 dB, the margin of the pre-registered test
+    const shade = "shade" in el.dataset;
     const cell = (c) => {
       const text = String(c).replace(/✓/g, '<span class="pass">✓</span>').replace(/✗/g, '<span class="fail">✗</span>')
         .replace(/^passes$/, '<span class="pass">passes</span>').replace(/^fails$/, '<span class="fail">fails</span>');
-      const num = /^[\d+−\-—]/.test(String(c)) ? ' class="num"' : "";
-      return `<td${num}>${text}</td>`;
+      const classes = [];
+      if (/^[\d+−\-—]/.test(String(c))) classes.push("num");
+      if (shade && Math.abs(parseFloat(String(c).replace(MINUS, "-"))) <= 0.3) classes.push("small");
+      return `<td${classes.length ? ` class="${classes.join(" ")}"` : ""}>${text}</td>`;
     };
     el.innerHTML = `<table><caption>${el.dataset.caption || ""}</caption><thead><tr>${t.head
       .map((h, i) => `<th${i > 0 && /^[\d+−\-—]/.test(String(t.rows[0]?.[i] ?? "")) ? ' class="num"' : ""}>${h}</th>`)
       .join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</tbody></table>`;
   }
-  layoutSlides();
+  // A long caption inside a table makes the table as wide as the caption. Move every caption above
+  // its table, so that a table is only as wide as its columns.
+  for (const caption of $$("table > caption")) {
+    const div = document.createElement("div");
+    div.className = "tcap";
+    div.innerHTML = caption.innerHTML;
+    caption.closest("table").before(div);
+    caption.remove();
+  }
   // the tables change the height of the page: go to the linked section again
-  if (location.hash && !document.body.classList.contains("present")) $(location.hash)?.scrollIntoView();
+  if (location.hash) $(location.hash)?.scrollIntoView();
 }
 
 // ===================================================================================== one blob
@@ -580,63 +592,6 @@ async function arcWidget() {
   render();
 }
 
-// ===================================================================================== slides
-const slides = $$(".slide");
-let current = 0;
-function layoutSlides() {
-  if (!document.body.classList.contains("present")) return;
-  const s = slides[current], fit = $(".fit", s);
-  fit.style.transform = "none";
-  const availH = window.innerHeight * 0.86, availW = window.innerWidth * 0.92;
-  const scale = Math.min(1.25, availH / fit.scrollHeight, availW / fit.scrollWidth);
-  fit.style.transform = `scale(${scale})`;
-  fit.style.width = `${Math.min(1180, availW / scale)}px`;
-}
-function show(i) {
-  current = Math.max(0, Math.min(slides.length - 1, i));
-  slides.forEach((s, k) => s.classList.toggle("current", k === current));
-  $("#slide-title").textContent = slides[current].dataset.title || "";
-  $("#slide-count").textContent = `${current + 1} / ${slides.length}`;
-  $("#slide-progress").style.width = `${(100 * (current + 1)) / slides.length}%`;
-  layoutSlides();
-}
-function present(on) {
-  // start from the slide at the top of the window, measured before the page turns into slides
-  let best = 0;
-  if (on) slides.forEach((s, k) => { if (s.getBoundingClientRect().top < window.innerHeight * 0.4) best = k; });
-  document.body.classList.toggle("present", on);
-  if (on) {
-    show(best);
-  } else {
-    slides.forEach((s) => s.classList.remove("current"));
-    slides.forEach((s) => { const f = $(".fit", s); f.style.transform = ""; f.style.width = ""; });
-    slides[current].scrollIntoView();
-  }
-}
-function setupSlides() {
-  for (const s of slides) {
-    const fit = document.createElement("div");
-    fit.className = "fit";
-    while (s.firstChild) fit.appendChild(s.firstChild);
-    s.appendChild(fit);
-  }
-  for (const id of ["#present-btn", "#present-btn-2"]) $(id)?.addEventListener("click", () => present(!document.body.classList.contains("present")));
-  document.addEventListener("keydown", (e) => {
-    if (e.target.closest?.("input, select, textarea")) return;
-    const on = document.body.classList.contains("present");
-    if (e.key === "p" || e.key === "P") { present(!on); e.preventDefault(); return; }
-    if (!on) return;
-    if (["ArrowRight", "PageDown", " "].includes(e.key)) { show(current + 1); e.preventDefault(); }
-    else if (["ArrowLeft", "PageUp"].includes(e.key)) { show(current - 1); e.preventDefault(); }
-    else if (e.key === "Home") show(0);
-    else if (e.key === "End") show(slides.length - 1);
-    else if (e.key === "Escape") present(false);
-  });
-  window.addEventListener("resize", layoutSlides);
-  new ResizeObserver(layoutSlides).observe(document.body);
-  if (new URLSearchParams(location.search).has("present")) present(true);
-}
-
 // ===================================================================================== table of contents
 function setupToc() {
   const links = $$("#toc a");
@@ -647,7 +602,6 @@ function setupToc() {
   sections.forEach((s) => s && io.observe(s));
 }
 
-setupSlides();
 setupToc();
 blobWidget();
 budgetWidget();
