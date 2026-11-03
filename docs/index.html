@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Is Folding Worth the Storage?</title>
+<meta name="description" content="Curved and shrinking space-time Gaussians for video, compared at equal storage. CP4282 project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="inner">
+    <a class="brand" href="#top">Is Folding Worth the Storage?</a>
+    <nav id="toc">
+      <a href="#motivation">Motivation</a>
+      <a href="#questions">Questions</a>
+      <a href="#setup">Setup</a>
+      <a href="#results-3k">Results at 3k steps</a>
+      <a href="#why">Why</a>
+      <a href="#trained">Fully trained</a>
+      <a href="#degree">Higher degree</a>
+      <a href="#between">Frames between</a>
+      <a href="#conclusion">Conclusion</a>
+    </nav>
+    <button class="btn primary" id="present-btn" title="Slide mode (P)">Present</button>
+  </div>
+</div>
+
+<main id="top">
+
+<!-- ================================================================ TITLE -->
+<section class="chapter">
+<div class="slide" data-title="Title">
+<header class="title">
+  <div class="venue">CP4282 Project · National University of Singapore · November 2026</div>
+  <h1>Is Folding Worth the Storage?</h1>
+  <p class="subtitle">Curved and Shrinking Space-Time Gaussians for Video</p>
+  <div class="authors">Chen Hongshan</div>
+  <div class="affil">CP4282 course project</div>
+  <div class="links">
+    <a class="btn" href="https://github.com/ChenHongshan333/cp4282-project">Code</a>
+    <a class="btn" href="#reproduce">Reproduce</a>
+    <button class="btn" id="present-btn-2">Present this page</button>
+  </div>
+</header>
+
+<div class="col answer">
+  <h2>The short answer</h2>
+  <ol>
+    <li><b>For compression, no.</b> At equal storage and after full training, neither a curved path (M1), nor shrinking (M2), nor both (M3) gives a steady gain over the straight-line baseline of Unit 16. All three fail the test written in the proposal.</li>
+    <li><b>The gains seen after 3,000 steps were real but came from faster learning.</b> They also appear on still photographs, so they do not come from motion.</li>
+    <li><b>For frames between the fitted ones, the curved path does help, through motion.</b> On a synthetic ball the gain grows with the bend of its path, up to about 9 dB. On real video it is small (about 0.5 dB) and only on the moving object.</li>
+  </ol>
+</div>
+</div>
+</section>
+
+<!-- ================================================================ 1 MOTIVATION -->
+<section class="chapter" id="motivation">
+<div class="slide" data-title="Motivation">
+<h2><span class="num">1</span>Motivation</h2>
+<p>Unit 16 represents a short video by many coloured blobs, called <b>space-time Gaussians</b>. Each blob has a centre, a shape and a colour, and it lives for a short time: it fades in around its peak time <span class="math">t<sub>0</sub></span> and fades out again. While it is visible, its centre moves along a straight line at a constant velocity <span class="math">v</span>. To draw frame <span class="math">t</span>, we take every blob at that time and add them up. Each blob costs <b>12 stored numbers</b>, however many frames it covers.</p>
+<p>A straight line is a poor fit for some motion. The leg of a galloping horse swings forward and back within a few frames, so the baseline needs several short-lived blobs to follow it. VeGaS (Smolak-Dyżewska et al., 2024) gives each blob two new abilities, which it calls <b>folding</b>:</p>
+<ul>
+  <li><b>Curving:</b> the centre follows a curve, <span class="math">μ + vτ + aτ<sup>2</sup></span> with <span class="math">τ = t − t<sub>0</sub></span>. The acceleration <span class="math">a</span> costs 2 more numbers per blob.</li>
+  <li><b>Shrinking:</b> the blob gets smaller as it fades. This costs no extra numbers.</li>
+</ul>
+</div>
+
+<div class="slide" data-title="One blob">
+<div class="widget wide" id="w-blob">
+  <div class="wtitle">Interactive: one space-time Gaussian</div>
+  <div class="whelp">Drag the time slider to see one blob move and fade. Turn on the curve or shrinking to see what each ability changes. The dots show the centre at the 10 frames of a clip; the counter shows what the blob costs.</div>
+  <div class="grid2">
+    <div class="panel"><canvas width="480" height="270" id="blob-canvas"></canvas></div>
+    <div>
+      <div class="control"><span class="clabel">time t − t<sub>0</sub></span><input type="range" id="blob-t" min="-4.5" max="4.5" step="0.05" value="-2"><output id="blob-t-out"></output></div>
+      <div class="control"><span class="clabel">velocity v</span><input type="range" id="blob-v" min="0" max="30" step="1" value="18"><output id="blob-v-out"></output></div>
+      <div class="control"><label class="check"><input type="checkbox" id="blob-curve"> curve (M1)</label></div>
+      <div class="control"><span class="clabel">acceleration a</span><input type="range" id="blob-a" min="-6" max="6" step="0.25" value="-3.5"><output id="blob-a-out"></output></div>
+      <div class="control"><label class="check"><input type="checkbox" id="blob-shrink"> shrink as it fades (M2)</label></div>
+      <div class="control"><span class="clabel">floor s<sub>min</sub></span><input type="range" id="blob-smin" min="0.05" max="1" step="0.05" value="0.1"><output id="blob-smin-out"></output></div>
+      <p style="margin:12px 0 0;font-size:14px">Visibility <span class="math">w(t)</span> = <b class="counter" id="blob-w"></b><br>
+      Size scale = <b class="counter" id="blob-s"></b><br>
+      Stored numbers per blob = <b class="counter" id="blob-cost"></b></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="slide" data-title="The four models">
+<p>The project compares four models that differ only in how a blob is placed at time <span class="math">t</span>. Everything else is the same code: the renderer of Unit 16, the loss, the optimiser and the starting blobs.</p>
+<div class="table-wrap">
+<table>
+<caption><b>Table 1.</b> The four models. <span class="math">w(t) = exp(−τ<sup>2</sup> / 2σ<sub>t</sub><sup>2</sup>)</span> is how visible the blob is at time <span class="math">t</span>; <span class="math">L</span> is the Cholesky factor of its shape.</caption>
+<thead><tr><th>Model</th><th>Centre at time t</th><th>Shape at time t</th><th class="num">Numbers per blob</th></tr></thead>
+<tbody>
+<tr><td><span class="chip" style="background:var(--m0)"></span>M0 straight (Unit 16 baseline)</td><td>μ + vτ</td><td>L Lᵀ</td><td class="num">12</td></tr>
+<tr><td><span class="chip" style="background:var(--m1)"></span>M1 curved</td><td>μ + vτ + aτ²</td><td>L Lᵀ</td><td class="num">14</td></tr>
+<tr><td><span class="chip" style="background:var(--m2)"></span>M2 shrinking</td><td>μ + vτ</td><td>max(w(t), s<sub>min</sub>) · L Lᵀ</td><td class="num">12</td></tr>
+<tr><td><span class="chip" style="background:var(--m3)"></span>M3 both</td><td>μ + vτ + aτ²</td><td>max(w(t), s<sub>min</sub>) · L Lᵀ</td><td class="num">14</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout">
+<span class="label">The gap in the paper</span>
+<p>VeGaS reports better quality with folding, but it does not hold storage equal. In its ablation, a higher degree of curve adds numbers to every blob and ends with more blobs (0.57M against 0.62M), so the gain cannot be traced to the curve itself. Shrinking is never tested on its own, and no model size is reported. A curved blob also spends its 2 extra numbers even on background that does not need to curve. <b>At a fixed budget, fewer blobs that can curve compete with more blobs that only go straight, and either could win.</b></p>
+</div>
+</div>
+</section>
+
+<!-- ================================================================ 2 QUESTIONS -->
+<section class="chapter" id="questions">
+<div class="slide" data-title="Questions">
+<h2><span class="num">2</span>Questions</h2>
+<p>Fitting blobs to a video is a way of <b>compressing</b> it: we store the blobs and draw the same video again from them, as with JPEG or MP4. A compressor is judged by two things only: how much it stores and how close the redrawn video is to the original. So we score each model on the frames it was fitted to, as Units 14 and 16 and VeGaS do. The one condition we add is equal storage.</p>
+<div class="callout finding">
+<span class="label">Main question (compression)</span>
+<p><b>Q1.</b> When every model stores the same number of numbers, does curving, shrinking or both give a higher PSNR than the straight-line baseline?</p>
+<p><b>Q2.</b> If so, is it because the blobs describe the motion better? Then the gain should be larger when the motion is more curved and faster, and it should sit on the moving object rather than the background.</p>
+</div>
+<div class="callout">
+<span class="label">Supplementary question (frames between)</span>
+<p><b>Q3.</b> A second use of the same blobs is to draw frames that were never fitted, for example for slow motion. If a blob's path really follows the motion, those frames should be right too. Does a curved path draw the frames between better? This question helps explain the answer to Q1. It does not change it.</p>
+</div>
+<div class="table-wrap">
+<table>
+<caption><b>Table 2.</b> Two uses of the same fitted blobs, two questions.</caption>
+<thead><tr><th>Use</th><th>Scored on</th><th>Question</th><th>Role here</th></tr></thead>
+<tbody>
+<tr><td><b>Compression</b>: store and redraw the video</td><td>the fitted frames (at stride 3: frames 0, 3, 6, …)</td><td>At equal storage, is folding better?</td><td><b>Main question</b> (proposal §2). The pre-registered tests apply here.</td></tr>
+<tr><td><b>Frames between</b>: draw the video between fitted frames</td><td>the frames skipped in fitting (1, 2, 4, 5, …)</td><td>Did the paths learn the motion? Does a curved path help?</td><td>Supplementary (proposal §8, "render slices between frames"). Explains the why.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The two answers can differ without any contradiction. To compress, a straight-line model can hand a curved motion from one short blob to the next, so that every fitted frame is right. To draw the frames between, the blobs must actually know where things go between those frames.</p>
+</div>
+
+<div class="slide" data-title="Pre-registered tests">
+<div class="callout criteria">
+<span class="label">Written in the proposal before any experiment</span>
+<ul>
+<li><b>Curving fails</b> if M1 does not beat M0 by more than 0.3 dB, and by more than the seed-to-seed range, at three or more of the four budgets, on <b>both</b> Jockey and ShakeNDry at stride 3 (the clips with the most curved motion).</li>
+<li><b>Shrinking fails</b> under the same test, for M2 against M0.</li>
+<li>If an extension passes only on some clips or strides, it helps only for that kind of motion.</li>
+<li>If M1 also gains on a clip with near-straight motion, the gain is probably not caused by curved motion.</li>
+<li>If a gain appears only inside the moving object while the whole frame does not improve, the gain is <b>local and not worth its storage</b>.</li>
+</ul>
+<p>What we expected: the curve should help more where motion bends (the dog, the horse's legs) and when motion is faster (stride 3); it should not help on straight motion; and any gain should sit on the moving object.</p>
+</div>
+</div>
+</section>
+
+<!-- ================================================================ 3 SETUP -->
+<section class="chapter" id="setup">
+<div class="slide" data-title="Data">
+<h2><span class="num">3</span>Setup</h2>
+<h3>Four clips with different kinds of motion</h3>
+<p>All clips come from the UVG data set (Mercat et al., 2020), 1080p at 120 frames per second, reduced to 480×270 as in Unit 16. A clip has 10 frames. With <b>stride 3</b> we keep every third frame (0, 3, …, 27), which makes the motion between frames three times larger without changing the content or the number of frames.</p>
+<div class="cards wide">
+  <div class="card"><img src="data/frames/Jockey_k0/0012.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans with a galloping horse; the legs swing forward and back. Main case, as in the Unit 16 notes.</span></div>
+  <div class="card"><img src="data/frames/ShakeNDry_k0/0012.webp" alt="ShakeNDry frame" loading="lazy"><b>ShakeNDry</b><span>A still camera; a dog shakes water off its fur. The most curved motion of the four: where curving should help most.</span></div>
+  <div class="card"><img src="data/frames/YachtRide_k0/0012.webp" alt="YachtRide frame" loading="lazy"><b>YachtRide</b><span>The camera follows a boat. Planned as the straight control, but the waves make the motion less straight, so we look at the boat itself.</span></div>
+  <div class="card"><img src="data/frames/Bosphorus_k0/0012.webp" alt="Bosphorus frame" loading="lazy"><b>Bosphorus</b><span>The camera follows a small boat on calm water. The smallest acceleration of all: the straight-motion control. Added after measuring.</span></div>
+</div>
+<details class="more"><summary>How we measured the motion, and why Bosphorus was added (steps 11 and 12)</summary><div class="body">
+<p>We measured each clip with optical flow (Farnebäck). <b>Speed</b> is the mean displacement per frame. <b>Acceleration</b> follows the same point and asks how much its displacement changes from one frame to the next. <b>Bend</b> = acceleration ÷ speed: the larger, the further from straight, steady motion.</p>
+<div class="table-wrap"><table>
+<caption><b>Table 3.</b> Motion of the test clips (whole frame, camera motion included; pixels per frame and per frame²).</caption>
+<thead><tr><th>Clip</th><th class="num">Stride</th><th class="num">Speed</th><th class="num">Acceleration</th><th class="num">Bend</th></tr></thead>
+<tbody>
+<tr><td>Jockey</td><td class="num">1</td><td class="num">3.09</td><td class="num">0.15</td><td class="num">0.05</td></tr>
+<tr><td>Jockey</td><td class="num">3</td><td class="num">7.69</td><td class="num">1.12</td><td class="num">0.15</td></tr>
+<tr class="hl"><td>ShakeNDry</td><td class="num">1</td><td class="num">0.20</td><td class="num">0.17</td><td class="num">0.84</td></tr>
+<tr class="hl"><td>ShakeNDry</td><td class="num">3</td><td class="num">0.41</td><td class="num">0.55</td><td class="num">1.35</td></tr>
+<tr><td>YachtRide</td><td class="num">1</td><td class="num">1.17</td><td class="num">0.17</td><td class="num">0.14</td></tr>
+<tr><td>YachtRide</td><td class="num">3</td><td class="num">3.07</td><td class="num">0.64</td><td class="num">0.21</td></tr>
+<tr><td>Bosphorus</td><td class="num">1</td><td class="num">0.40</td><td class="num">0.04</td><td class="num">—</td></tr>
+<tr><td>Bosphorus</td><td class="num">3</td><td class="num">1.29</td><td class="num">0.09</td><td class="num">—</td></tr>
+</tbody></table></div>
+<ul>
+<li>Stride 3 makes the motion faster and more curved: the acceleration grows 3 to 7 times.</li>
+<li>ShakeNDry bends the most, as planned. Its overall speed is small because the camera is still and the dog fills a small part of the frame.</li>
+<li>Jockey's motion is mostly a steady camera pan; only the legs bend, and they are a small part of the frame.</li>
+<li>YachtRide's waves move up and down, so its bend (0.14, 0.21) is even higher than Jockey's. The proposal said to replace a clip whose motion does not fit its role, so we added <b>Bosphorus</b>, whose acceleration at stride 3 is a seventh of YachtRide's. We kept YachtRide and look at the boat itself. One caveat: Bosphorus also moves slowly, so "straight" and "slow" cannot be separated on it.</li>
+</ul>
+</div></details>
+</div>
+
+<div class="slide" data-title="Equal storage">
+<h3>Equal storage</h3>
+<p>For a budget of <span class="math">B</span> stored numbers, each model gets as many blobs as fit: <span class="math">⌊B / 12⌋</span> for M0 and M2, <span class="math">⌊B / 14⌋</span> for M1 and M3. Every number is a 32-bit float and nothing is quantised, so equal numbers also means an equal file size. We use B = 3,000, 6,000, 12,000 and 24,000 (250 to 2,000 blobs for M0, as in the Unit 16 example). For one seed, the blobs of M1 start as the first blobs of M0, with acceleration 0, so the models differ at the start only in how many blobs they have.</p>
+<div class="widget wide" id="w-budget">
+  <div class="wtitle">Interactive: what a budget buys</div>
+  <div class="whelp">Move the budget. Every model gets the same number of stored numbers; more abilities per blob means fewer blobs.</div>
+  <div class="control"><span class="clabel">budget B</span><input type="range" id="budget-range" min="0" max="4" step="1" value="3"><output id="budget-out"></output></div>
+  <div class="bars" id="budget-bars"></div>
+</div>
+</div>
+
+<div class="slide" data-title="Protocol">
+<h3>Protocol</h3>
+<ul>
+<li><b>Fitting.</b> Adam on all frames of the clip at once (mean squared error), with the renderer and hand-written gradients of the course, unchanged. The learning rates fall to a quarter over the run. No blobs are added or removed, so each model keeps exactly its budget.</li>
+<li><b>Tuning on a separate clip.</b> Following Unit 14, each model's settings were chosen on a validation clip of Jockey (from frame 60), which does not overlap the test clips, and then used unchanged on all four sequences. Every model, the baseline included, had its velocity learning rate tuned, so each is compared at its own best setting.</li>
+<li><b>Seeds.</b> Every setting was run with 3 random seeds. Gains over M0 are paired by seed (same clip, budget and seed). We report the mean and the range [min, max] over the seeds.</li>
+<li><b>Where the gain is.</b> A Mask R-CNN model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame. We score PSNR inside the mask (the object) and outside it (the background).</li>
+</ul>
+<details class="more"><summary>Implementation and checks (steps 1 to 6, 9)</summary><div class="body">
+<ul>
+<li>The project code (<code>stg/</code>) adds the slicing step of the four models and its gradients on top of the course program, which is used unchanged.</li>
+<li><b>Gradient check</b> by finite differences: slicing step 1×10<sup>−8</sup>; the whole clip 1–2×10<sup>−4</sup> (limit 0.02); our faster kernel against the course kernel: pixels 1×10<sup>−6</sup>, gradients 2×10<sup>−6</sup>.</li>
+<li><b>Speed.</b> The course kernel gives one GPU thread to each blob. Giving one thread to each row of a blob, and drawing all 10 frames in one launch, made fitting 7× faster (69 s to 9 s for 300 steps) with the same PSNR to two decimals. One fit of 3,000 steps takes 40–60 s on a laptop RTX 4060.</li>
+<li><b>Metrics.</b> PSNR is the main metric. We also report SSIM and VMAF (Netflix, via ffmpeg, upscaled to 1080p as recommended). VMAF is only a side reference at this low resolution.</li>
+<li><b>This page</b> draws the fitted models in your browser. Its renderer was checked against the Python renderer on 14 frames: the two images agree to 118 dB or more (largest pixel difference 4×10<sup>−4</sup>).</li>
+</ul>
+</div></details>
+<details class="more"><summary>Tuning results (steps 8 and 8b)</summary><div class="body">
+<p>Validation clip: Jockey from frame 60, strides 1 and 3, all four budgets, seed 0. Each model tried the velocity learning rates 0.02, 0.05 and 0.1; M1 and M3 also the acceleration rate (0.3, 1 or 3 × the velocity rate); M2 and M3 also the shrink floor <span class="math">s<sub>min</sub></span> (0.05, 0.1, 0.2): 384 fits. The best values sat on the edge of the range, so we added 64 fits beyond it.</p>
+<div class="table-wrap"><table>
+<caption><b>Table 4.</b> Settings chosen for the 3,000-step experiments (mean PSNR over the 8 validation cases).</caption>
+<thead><tr><th>Model</th><th class="num">Velocity rate</th><th class="num">s<sub>min</sub></th><th class="num">Acceleration ratio</th><th class="num">Validation PSNR</th><th class="num">Over M0</th></tr></thead>
+<tbody>
+<tr><td>M0</td><td class="num">0.1</td><td class="num">—</td><td class="num">—</td><td class="num">23.77</td><td class="num">—</td></tr>
+<tr><td>M1</td><td class="num">0.2</td><td class="num">—</td><td class="num">0.3</td><td class="num">24.14</td><td class="num">+0.37</td></tr>
+<tr><td>M2</td><td class="num">0.2</td><td class="num">0.1</td><td class="num">—</td><td class="num">24.76</td><td class="num">+0.99</td></tr>
+<tr><td>M3</td><td class="num">0.1</td><td class="num">0.1</td><td class="num">0.3</td><td class="num">24.86</td><td class="num">+1.09</td></tr>
+</tbody></table></div>
+<p>The settings matter little: the best and worst settings of a model differ by only 0.3 to 0.6 dB. The best settings for M0 and M3 now lie inside the range, so the baseline got its own best setting.</p>
+</div></details>
+<details class="more"><summary>A first test on synthetic blobs (step 7)</summary><div class="body">
+<p>Coloured discs moving along a parabola, a swing and a straight line over a still background; 4 models × 4 budgets × 3 seeds, 3,000 steps. M1 to M3 all beat M0 (M3 by up to 2.3 dB). But <b>when we lowered the velocity learning rate from 0.05 to 0.01, M1's gain vanished</b> (+1.27 → −0.02 dB), and blobs on the still background were moving and curving anyway. Part of the gain came from "more parameters that move", not from curved motion. This is why every model, the baseline included, had its learning rate tuned.</p>
+</div></details>
+</div>
+</section>
+
+<!-- ================================================================ 4 RESULTS 3K -->
+<section class="chapter" id="results-3k">
+<div class="slide" data-title="Results at 3,000 steps">
+<h2><span class="num">4</span>First result: after 3,000 training steps, shrinking wins</h2>
+<p>The main experiment ran every combination: 4 models × 4 budgets × 4 clips × 2 strides × 3 seeds, plus a 30-frame Jockey clip: <b>432 fits of 3,000 steps each</b>, the number of steps planned in the proposal.</p>
+<figure class="wide">
+  <img src="figures/rd.png" alt="PSNR against storage for the four models, after 3,000 steps (top) and fully trained (bottom)" id="fig-rd">
+  <figcaption><b>Figure 1.</b> PSNR on the fitted frames against storage, stride 3, mean over 3 seeds. <b>Top:</b> after 3,000 steps, M3 and M2 lie above the baseline on every clip. <b>Bottom:</b> the same models fully trained (Section 6): the lines nearly meet.</figcaption>
+</figure>
+<div class="table-wrap" data-table="test_fail" data-caption="<b>Table 5.</b> The pre-registered test at 3,000 steps: gain over M0 (dB) at budgets 3k, 6k, 12k and 24k; ✓ = more than 0.3 dB and more than the seed-to-seed range."></div>
+</div>
+<div class="slide" data-title="3,000 steps: where">
+<div class="table-wrap" data-table="test_avg" data-caption="<b>Table 6.</b> Gain over M0 at 3,000 steps (dB), mean over the 4 budgets and 3 seeds."></div>
+<div class="callout finding"><span class="label">What we saw</span>
+<ul>
+<li><b>Shrinking (M2) helps on every clip</b>, by 0.5 to 2.3 dB, and passes the test. M3 helps the most. Both pass.</li>
+<li><b>Curving (M1) fails the test.</b> On ShakeNDry, the most curved clip, it gains only about 0.1 dB. It gains a little more on the two straight boat clips (+0.23 to +0.28 dB) than on the dog.</li>
+<li>On Jockey, M1's gain is mostly in the background (stride 3: +0.15 dB on the horse, +0.66 dB off it). Only on the dog is M1's gain larger on the object (+0.24 to +0.28) than off it, and it is small.</li>
+</ul>
+</div>
+<details class="more"><summary>Object against background, SSIM and VMAF, the 30-frame clip, costs</summary><div class="body">
+<div class="table-wrap" data-table="test_inout" data-caption="<b>Table 7.</b> Gain over M0 at 3,000 steps inside the object mask / outside it (dB), mean over budgets."></div>
+<div class="table-wrap" data-table="test_other" data-caption="<b>Table 8.</b> SSIM and VMAF gains over M0 at 3,000 steps. Their order agrees with PSNR (M3 > M2 > M1 > M0), so the PSNR gain is a real gain in structure, not smoother colour."></div>
+<div class="table-wrap" data-table="long_clip" data-caption="<b>Table 9.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; a longer clip gives blobs longer, more curved lives."></div>
+<div class="table-wrap" data-table="cost" data-caption="<b>Table 10.</b> Cost at budget 24,000 (10 frames, mean over clips and strides). Storage is equal by design; GPU memory is about 150 MB for every model."></div>
+</div></details>
+</div>
+</section>
+
+<!-- ================================================================ 5 WHY -->
+<section class="chapter" id="why">
+<div class="slide" data-title="Still photographs">
+<h2><span class="num">5</span>Why? The gains do not come from motion</h2>
+<p>If shrinking helped because it handles motion, it should not help on a video in which nothing moves. So we copied the first frame of each clip 10 times and fitted these <b>still videos</b> with exactly the same settings (4 photos × 4 models × 2 budgets × 3 seeds = 96 fits).</p>
+<figure class="wide">
+  <img src="figures/still.png" alt="Gains over M0 on still photographs, with the gain of M2 on the moving clip">
+  <figcaption><b>Figure 2.</b> Gain over M0 on still photographs (bars, with the range over 3 seeds), 3,000 steps. The diamond is M2's gain on the same clip when it moves (stride 1). <b>Shrinking gains as much on a still photo as on the video.</b></figcaption>
+</figure>
+<div class="callout finding"><span class="label">Finding</span>
+<p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, about as much as on the moving clip (0.4 to 2.3 dB), on all 4 photos and all 3 seeds. Curving also gains about as much on a photo as on the video (ShakeNDry: +0.09 moving, +0.09 to +0.13 still). <b>Neither gain comes from motion.</b> Our reading: with few blobs, letting each blob change over time lets one blob do the work of several, at different places or sizes in different frames.</p>
+</div>
+<details class="more"><summary>Full table</summary><div class="body">
+<div class="table-wrap" data-table="still" data-caption="<b>Table 11.</b> Still photographs, 3,000 steps: gain over M0 (dB), mean [min, max] over 3 seeds."></div>
+</div></details>
+</div>
+
+<div class="slide" data-title="Learned motion">
+<h3>The learned accelerations do not follow the real motion</h3>
+<p>We compared what M1's blobs learned with the motion measured by optical flow at each blob's centre (seed 0, budget 12,000, 3,000 steps).</p>
+<div class="table-wrap"><table>
+<caption><b>Table 12.</b> Learned acceleration of M1's blobs against the real acceleration (pixels per frame², median). "Same direction" counts blobs where both are clearly non-zero; 50% is chance.</caption>
+<thead><tr><th>Clip, region</th><th class="num">Learned</th><th class="num">Real (flow)</th><th class="num">Same direction</th></tr></thead>
+<tbody>
+<tr><td>Jockey s3, horse</td><td class="num">1.33</td><td class="num">0.83</td><td class="num">63%</td></tr>
+<tr><td>Jockey s3, background</td><td class="num">1.75</td><td class="num">0.49</td><td class="num">50%</td></tr>
+<tr><td>ShakeNDry s3, dog</td><td class="num">3.06</td><td class="num">2.56</td><td class="num">42%</td></tr>
+<tr><td>ShakeNDry s3, background</td><td class="num">0.77</td><td class="num">0.09</td><td class="num">51%</td></tr>
+<tr><td>Bosphorus s3, background</td><td class="num">1.19</td><td class="num">0.07</td><td class="num">54%</td></tr>
+</tbody></table></div>
+<ul>
+<li>Almost every blob curves: over its life the acceleration moves it 12 to 35 extra pixels (median). Fewer than 1% of blobs leave it unused.</li>
+<li>On a nearly still background, the learned acceleration is more than 10 times the real one, and its direction agrees with the real motion about half the time, which is chance.</li>
+<li>The same holds for velocity: blobs on the still dog clip and on Bosphorus move at 1.5 to 2 pixels per frame in directions unrelated to the real motion. Only where the motion is large and uniform (the Jockey pan) does the learned velocity follow it (direction similarity 0.84).</li>
+</ul>
+<details class="more"><summary>More diagnostics (step 15): where shrinking helps, how long blobs live, worst frames</summary><div class="body">
+<p><b>Where shrinking helps.</b> We grouped pixels by how much they change from one frame to the next. If shrinking removed blurry "trails" behind moving things, its gain would sit on changing pixels. It does not: the gain is spread roughly in proportion to the number of pixels. For example, on Bosphorus 73% of pixels barely change, and they give 66% of the gain. Only Jockey leans slightly towards changing pixels.</p>
+<div class="table-wrap"><table>
+<caption><b>Table 13.</b> Velocity of M0's blobs against the real motion (budget 12,000, pixels per frame, median).</caption>
+<thead><tr><th>Clip, stride 1 / 3</th><th class="num">Learned speed</th><th class="num">Real speed</th><th class="num">Direction similarity (1 = same)</th></tr></thead>
+<tbody>
+<tr><td>Jockey</td><td class="num">2.8 / 3.7</td><td class="num">3.7 / 5.2</td><td class="num">0.84 / 0.84</td></tr>
+<tr><td>YachtRide</td><td class="num">1.9 / 2.7</td><td class="num">0.8 / 2.4</td><td class="num">0.47 / 0.78</td></tr>
+<tr><td>Bosphorus</td><td class="num">2.0 / 2.1</td><td class="num">0.5 / 1.6</td><td class="num">−0.01 / 0.21</td></tr>
+<tr><td>ShakeNDry</td><td class="num">1.5 / 1.6</td><td class="num">0.04 / 0.06</td><td class="num">0.50 / 0.30</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<caption><b>Table 14.</b> How long blobs live (seed 0): duration σ<sub>t</sub> and the frames in which a blob is visible (weight > 0.1), out of 10.</caption>
+<thead><tr><th>Clip, budget</th><th class="num">M0: σ<sub>t</sub> / frames</th><th class="num">M1: σ<sub>t</sub> / frames</th></tr></thead>
+<tbody>
+<tr><td>Jockey s3, 3,000</td><td class="num">2.67 / 7.7</td><td class="num">3.33 / 8.2</td></tr>
+<tr><td>Jockey s3, 24,000</td><td class="num">2.19 / 6.8</td><td class="num">2.63 / 7.6</td></tr>
+<tr><td>ShakeNDry s3, 24,000</td><td class="num">2.61 / 7.4</td><td class="num">3.19 / 8.0</td></tr>
+<tr><td>Bosphorus s3, 24,000</td><td class="num">2.09 / 6.6</td><td class="num">2.28 / 6.9</td></tr>
+</tbody></table></div>
+<p>Curved blobs do live 10 to 25% longer, as the proposal guessed ("one curved blob replaces several straight ones"). But even M0's blobs are visible in about 7 of the 10 frames, so in a 10-frame clip there is little room for relaying.</p>
+<p><b>Worst frames.</b> For every model the worst frame is almost always the first or last frame of the clip, which has no earlier or later blobs to help cover it.</p>
+</div></details>
+</div>
+</section>
+
+<!-- ================================================================ 6 FULLY TRAINED -->
+<section class="chapter" id="trained">
+<div class="slide" data-title="Turning point">
+<h2><span class="num">6</span>The turning point: 3,000 steps was far from enough</h2>
+<p>A probe with more blobs (step 17) showed two warning signs: every model was still improving at step 3,000, and M3's lead over M0 kept shrinking during training (for example +1.40 dB at step 500, +0.57 dB at step 3,000). So we asked: <b>does folding give a better final picture, or does it only learn faster?</b></p>
+<p>We trained Jockey for 30,000 steps. All models need 18,000 to 24,000 steps before PSNR stops rising (within 0.1 dB of the final value). M0 alone gains 2 to 4 dB from longer training, more than any extension ever gave.</p>
+<div class="widget wide" id="w-train">
+  <div class="wtitle">Interactive: PSNR during training</div>
+  <div class="whelp">The 30,000-step fits of Section 6 (mean of 3 seeds). Drag across the left chart to move the cursor; the right chart shows each model's gain over M0 at that point, with the range over seeds. Diamonds are the separate 3,000-step fits of Section 4.</div>
+  <div class="controls">
+    <div class="control"><span class="clabel">clip</span><select id="train-seq"><option>Jockey</option><option>ShakeNDry</option><option>YachtRide</option><option>Bosphorus</option></select></div>
+    <div class="control"><span class="clabel">budget</span><select id="train-budget"><option value="3000">3,000</option><option value="6000" selected>6,000</option><option value="12000">12,000</option><option value="24000">24,000</option></select></div>
+    <div class="control"><span class="clabel">x axis</span><div class="seg" id="train-x"><button aria-pressed="true" data-v="step">training step</button><button aria-pressed="false" data-v="time">training time</button></div></div>
+  </div>
+  <div class="legend" id="train-legend"></div>
+  <div class="grid2">
+    <div class="chart" id="train-chart" style="position:relative"></div>
+    <div class="chart" id="train-bars" style="position:relative"></div>
+  </div>
+</div>
+</div>
+
+<div class="slide" data-title="Learning faster">
+<figure class="wide">
+  <img src="figures/training.png" alt="PSNR against training step and training time, and the gain over M0 by step">
+  <figcaption><b>Figure 3.</b> <b>Left and middle:</b> Jockey, budget 6,000, PSNR by training step and by training time (mean of 3 seeds). <b>Right:</b> gain over M0 at each step, averaged over all 4 clips, 4 budgets and 3 seeds. Every extension starts ahead and the lead melts away; by about 10,000 steps all three are inside ±0.3 dB (grey band). Note that a 30,000-step run lowers its learning rate more slowly, so its PSNR at step 3,000 is not the same as that of a separate 3,000-step run (diamonds).</figcaption>
+</figure>
+<details class="more"><summary>The checks that led here (steps 17 to 21)</summary><div class="body">
+<div class="table-wrap"><table>
+<caption><b>Table 15.</b> Step 17: more blobs, 3,000 steps, Jockey stride 3, seed 0. M3's lead at step 500 and at step 3,000.</caption>
+<thead><tr><th class="num">Blobs (M0)</th><th class="num">M0 PSNR</th><th class="num">M3 PSNR</th><th class="num">M3 − M0: step 500 → 3,000</th></tr></thead>
+<tbody>
+<tr><td class="num">4,000</td><td class="num">27.61</td><td class="num">28.18</td><td class="num">+1.40 → +0.57</td></tr>
+<tr><td class="num">8,000</td><td class="num">29.70</td><td class="num">30.10</td><td class="num">+1.45 → +0.40</td></tr>
+<tr><td class="num">16,000</td><td class="num">32.32</td><td class="num">32.71</td><td class="num">+1.37 → +0.39</td></tr>
+<tr><td class="num">32,000</td><td class="num">35.38</td><td class="num">35.93</td><td class="num">+1.68 → +0.55</td></tr>
+<tr><td class="num">64,000</td><td class="num">38.89</td><td class="num">39.67</td><td class="num">+2.17 → +0.78</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<caption><b>Table 16.</b> Step 18: 10,000 steps instead of 3,000 (Jockey stride 3, seed 0). Gain over M0 at 3,000 → 10,000 steps (dB). The rule set beforehand: if less than half of the lead remains, the gain is "faster learning". None kept half.</caption>
+<thead><tr><th class="num">Budget</th><th class="num">M0</th><th class="num">M1</th><th class="num">M2</th><th class="num">M3</th></tr></thead>
+<tbody>
+<tr><td class="num">6,000</td><td class="num">22.07 → 24.73</td><td class="num">+1.15 → +0.40</td><td class="num">+0.80 → −0.15</td><td class="num">+1.44 → +0.17</td></tr>
+<tr><td class="num">24,000</td><td class="num">25.73 → 28.03</td><td class="num">+0.65 → +0.03</td><td class="num">+0.50 → −0.34</td><td class="num">+0.72 → −0.40</td></tr>
+<tr><td class="num">192,000</td><td class="num">32.32 → 34.47</td><td class="num">—</td><td class="num">—</td><td class="num">+0.39 → −0.56</td></tr>
+</tbody></table></div>
+<p><b>Step 19, how long is "fully trained".</b> At 30,000 steps (Jockey stride 3, seed 0) all models were within 0.1 dB of their final value from step 18,000 to 24,000 on, and the last 5,000 steps added only 0.03 to 0.08 dB. We use 30,000 steps from here on. On this one test clip M1 kept about +0.4 dB; this did <b>not</b> repeat on the validation clip (step 20).</p>
+<div class="table-wrap"><table>
+<caption><b>Table 17.</b> Step 20: re-tuning the velocity learning rate for 30,000 steps on the validation clip (Jockey from frame 60, stride 3, seed 0). PSNR for rates 0.05 / 0.1 / 0.2; the chosen rate in bold.</caption>
+<thead><tr><th>Model</th><th class="num">Budget 6,000</th><th class="num">Budget 24,000</th><th class="num">Chosen</th><th class="num">Gap to M0: 6k / 24k</th></tr></thead>
+<tbody>
+<tr><td>M0</td><td class="num">25.79 / 25.74 / 25.82</td><td class="num">29.13 / 29.15 / 29.32</td><td class="num"><b>0.2</b></td><td class="num">—</td></tr>
+<tr><td>M1</td><td class="num">25.63 / 25.64 / 25.68</td><td class="num">28.95 / 28.80 / 28.82</td><td class="num"><b>0.05</b></td><td class="num">−0.19 / −0.37</td></tr>
+<tr><td>M2</td><td class="num">25.60 / 25.74 / 25.55</td><td class="num">28.40 / 28.67 / 28.55</td><td class="num"><b>0.1</b></td><td class="num">−0.08 / −0.65</td></tr>
+<tr><td>M3</td><td class="num">25.67 / 25.47 / 25.60</td><td class="num">28.16 / 28.26 / 28.36</td><td class="num"><b>0.2</b></td><td class="num">−0.22 / −0.96</td></tr>
+</tbody></table></div>
+<p>The learning rate changes the result by about 0.1 dB, with no pattern, far less than the gaps between models. <b>Step 21</b> checked these rates on another clip (ShakeNDry from frame 100, budget 6,000): the two rates tried per model differ by only 0.02 to 0.05 dB, so the rates chosen on Jockey carry over.</p>
+</div></details>
+</div>
+
+<div class="slide" data-title="Fully trained">
+<h3>Fully trained, the advantage is gone</h3>
+<p>We then re-ran the main comparison fully trained: 4 clips × 4 budgets × 4 models × 3 seeds at stride 3, <b>192 fits of 30,000 steps</b>, each model with the learning rate chosen in step 20.</p>
+<figure class="wide">
+  <img src="figures/gain_budget.png" alt="Gain over M0 against storage: 3,000 steps against fully trained">
+  <figcaption><b>Figure 4.</b> Gain over M0 against storage. Dashed, hollow: after 3,000 steps. Solid: fully trained, with the range over 3 seeds. Grey band: ±0.3 dB, the margin of the pre-registered test. After full training most gains fall inside the band, some below zero.</figcaption>
+</figure>
+<div class="table-wrap" data-table="long_fail" data-caption="<b>Table 18.</b> The pre-registered test, fully trained (seed-to-seed range from these fits): <b>all three extensions fail.</b>"></div>
+</div>
+
+<div class="slide" data-title="Fully trained: details">
+<div class="table-wrap" data-table="long_avg" data-caption="<b>Table 19.</b> Gain over M0 (dB), mean over 4 budgets and 3 seeds: <b>fully trained / 3,000 steps</b>."></div>
+<div class="callout finding"><span class="label">What we saw</span>
+<ul>
+<li>At 3,000 steps M2 and M3 led in all 16 cells (by 0.44 to 1.62 dB). Fully trained, most cells are within ±0.3 dB, both positive and negative.</li>
+<li>The seed-to-seed spread is small (mostly 0.1 to 0.2 dB), so the small differences that remain are real, not luck. But they do not follow the motion:
+  <ul>
+  <li>M1 leads only on Jockey (+0.30 to +0.65 dB), mostly in the background (+0.33 to +0.69), less on the horse (+0.21 to +0.50).</li>
+  <li>M2 leads only on Bosphorus (+0.15 to +0.35), the straightest clip, again in the background.</li>
+  <li>M3 leads almost nowhere.</li>
+  </ul></li>
+<li>SSIM differences are within ±0.02; VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.</li>
+</ul>
+</div>
+<details class="more"><summary>Every cell, and object against background</summary><div class="body">
+<div class="table-wrap wide" data-table="long_cells" data-caption="<b>Table 20.</b> Gain over M0 (dB), fully trained: mean [min, max] over 3 seeds; beside it, the mean gain after 3,000 steps."></div>
+<div class="table-wrap" data-table="long_inout" data-caption="<b>Table 21.</b> Fully trained gain over M0, inside the object / outside it (dB), mean over budgets."></div>
+</div></details>
+<div class="callout"><span class="label">Answer to Q1 and Q2</span>
+<p><b>At equal storage, folding is not worth it for compression.</b> Its benefit is speed: with a fixed, short training time, shrinking does give a better picture (Figure 3, middle). With enough training, the plain straight-line model catches up, and the small leftover differences sit in the background, not on the moving objects.</p>
+</div>
+</div>
+</section>
+
+<!-- ================================================================ 7 DEGREE -->
+<section class="chapter" id="degree">
+<div class="slide" data-title="Higher degree">
+<h2><span class="num">7</span>Extension: a more flexible path is worse</h2>
+<p>VeGaS uses a path of degree 7 by default. The proposal's extension asked whether a higher degree helps once storage is equal. A path of degree <span class="math">d</span> costs <span class="math">12 + 2(d − 1)</span> numbers, so at budget 24,000 there are 2,000 blobs of degree 1 (M0), about 1,700 of degree 2 (M1), 1,500 of degree 3 (D3) and only 1,000 of degree 7 (D7). We fitted D3 and D7 on Jockey and ShakeNDry (stride 3, budgets 6,000 and 24,000, 3 seeds, fully trained; 24 fits). The terms above the square use time in units of half a clip (4.5 frames), so a step of training cannot fling a blob thousands of pixels away.</p>
+<figure class="wide">
+  <img src="figures/degree.png" alt="Gain over M0 against the degree of the path">
+  <figcaption><b>Figure 5.</b> Gain over M0 against the degree of the path, with the range over 3 seeds. <b>The higher the degree, the worse</b>, and more so on the frames between (right), which no model was fitted to: degree-7 paths swing about between the fitted frames.</figcaption>
+</figure>
+<p>D3 is worse than M1 in 7 of 8 cells; D7 is worse everywhere, by 1.1 to 2.3 dB on the fitted frames and by up to 4 dB on the frames between. On Jockey at budget 24,000, D7 drops about 5 dB from the fitted frames to the frames between, against 3.4 dB for M0 and 2.9 dB for M1. Use the player in Section 8 with model D7 and "paths" turned on to see the paths swing.</p>
+<details class="more"><summary>Full table and caveats</summary><div class="body">
+<div class="table-wrap wide" data-table="poly" data-caption="<b>Table 22.</b> Gain over M0 (dB) by degree, mean [min, max] over 3 seeds."></div>
+<ul>
+<li>Two causes are mixed: fewer blobs, and paths that swing. This mix is what "equal storage" means to compare; the large drop on the frames between shows that swinging is real.</li>
+<li>The learning rate of the higher terms was not tuned (it reuses M1's acceleration rate). Tuning might help D7 a little, but learning rates changed results by about 0.1 dB elsewhere, while D7 is 1 to 2 dB behind.</li>
+<li>A reduced version of the planned extension: 2 clips × 2 budgets, 10 frames instead of the 30-frame clip.</li>
+</ul>
+</div></details>
+</div>
+</section>
+
+<!-- ================================================================ 8 FRAMES BETWEEN -->
+<section class="chapter" id="between">
+<div class="slide" data-title="Frames between">
+<h2><span class="num">8</span>Supplementary: drawing the frames between</h2>
+<p>At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. The blobs can still be drawn at any time, so we drew those frames from the 192 fully trained models and compared them with the real ones. The proposal planned this check for high-degree paths ("render slices between frames"); here we use it on every model.</p>
+<div class="widget wide" id="w-player">
+  <div class="wtitle">Interactive: the fitted models, drawn in your browser</div>
+  <div class="whelp">Every image below is drawn live from the stored blobs of a fully trained model (seed 0). Drag the time slider: <span class="badge fit">fitted</span> times are frames the model was fitted to; <span class="badge between">between</span> times were never seen. Click or drag on any image to move the zoom box.</div>
+  <div class="controls">
+    <div class="control"><span class="clabel">clip</span><select id="pl-clip"></select></div>
+    <div class="control"><span class="clabel">stride</span><div class="seg" id="pl-stride"></div></div>
+    <div class="control"><span class="clabel">budget</span><div class="seg" id="pl-budget"></div></div>
+    <div class="control"><span class="clabel">training</span><div class="seg" id="pl-iters"></div></div>
+    <div class="control"><span class="clabel">show</span><div class="seg" id="pl-mode"><button data-v="image" aria-pressed="true">image</button><button data-v="error" aria-pressed="false">error ×4</button></div></div>
+    <label class="check"><input type="checkbox" id="pl-mask"> object outline</label>
+    <label class="check"><input type="checkbox" id="pl-paths"> paths</label>
+  </div>
+  <div class="panels" id="pl-panels">
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><select data-side="0"></select><span class="val" data-psnr="0"></span></div></div>
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><select data-side="1"></select><span class="val" data-psnr="1"></span></div></div>
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><span>real frame <span id="pl-frame-no"></span></span><span id="pl-kind"></span></div></div>
+  </div>
+  <div class="timeline">
+    <div class="controls" style="margin:6px 0 0"><button class="btn" id="pl-play">Play</button><div class="control" style="flex:1"><input type="range" class="long" id="pl-t" min="0" max="9" step="0.0333333" value="4"></div><output id="pl-t-out" style="font-variant-numeric:tabular-nums;min-width:90px;font-size:13px"></output></div>
+    <div class="ticks" id="pl-ticks"></div>
+  </div>
+  <div class="panels lens" id="pl-lens">
+    <div class="panel"><canvas width="480" height="270"></canvas></div>
+    <div class="panel"><canvas width="480" height="270"></canvas></div>
+    <div class="panel"><canvas width="480" height="270"></canvas></div>
+  </div>
+  <div class="status" id="pl-status">Loading…</div>
+</div>
+</div>
+
+<div class="slide" data-title="Memorising">
+<h3>More blobs memorise the fitted frames</h3>
+<figure class="wide">
+  <img src="figures/unseen.png" alt="M0 frames between against fitted frames; M1 on the moving object in the frames between">
+  <figcaption><b>Figure 6.</b> <b>Left:</b> how much worse M0 draws the frames between than the fitted frames. On the fast clips (Jockey's pan, the shaking dog) the gap grows with more blobs, up to 3.4 dB: more blobs fit the fitted frames more closely without learning the motion. <b>Right:</b> M1 against M0 on the moving object in the frames between, with the range over 3 seeds.</figcaption>
+</figure>
+<div class="callout finding"><span class="label">What we saw</span>
+<ul>
+<li>On the slow boat clips the frames between are as good as the fitted ones. On Jockey at budget 24,000, M0's frames between (25.2 dB) are worse than at budget 12,000 (26.1 dB). On the dog, the frames between barely improve from budget 3,000 to 24,000 (24.1 → 24.6 dB) while the fitted frames gain 3 dB.</li>
+<li><b>On the shaking dog, curving draws the frames between better</b>: +0.2 to +0.5 dB for M1 (and M3), while on the fitted frames it is level (−0.09 to +0.11). All 3 seeds are positive at budgets 3,000, 12,000 and 24,000. M2, which does not curve, has no such gain.</li>
+<li>On the two straight boat clips, curving makes the frames between <b>worse</b>.</li>
+<li>This is the first result that matches our starting hypothesis, but it was found after looking at the data, it covers a small region, and one cell varies a lot between seeds (−0.44 to +1.46). It needed a test of its own.</li>
+</ul>
+</div>
+<details class="more"><summary>Full tables</summary><div class="body">
+<div class="table-wrap" data-table="unseen_m0" data-caption="<b>Table 23.</b> M0, fully trained: PSNR on fitted frames and frames between, whole frame and object (dB, mean of 3 seeds)."></div>
+<div class="table-wrap" data-table="unseen_gain" data-caption="<b>Table 24.</b> Gain over M0, whole frame: fitted frames → frames between (dB, mean over budgets)."></div>
+<div class="table-wrap" data-table="unseen_obj" data-caption="<b>Table 25.</b> Gain over M0 on the moving object in the frames between (dB), mean [min, max] over 3 seeds; last column: M1 on the object in the fitted frames, for comparison."></div>
+</div></details>
+</div>
+
+<div class="slide" data-title="Dog paths">
+<h3>Do the dog's blobs follow the dog? Not visibly</h3>
+<p>We followed points on the dog with optical flow at every frame (including the ones the models never saw) and compared the real path with the path of each blob on the dog (blobs with σ<sub>t</sub> ≥ 0.5, M0 and M1, all budgets, 3 seeds). We first checked this measure on the synthetic arc below, whose path is known: the curving direction it measures is almost always right (99%), but positions drift by 3 to 6 pixels over 6 frames.</p>
+<div class="table-wrap"><table>
+<caption><b>Table 26.</b> Blob paths against the real motion on ShakeNDry (mean of 3 seeds). Path error: mean distance in pixels; "same bend": share of M1's blobs whose acceleration points the way the real path bends (50% is chance).</caption>
+<thead><tr><th class="num">Budget</th><th class="num">M0 path error: dog / background</th><th class="num">M1 path error: dog / background</th><th class="num">M1 same bend: dog / background</th></tr></thead>
+<tbody>
+<tr><td class="num">3,000</td><td class="num">5.65 / 0.23</td><td class="num">4.52 / 0.22</td><td class="num">47% / 52%</td></tr>
+<tr><td class="num">6,000</td><td class="num">6.84 / 0.16</td><td class="num">5.06 / 0.16</td><td class="num">47% / 56%</td></tr>
+<tr><td class="num">12,000</td><td class="num">6.55 / 0.12</td><td class="num">6.44 / 0.12</td><td class="num">57% / 62%</td></tr>
+<tr><td class="num">24,000</td><td class="num">6.58 / 0.09</td><td class="num">7.00 / 0.10</td><td class="num">57% / 57%</td></tr>
+</tbody></table></div>
+<p>On the dog, M1's blobs bend the right way only 47% to 57% of the time, which is chance, and their path errors are about as large as the error of the measurement itself. On Jockey the share is 66% to 70% on the horse but about the same on the background (63% to 78%), which points to the camera, not the legs. So the small gain on the dog has no direct support from the paths. The fur and the water make flow tracking hard, so this check is weak; a clip with a known path is the stronger test.</p>
+</div>
+
+<div class="slide" data-title="Synthetic arc">
+<h3>A ball on an arc: the curve helps, and more so the more the path bends</h3>
+<p>To get a clean test, we made synthetic clips of a striped ball moving at a fixed speed over a still background, along an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip. Only the bend changes. We fitted M0 and M1 (budgets 6,000 and 24,000, 3 seeds, fully trained: 60 fits) and wrote four predictions down first: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain larger than the seed spread; and M1's blobs on the ball bending the right way well above 50% of the time.</p>
+<div class="widget wide" id="w-arc">
+  <div class="wtitle">Interactive: bend the path</div>
+  <div class="whelp">Choose how far the path turns. The third image is the true clip, computed exactly at any time. Thin lines show the paths of the blobs on the ball over their lives; the dashed line is the true path. The PSNR on the ball is computed live in your browser.</div>
+  <div class="controls">
+    <div class="control"><span class="clabel">turn</span><input type="range" id="arc-angle" min="0" max="4" step="1" value="4"><output id="arc-angle-out"></output></div>
+    <div class="control"><span class="clabel">budget</span><div class="seg" id="arc-budget"><button data-v="6000" aria-pressed="false">6,000</button><button data-v="24000" aria-pressed="true">24,000</button></div></div>
+    <label class="check"><input type="checkbox" id="arc-paths" checked> paths</label>
+    <label class="check"><input type="checkbox" id="arc-zoom" checked> zoom on the ball</label>
+  </div>
+  <div class="panels" id="arc-panels">
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><span>M0 straight</span><span class="val" data-psnr="0"></span></div></div>
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><span>M1 curved</span><span class="val" data-psnr="1"></span></div></div>
+    <div class="panel"><div class="stack"><canvas width="480" height="270"></canvas><canvas width="480" height="270" class="ov"></canvas></div><div class="cap"><span>true clip</span><span id="arc-kind"></span></div></div>
+  </div>
+  <div class="timeline">
+    <div class="controls" style="margin:6px 0 0"><button class="btn" id="arc-play">Play</button><div class="control" style="flex:1"><input type="range" class="long" id="arc-t" min="0" max="9" step="0.0333333" value="4.5"></div><output id="arc-t-out" style="font-variant-numeric:tabular-nums;min-width:90px;font-size:13px"></output></div>
+    <div class="ticks" id="arc-ticks"></div>
+  </div>
+  <div class="status" id="arc-status">Loading…</div>
+</div>
+</div>
+
+<div class="slide" data-title="Arc results">
+<figure class="wide">
+  <img src="figures/arc.png" alt="Gain of M1 over M0 on the ball against the bend of the path">
+  <figcaption><b>Figure 7.</b> M1 against M0 on the ball, against how far the path turns (range over 3 seeds). <b>Left:</b> fitted frames: about +1 dB at any bend. <b>Right:</b> frames between: from about 0 on the straight line to about +9 dB for a full turn.</figcaption>
+</figure>
+<div class="callout finding"><span class="label">All four predictions hold</span>
+<ul>
+<li>Straight line: −1.10 and −0.69 dB, with seed ranges that cross 0 (slightly negative because M1 has 14% fewer blobs).</li>
+<li>The gain grows with the bend: −1.1 → +0.7 → +1.9 → +6.9 → +9.1 dB (budget 6,000) and −0.7 → +1.4 → +7.9 → +8.1 → +9.2 dB (budget 24,000).</li>
+<li>At a full turn even the worst seed gains +7.8 / +8.9 dB, far beyond the seed spread on the straight line (about ±2 dB).</li>
+<li>M1's blobs on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (90°: true 1.57, learned 1.50 to 1.54 pixels per frame²).</li>
+</ul>
+<p>On the fitted frames the gain stays near 1 dB whatever the bend: the straight model hands the arc from one short blob to the next and still fits every fitted frame. <b>So the curve works through motion, but only between the fitted frames, which compression never looks at.</b></p>
+</div>
+<details class="more"><summary>The first version of this test failed by design (steps 28 and 29)</summary><div class="body">
+<p>The first arc clips moved the ball 30 pixels between fitted frames, with stripes only 9 pixels apart. Neither model could draw the frames between (about 10 dB on the ball against 29 dB on the fitted frames): the ball was in roughly the right place but its colours were scrambled, and the blobs on the ball were 14 to 20 pixels off its path. The stripes moved more than half a period per step, so the direction of motion was ambiguous. We discarded those results.</p>
+<p>The second version slowed the ball to 9 pixels between fitted frames, made it smaller (radius 8) and widened the stripes (period 30). We added a precondition: on the straight line, M0's frames between must be within 3 dB of its fitted frames. A pilot passed easily (0.03 dB apart; blob paths within 0.02 pixels of the truth), and a full turn cost M0 7 to 12 dB on the frames between: the place where a curve should help.</p>
+<div class="table-wrap" data-table="arc" data-caption="<b>Table 27.</b> The ball, second version: M0's PSNR; then M1 − M0, mean [min, max] over 3 seeds (dB)."></div>
+<div class="table-wrap"><table>
+<caption><b>Table 28.</b> Paths of the blobs on the ball (mean of 3 seeds). Path error in pixels; "same bend" for M1. Only 3 to 25 blobs per model sit on the ball, so the numbers are rough.</caption>
+<thead><tr><th>Turn</th><th class="num">M0 path error, 6k / 24k</th><th class="num">M1 path error, 6k / 24k</th><th class="num">M1 same bend, 6k / 24k</th></tr></thead>
+<tbody>
+<tr><td>0°</td><td class="num">0.01 / 0.03</td><td class="num">0.04 / 0.02</td><td class="num">—</td></tr>
+<tr><td>90°</td><td class="num">1.62 / 1.92</td><td class="num">0.56 / 0.63</td><td class="num">100% / 92%</td></tr>
+<tr><td>180°</td><td class="num">1.58 / 2.09</td><td class="num">1.09 / 0.89</td><td class="num">100% / 96%</td></tr>
+<tr><td>270°</td><td class="num">3.52 / 3.26</td><td class="num">1.34 / 1.82</td><td class="num">100% / 91%</td></tr>
+<tr><td>360°</td><td class="num">2.90 / 4.20</td><td class="num">1.52 / 1.67</td><td class="num">100% / 96%</td></tr>
+</tbody></table></div>
+</div></details>
+</div>
+
+<div class="slide" data-title="Confirmatory test">
+<h3>A confirmatory test on new real clips</h3>
+<p>The dog result was found after looking at the data. To turn it into a real result, we fixed the test before running it, on three real clips never used before: ShakeNDry from frame 30 (the dog still shaking), and Jockey from frames 120 and 200 (the horse galloping). M0 and M1, strides 3 and 5, budgets 6,000 and 24,000, 3 seeds, fully trained: 72 fits.</p>
+<div class="callout criteria"><span class="label">The rule, fixed before the runs</span>
+<p>Score only the moving object in the frames between. A cell (clip × stride × budget, 12 in all) <b>passes</b> if M1 beats M0 for all 3 seeds. <b>≥ 9 cells pass</b>: curving has a real gain for frames between; <b>≤ 3</b>: no gain; 4 to 8: partly. Extra prediction: the gain is larger at stride 5 than at stride 3.</p>
+</div>
+<figure class="wide">
+  <img src="figures/confirm.png" alt="The 12 cells of the confirmatory test">
+  <figcaption><b>Figure 8.</b> M1 against M0 in the frames between, for each of the 12 cells (circles: the moving object, with the range over 3 seeds; squares: the whole frame, not part of the test).</figcaption>
+</figure>
+</div>
+
+<div class="slide" data-title="Confirmatory result">
+<div class="table-wrap wide" data-table="confirm" data-caption="<b>Table 29.</b> The confirmatory test: M1 − M0 on the moving object in the frames between (dB), mean [min, max] over 3 seeds; ✓ = all 3 seeds above 0."></div>
+<div class="callout finding"><span class="label">Result: 9 of 12 cells pass, exactly on the line</span>
+<ul>
+<li>On the moving object, the frames between are about <b>0.5 dB</b> better with M1 (cells from −0.1 to +0.9 dB). 11 of the 12 cell means are positive. If curving had no effect, a cell would pass by luck with probability 1/8, so 9 passes by luck is very unlikely.</li>
+<li>But <b>the whole frame does not improve</b> (−1.04 to +0.48 dB): M1 draws the horse and the dog a little better between frames and the moving background a little worse. Under the proposal's rule, the gain is <b>local</b>.</li>
+<li>The fitted frames show no gain (object −0.12 to +0.33 dB; whole frame −0.32 to +0.12 dB), as in Section 6.</li>
+<li>The stride prediction fails: +0.49 dB at stride 5 against +0.47 dB at stride 3. At stride 5 the motion may be too large for either model to draw the frames between well (M0 on the object drops from about 22–26 dB to 20–24 dB).</li>
+</ul>
+</div>
+<details class="more"><summary>The other scores</summary><div class="body">
+<div class="table-wrap" data-table="confirm_other" data-caption="<b>Table 30.</b> M1 − M0 on the other scores of the confirmatory test (not part of the rule)."></div>
+</div></details>
+<div class="callout"><span class="label">Answer to Q3</span>
+<p><b>Curving does help to draw the frames between, and the help comes from motion</b>: on the synthetic arc it grows with the bend and the blobs bend the right way; on new real clips it shows up again, as the pre-registered test requires. <b>But on real video it is small (about 0.5 dB) and only on the moving object</b>; most blobs on real objects do not learn the real motion. The main answer, for compression, does not change.</p>
+</div>
+</div>
+</section>
+
+<!-- ================================================================ 9 CONCLUSION -->
+<section class="chapter" id="conclusion">
+<div class="slide" data-title="Conclusion">
+<h2><span class="num">9</span>Conclusion</h2>
+<div class="table-wrap">
+<table>
+<caption><b>Table 31.</b> What we learned, and how sure we are.</caption>
+<thead><tr><th>Finding</th><th>How sure</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr class="group"><td colspan="3">Compression (main question)</td></tr>
+<tr><td>After 3,000 steps, shrinking (M2) and both (M3) beat M0 by 0.5 to 2.3 dB; curving fails the test.</td><td>Reliable: 432 fits, 3 seeds</td><td>§4</td></tr>
+<tr><td>Those gains do not come from motion: they appear on still photos, and the learned accelerations do not follow the real motion.</td><td>Reliable: 4 photos × 3 seeds</td><td>§5</td></tr>
+<tr><td>3,000 steps is far from trained; the gains are faster learning.</td><td>Fairly reliable</td><td>§6</td></tr>
+<tr><td><b>Fully trained, no extension has a steady gain; all three fail the test.</b></td><td>Reliable: 192 fits, small seed spread</td><td>§6</td></tr>
+<tr><td>The few remaining leads (M1 on Jockey, M2 on Bosphorus) are in the background.</td><td>Reliable: all 3 seeds agree</td><td>§6</td></tr>
+<tr><td>A higher degree is worse: 2 is best, 3 a little worse, 7 much worse.</td><td>Fairly reliable; higher terms not tuned</td><td>§7</td></tr>
+<tr class="group"><td colspan="3">Frames between (supplementary)</td></tr>
+<tr><td>When the motion bends and can be learned, curving draws the frames between much better, more so the more it bends (0 → +9 dB), with blobs bending the right way.</td><td>Reliable: 4 predictions written first</td><td>§8</td></tr>
+<tr><td>On new real clips, curving draws the moving object about 0.5 dB better between frames, but not the whole frame.</td><td>Fairly reliable: rule fixed first, 9/12, on the line</td><td>§8</td></tr>
+<tr><td>On the dog, the blobs' bend does not visibly match the real motion.</td><td>Fairly reliable; flow has 3–6 px error</td><td>§8</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout finding"><span class="label">In one sentence each</span>
+<p><b>Compression:</b> at equal storage and with enough training, folding is not worth the storage; it only makes the model learn faster.<br>
+<b>Frames between:</b> a curved path is useful in principle, and its use comes from motion, but on real video the gain is small and limited to the moving object.</p>
+</div>
+</div>
+
+<div class="slide" data-title="Limitations">
+<h3>Limitations</h3>
+<ul>
+<li><b>Few blobs.</b> We used 250 to 2,000 blobs per 10-frame clip (at most 0.015 blobs per pixel); VeGaS uses hundreds of thousands (about 0.65 per pixel). A probe at 3,000 steps up to 64,000 blobs kept M3 ahead by 0.4 to 0.8 dB, but we never fully trained with many blobs: one fit would take 1 to 2 hours. With many more blobs, the blobs might track motion more and the answer could change.</li>
+<li><b>Short clips, low resolution.</b> 10 frames (one 30-frame clip) at 480×270, 4 UVG sequences. The conclusions hold for these clips, budgets and this resolution only.</li>
+<li><b>Tuning.</b> Settings were tuned on one Jockey clip and checked on one ShakeNDry clip. The acceleration ratio and s<sub>min</sub> were tuned at 3,000 steps, not re-tuned for full training. The learning rate of the high-degree terms (D3, D7) was not tuned.</li>
+<li><b>Masks and flow.</b> Object masks come from Mask R-CNN, not by hand as planned; they were checked by eye. The flow used to compare paths has 3 to 6 pixels of error.</li>
+<li><b>Bosphorus</b> is straight but also slow, so the two cannot be told apart on it.</li>
+<li><b>Post-hoc steps.</b> The frames-between analysis was not in the proposal's failure tests. We marked it as supplementary and fixed a separate rule before the confirmatory runs.</li>
+</ul>
+<details class="more"><summary>Changes from the proposal</summary><div class="body">
+<ul>
+<li>Added Bosphorus as a fourth clip after measuring the motion (YachtRide's waves are not straight).</li>
+<li>Tuned the velocity learning rate of every model, the baseline included, after the synthetic test showed M1's gain depended on it.</li>
+<li>Object masks from Mask R-CNN instead of hand-drawn horse masks and flow masks (flow masks were reliable only on the still-camera clip).</li>
+<li>Added full training (30,000 steps) after finding that 3,000 steps was far too short; the 3,000-step results are reported as "equal training steps".</li>
+<li>The degree extension used 2 clips × 2 budgets of 10 frames, not the 30-frame clip.</li>
+<li>Added the frames-between analysis, the synthetic arc and the confirmatory test to explain the result.</li>
+<li>Not done: stride 2, HoneyBee, and a fully trained run with many blobs.</li>
+</ul>
+</div></details>
+</div>
+</section>
+
+<!-- ================================================================ REPRODUCE, REFERENCES -->
+<section class="chapter no-slide" id="reproduce">
+<h2><span class="num"></span>Reproduce</h2>
+<p>All code is in <code>stg/</code>; the course program <code>gaussian_image_video.py</code> is unchanged. Every stage of experiments is listed in <code>stg/sweep.py</code> and resumes where it stopped. On a laptop RTX 4060, the fits of all stages together took about 68 hours of training (1,496 fits).</p>
+<pre><code>python -m stg.check --device cuda                          # gradient checks
+python -m stg.sweep --stage test --all --device cuda       # 432 fits, 3,000 steps   (Section 4)
+python -m stg.sweep --stage still --all --device cuda      # still photographs       (Section 5)
+python -m stg.sweep --stage long_test --all --device cuda  # 192 fits, fully trained (Section 6)
+python -m stg.sweep --stage poly --all --device cuda       # degree 3 and 7          (Section 7)
+python -m stg.unseen runs/long_test                        # frames between          (Section 8)
+python -m stg.sweep --stage arc_slow --all --device cuda   # synthetic arcs
+python -m stg.sweep --stage confirm --all --device cuda    # confirmatory test
+python -m stg.export_site                                  # data of this page
+python -m stg.figures --crops                              # figures and tables of this page</code></pre>
+<figure>
+  <img src="figures/crops.png" alt="Crops of rendered frames: horse legs and dog, fitted frame and frame between" loading="lazy">
+  <figcaption><b>Figure 9.</b> Crops of the horse's legs and the dog, fully trained, budget 24,000, seed 0, at a fitted frame (12) and the frame after it (13), which no model saw. The numbers are the PSNR inside each crop.</figcaption>
+</figure>
+
+<h2><span class="num"></span>References</h2>
+<ul style="font-size:16px">
+<li>CP4282 course notes, Unit 16: 2D Gaussians for Images and Videos; Unit 14: Compaction of 3DGS.</li>
+<li>W. Smolak-Dyżewska, D. Malarz, K. Howil, J. Kaczmarczyk, M. Mazur, P. Spurek. <a href="https://arxiv.org/abs/2411.11024">VeGaS: Video Gaussian Splatting</a>. arXiv:2411.11024, 2024.</li>
+<li>X. Zhang et al. GaussianImage: 1000 FPS Image Representation and Compression by 2D Gaussian Splatting. ECCV 2024.</li>
+<li>A. Mercat, M. Viitanen, J. Vanne. UVG dataset: 50/120fps 4K sequences for video codec analysis and development. ACM MMSys 2020. (Videos under CC BY-NC 3.0.)</li>
+<li>G. Farnebäck. Two-frame motion estimation based on polynomial expansion. SCIA 2003.</li>
+<li>K. He, G. Gkioxari, P. Dollár, R. Girshick. Mask R-CNN. ICCV 2017.</li>
+<li>Z. Li, A. Aaron, I. Katsavounidis, A. Moorthy, M. Manohara. Toward a practical perceptual video quality metric (VMAF). Netflix Tech Blog, 2016.</li>
+</ul>
+<h2><span class="num"></span>AI-use note</h2>
+<p style="font-size:16px">Claude (Anthropic) was used to discuss the experimental design, write and check code, run and analyse experiments, and draft the text and figures of this page. I made and checked the decisions on the research questions, the models, the clips, the budgets, the tests and the conclusions.</p>
+</section>
+
+</main>
+
+<footer>
+  Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
+</footer>
+
+<div class="slidebar"><div class="progress" id="slide-progress"></div><span id="slide-title"></span><span><kbd>←</kbd> <kbd>→</kbd> move · <kbd>Esc</kbd> leave · <span id="slide-count"></span></span></div>
+
+<script type="module" src="assets/js/main.js"></script>
+</body>
+</html>

@@ -16,4 +16,6 @@ The 2D renderer and its hand-written gradients are the course's (``gaussian_imag
     sweep.py      the experiment design:       python -m stg.sweep --help
     check.py      finite-difference checks:    python -m stg.check
     aggregate.py  runs/*/metrics.json -> CSV:  python -m stg.aggregate runs
+    export_site.py  runs/ -> docs/data/ for the project page:  python -m stg.export_site
+    figures.py    figures and tables of the page and the report:  python -m stg.figures
 """
