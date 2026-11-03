@@ -5,8 +5,12 @@
 // s = max(w, s_min), weight w = exp(-tau^2 / (2 sigma_t^2)), skipped where |tau| >= 3.5 sigma_t.
 //
 // A page may hold several copies. Each finds its parts by class inside its root element: the
-// figures .vol-svg, .vol-slice, .vol-weight, the sliders [data-k] with outputs [data-out], and
-// optionally the model buttons .vol-model. A copy without model buttons shows M0 only.
+// figures .vol-svg, .vol-slice, .vol-weight, the sliders [data-k] with outputs [data-out], the
+// play button .vol-play, and optionally the model buttons .vol-model. A copy without model buttons
+// shows M0 only. Dragging the volume sideways turns the view.
+//
+// The sliders give one speed and one bend; their directions are fixed (up and to the right, and
+// bending the path round to the left), so the reader sees the idea without setting x and y apart.
 
 import { WIDTH, HEIGHT, CUT, renderCPU } from "./gauss.js";
 
@@ -14,6 +18,9 @@ const FRAMES = 30, T0 = 15;
 const CHOL = [42, -16, 17];                      // the Cholesky factor L of the slice, in pixels
 const MODELS = { M0: [false, false], M1: [true, false], M2: [false, true], M3: [true, true] };   // [curve, shrink]
 const BLUE = "#2a78d6", ORANGE = "#d4521d", INK = "#1b1b1b";
+const unit = (x, y) => { const n = Math.hypot(x, y); return [x / n, y / n]; };
+const V_DIR = unit(2, -0.5), A_DIR = unit(-0.12, 0.25);   // directions of the velocity and the acceleration
+const YAW_MIN = 5, YAW_MAX = 75;
 
 export function volumeWidget(root) {
   if (!root) return;
@@ -24,13 +31,13 @@ export function volumeWidget(root) {
   const input = Object.fromEntries([...root.querySelectorAll("[data-k]")].map((el) => [el.dataset.k, el]));
   const value = (k, fallback) => (input[k] ? +input[k].value : fallback);
   const show = (k, text) => { const el = $(`[data-out="${k}"]`); if (el) el.textContent = text; };
-  let model = "M0";
+  let model = "M0", yaw = 35;
 
   const params = () => {
     const [curve, shrink] = MODELS[model];
-    return { t: value("frame", T0), vx: value("vx", 2), vy: value("vy", -0.5),
-             ax: curve ? value("ax", 0) : 0, ay: curve ? value("ay", 0) : 0,
-             sigma: value("sigma", 5), smin: value("smin", 0.1), yaw: value("yaw", 35), curve, shrink };
+    const speed = value("speed", 2), bend = curve ? value("bend", 0) : 0;
+    return { t: value("frame", T0), vx: speed * V_DIR[0], vy: speed * V_DIR[1], ax: bend * A_DIR[0], ay: bend * A_DIR[1],
+             sigma: value("sigma", 5), smin: value("smin", 0.1), yaw, curve, shrink };
   };
   const centre = (p, t) => { const tau = t - T0; return [WIDTH / 2 + p.vx * tau + p.ax * tau * tau, HEIGHT / 2 + p.vy * tau + p.ay * tau * tau]; };
   const weight = (p, t) => Math.exp(-0.5 * ((t - T0) / p.sigma) ** 2);
@@ -99,6 +106,7 @@ export function volumeWidget(root) {
     s += `<text x="${lx}" y="${ly - 8}" fill="${ORANGE}" font-weight="600" text-anchor="middle">frame ${t}</text>`;
     const [ax, ay] = P(1, WIDTH, HEIGHT), [bx, by] = P(FRAMES, WIDTH, HEIGHT);
     s += `<text x="${ax}" y="${ay + 16}" text-anchor="middle">frame 1</text><text x="${bx}" y="${by + 16}" text-anchor="end">frame ${FRAMES}</text>`;
+    s += `<text x="8" y="292" fill="#8f8d86">drag sideways to turn</text>`;
     svg.innerHTML = s;
   }
 
@@ -152,15 +160,14 @@ export function volumeWidget(root) {
 
   function draw() {
     const p = params();
-    show("frame", `${p.t} of ${FRAMES}`);
-    show("vx", p.vx.toFixed(1));
-    show("vy", p.vy.toFixed(1));
-    show("ax", p.curve ? value("ax", 0).toFixed(2) : "off");
-    show("ay", p.curve ? value("ay", 0).toFixed(2) : "off");
-    show("sigma", p.sigma.toFixed(1));
-    show("smin", p.shrink ? p.smin.toFixed(2) : "off");
-    show("yaw", `${p.yaw}°`);
-    if (input.ax) input.ax.disabled = input.ay.disabled = !p.curve;
+    show("frame", `frame ${p.t} of ${FRAMES}`);
+    show("speed", `${value("speed", 2).toFixed(1)} px per frame`);
+    show("bend", p.curve ? value("bend", 0).toFixed(2) : "M1, M3 only");
+    let seen = 0;
+    for (let k = 1; k <= FRAMES; k++) if (visible(p, k) && weight(p, k) > 0.1) seen++;
+    show("sigma", `${seen} of ${FRAMES} frames`);
+    show("smin", p.shrink ? `${Math.round(100 * p.smin)}% of full size` : "M2, M3 only");
+    if (input.bend) input.bend.disabled = !p.curve;
     if (input.smin) input.smin.disabled = !p.shrink;
     const cost = $(".vol-cost");
     if (cost) cost.textContent = p.curve ? "14 numbers per Gaussian (12 + the acceleration a)" : "12 numbers per Gaussian";
@@ -178,5 +185,33 @@ export function volumeWidget(root) {
     };
   }
   Object.values(input).forEach((el) => el.addEventListener("input", draw));
+
+  // drag the volume sideways to turn it
+  let drag = null;
+  svg.style.cursor = "grab";
+  svg.style.touchAction = "pan-y";
+  svg.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, yaw }; svg.setPointerCapture(e.pointerId); svg.style.cursor = "grabbing"; });
+  svg.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const k = 600 / svg.getBoundingClientRect().width;   // drag in viewBox units
+    yaw = Math.min(YAW_MAX, Math.max(YAW_MIN, drag.yaw - 0.25 * k * (e.clientX - drag.x)));
+    draw();
+  });
+  const stop = () => { drag = null; svg.style.cursor = "grab"; };
+  svg.addEventListener("pointerup", stop);
+  svg.addEventListener("pointercancel", stop);
+
+  // play: step through the frames
+  const play = $(".vol-play");
+  let timer = null;
+  const halt = () => { clearInterval(timer); timer = null; if (play) play.textContent = "Play"; };
+  if (play && input.frame) {
+    play.onclick = () => {
+      if (timer) return halt();
+      play.textContent = "Pause";
+      timer = setInterval(() => { input.frame.value = (+input.frame.value % FRAMES) + 1; draw(); }, 160);
+    };
+    input.frame.addEventListener("pointerdown", halt);
+  }
   draw();
 }
