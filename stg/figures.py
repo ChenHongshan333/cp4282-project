@@ -6,7 +6,7 @@ Writes ``docs/figures/<name>.png`` and ``.pdf``, and ``docs/data/tables.json``: 
 and rows of formatted cells.
 
     python -m stg.figures
-    python -m stg.figures --crops        # also the crops of rendered frames (needs the GPU and data/)
+    python -m stg.figures --crops        # also the figures made from video frames (needs data/; crops need the GPU)
 """
 
 from __future__ import annotations
@@ -612,11 +612,42 @@ def fig_crops(out: Path, plt, root=Path("runs"), data_root=Path("data/uvg"), dev
     plt.close(fig)
 
 
+def fig_motion(out: Path, plt, data_root=Path("data/uvg"), mask_root=Path("data/masks")):
+    """Motion that a straight line cannot follow: the horse's legs and the shaking dog in frames
+    0, 3, ..., 15 of the test clips (stride 3). The crop follows the object outline of each frame."""
+    from PIL import Image
+    from stg import data
+    frames_k = list(range(0, 16, 3))
+    size = {"Jockey": (150, 100), "ShakeNDry": (210, 140)}
+    fig, axes = plt.subplots(2, len(frames_k), figsize=(9.6, 3.3))
+    for r, seq in enumerate(("Jockey", "ShakeNDry")):
+        frames = data.load_clip(data_root, seq, 0, 16, 1)
+        w, h = size[seq]
+        for c, k in enumerate(frames_k):
+            mask = np.asarray(Image.open(mask_root / seq / f"{k:04d}.png").convert("L").resize(data.SIZE, Image.NEAREST)) > 127
+            ys, xs = np.nonzero(mask)
+            # the legs are the lower part of the horse and rider; the dog is centred
+            cx, cy = (xs.min() + xs.max()) / 2, (ys.min() + 0.72 * (ys.max() - ys.min()) if seq == "Jockey" else (ys.min() + ys.max()) / 2)
+            x0 = int(np.clip(cx - w / 2, 0, data.SIZE[0] - w))
+            y0 = int(np.clip(cy - h / 2, 0, data.SIZE[1] - h))
+            ax = axes[r][c]
+            ax.imshow(frames[k][y0:y0 + h, x0:x0 + w])
+            ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+            for s in ax.spines.values():
+                s.set_visible(False)
+            if r == 0:
+                ax.set_title(f"frame {k}", fontsize=8.5)
+        axes[r][0].set_ylabel({"Jockey": "Jockey:\nthe legs", "ShakeNDry": "ShakeNDry:\nthe dog"}[seq], fontsize=8.5)
+    fig.tight_layout()
+    save(fig, out, "motion")
+    plt.close(fig)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--data", type=Path, default=Path("docs/data"))
     p.add_argument("--out", type=Path, default=Path("docs/figures"))
-    p.add_argument("--crops", action="store_true")
+    p.add_argument("--crops", action="store_true", help="also the figures made from video frames: motion and crops")
     a = p.parse_args(argv)
     runs = Runs(json.loads((a.data / "runs.json").read_text()))
     a.out.mkdir(parents=True, exist_ok=True)
@@ -625,6 +656,7 @@ def main(argv=None):
     for fig in (fig_rd, fig_gain_budget, fig_training, fig_still, fig_degree, fig_arc, fig_unseen, fig_confirm):
         fig(runs, a.out, plt)
     if a.crops:
+        fig_motion(a.out, plt)
         fig_crops(a.out, plt)
 
 

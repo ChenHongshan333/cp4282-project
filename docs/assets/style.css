@@ -117,8 +117,10 @@ figcaption b:first-child { color: var(--ink); }
 .figrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 
 /* ---- tables ---- */
-.table-wrap { overflow-x: auto; margin: 18px auto 24px; }
-table { border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; line-height: 1.4; width: auto; min-width: 55%; font-variant-numeric: tabular-nums; }
+.table-wrap { margin: 18px auto 24px; }
+.tbox { width: fit-content; max-width: 100%; margin: 0 auto; overflow-x: auto; }
+.tbox > .tcap { width: 0; min-width: 100%; }
+table { border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; line-height: 1.4; width: auto; font-variant-numeric: tabular-nums; }
 caption, .tcap { caption-side: top; text-align: left; font-family: var(--serif); font-size: 15px; color: var(--ink-2); padding-bottom: 8px; line-height: 1.5; }
 caption b:first-child, .tcap b:first-child { color: var(--ink); }
 thead th { border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--ink); font-weight: 600; text-align: left; padding: 6px 16px 6px 10px; vertical-align: bottom; }
@@ -228,8 +230,8 @@ td.small { color: #a8a6a0; }
 .vlabel { font-weight: 600; font-size: 13px; color: var(--ink); margin-bottom: 4px; }
 .vol-main svg { width: 100%; height: auto; display: block; }
 .vol-main svg text, .vol-side svg text { font-size: 12px; fill: var(--ink-2); font-family: var(--sans); }
-#vol-slice { width: 100%; height: auto; display: block; border: 1.5px solid #d4521d; margin-bottom: 12px; }
-#vol-weight { width: 100%; height: auto; display: block; }
+.vol-slice { width: 100%; height: auto; display: block; border: 1.5px solid #d4521d; margin-bottom: 12px; }
+.vol-weight { width: 100%; height: auto; display: block; }
 .sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 28px; margin-top: 14px; }
 .sliders label { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .sliders label > span { display: flex; justify-content: space-between; gap: 8px; }
@@ -240,3 +242,10 @@ td.small { color: #a8a6a0; }
 @media (max-width: 760px) { .vol-grid { grid-template-columns: 1fr; } }
 .vol-main { display: flex; flex-direction: column; }
 .vol-main svg { margin: auto 0; }
+
+/* figures narrower than the page keep their own width and are centred */
+figure { text-align: left; }
+figure.w-90 { max-width: 90%; }
+figure.w-80 { max-width: 80%; }
+figure.w-70 { max-width: 70%; }
+@media (max-width: 760px) { figure.w-90, figure.w-80, figure.w-70 { max-width: 100%; } }

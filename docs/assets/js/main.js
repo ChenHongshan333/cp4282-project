@@ -4,7 +4,7 @@
 import { WIDTH, HEIGHT, SPECS, numbersPerGaussian, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
          ARC } from "./gauss.js";
 import { makeRenderer } from "./gl.js";
-import { volumeWidget } from "./volume.js?v=2";
+import { volumeWidget } from "./volume.js?v=3";
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -53,14 +53,21 @@ async function fillTables() {
       .map((h, i) => `<th${i > 0 && /^[\d+−\-—]/.test(String(t.rows[0]?.[i] ?? "")) ? ' class="num"' : ""}>${h}</th>`)
       .join("")}</tr></thead><tbody>${t.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</tbody></table>`;
   }
-  // A long caption inside a table makes the table as wide as the caption. Move every caption above
-  // its table, so that a table is only as wide as its columns.
-  for (const caption of $$("table > caption")) {
-    const div = document.createElement("div");
-    div.className = "tcap";
-    div.innerHTML = caption.innerHTML;
-    caption.closest("table").before(div);
-    caption.remove();
+  // A long caption inside a table makes the table as wide as the caption. Put each table and its
+  // caption in a box as wide as the table (.tbox, centred); the caption wraps at that width.
+  for (const table of $$("table")) {
+    const box = document.createElement("div");
+    box.className = "tbox";
+    table.before(box);
+    const caption = $("caption", table);
+    if (caption) {
+      const div = document.createElement("div");
+      div.className = "tcap";
+      div.innerHTML = caption.innerHTML;
+      box.appendChild(div);
+      caption.remove();
+    }
+    box.appendChild(table);
   }
   // the tables change the height of the page: go to the linked section again
   if (location.hash) $(location.hash)?.scrollIntoView();
@@ -542,7 +549,7 @@ function setupToc() {
 }
 
 setupToc();
-volumeWidget($("#w-volume"));
+$$(".w-volume").forEach(volumeWidget);
 budgetWidget();
 fillTables();
 trainingWidget();

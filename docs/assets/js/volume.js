@@ -3,6 +3,10 @@
 // or a curve (M1, M3), and the slice keeps its size (M0, M1) or shrinks as it fades (M2, M3).
 // Slicing follows stg/slicing.py: centre mu + v tau (+ a tau^2), Cholesky factor sqrt(s) L with
 // s = max(w, s_min), weight w = exp(-tau^2 / (2 sigma_t^2)), skipped where |tau| >= 3.5 sigma_t.
+//
+// A page may hold several copies. Each finds its parts by class inside its root element: the
+// figures .vol-svg, .vol-slice, .vol-weight, the sliders [data-k] with outputs [data-out], and
+// optionally the model buttons .vol-model. A copy without model buttons shows M0 only.
 
 import { WIDTH, HEIGHT, CUT, renderCPU } from "./gauss.js";
 
@@ -14,18 +18,19 @@ const BLUE = "#2a78d6", ORANGE = "#d4521d", INK = "#1b1b1b";
 export function volumeWidget(root) {
   if (!root) return;
   const $ = (s) => root.querySelector(s);
-  const svg = $("#vol-svg"), weightSvg = $("#vol-weight"), canvas = $("#vol-slice");
+  const svg = $(".vol-svg"), weightSvg = $(".vol-weight"), canvas = $(".vol-slice");
   const ctx = canvas.getContext("2d");
   const image = new Float32Array(WIDTH * HEIGHT * 3);
-  const sliders = ["frame", "vx", "vy", "ax", "ay", "sigma", "smin", "yaw"];
-  const input = Object.fromEntries(sliders.map((k) => [k, $(`#vol-${k}`)]));
+  const input = Object.fromEntries([...root.querySelectorAll("[data-k]")].map((el) => [el.dataset.k, el]));
+  const value = (k, fallback) => (input[k] ? +input[k].value : fallback);
+  const show = (k, text) => { const el = $(`[data-out="${k}"]`); if (el) el.textContent = text; };
   let model = "M0";
 
   const params = () => {
     const [curve, shrink] = MODELS[model];
-    return { t: +input.frame.value, vx: +input.vx.value, vy: +input.vy.value,
-             ax: curve ? +input.ax.value : 0, ay: curve ? +input.ay.value : 0,
-             sigma: +input.sigma.value, smin: +input.smin.value, yaw: +input.yaw.value, curve, shrink };
+    return { t: value("frame", T0), vx: value("vx", 2), vy: value("vy", -0.5),
+             ax: curve ? value("ax", 0) : 0, ay: curve ? value("ay", 0) : 0,
+             sigma: value("sigma", 5), smin: value("smin", 0.1), yaw: value("yaw", 35), curve, shrink };
   };
   const centre = (p, t) => { const tau = t - T0; return [WIDTH / 2 + p.vx * tau + p.ax * tau * tau, HEIGHT / 2 + p.vy * tau + p.ay * tau * tau]; };
   const weight = (p, t) => Math.exp(-0.5 * ((t - T0) / p.sigma) ** 2);
@@ -123,7 +128,7 @@ export function volumeWidget(root) {
       ctx.stroke();
     }
     ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * Math.PI); ctx.fill();
-    $("#vol-frame-label").textContent = on ? `Frame ${t}: the slice is a 2D Gaussian` : `Frame ${t}: the Gaussian is not visible`;
+    $(".vol-frame-label").textContent = on ? `Frame ${t}: the slice is a 2D Gaussian` : `Frame ${t}: the Gaussian is not visible`;
   }
 
   // --- the weight of the slice in each frame, and with shrinking its size scale
@@ -141,33 +146,37 @@ export function volumeWidget(root) {
     }
     s += `<text x="${L}" y="${H - 8}">1</text><text x="${W / 2}" y="${H - 8}" text-anchor="middle">frame</text><text x="${W - R}" y="${H - 8}" text-anchor="end">${FRAMES}</text>`;
     weightSvg.innerHTML = s;
-    $("#vol-weight-key").style.display = p.shrink ? "" : "none";
+    const key = $(".vol-weight-key");
+    if (key) key.style.display = p.shrink ? "" : "none";
   }
 
   function draw() {
     const p = params();
-    $("#vol-frame-out").textContent = `${p.t} of ${FRAMES}`;
-    $("#vol-vx-out").textContent = p.vx.toFixed(1);
-    $("#vol-vy-out").textContent = p.vy.toFixed(1);
-    $("#vol-ax-out").textContent = p.curve ? (+input.ax.value).toFixed(2) : "off";
-    $("#vol-ay-out").textContent = p.curve ? (+input.ay.value).toFixed(2) : "off";
-    $("#vol-sigma-out").textContent = p.sigma.toFixed(1);
-    $("#vol-smin-out").textContent = p.shrink ? p.smin.toFixed(2) : "off";
-    $("#vol-yaw-out").textContent = `${p.yaw}°`;
-    input.ax.disabled = input.ay.disabled = !p.curve;
-    input.smin.disabled = !p.shrink;
-    $("#vol-cost").textContent = p.curve ? "14 numbers per Gaussian (12 + the acceleration a)" : "12 numbers per Gaussian";
+    show("frame", `${p.t} of ${FRAMES}`);
+    show("vx", p.vx.toFixed(1));
+    show("vy", p.vy.toFixed(1));
+    show("ax", p.curve ? value("ax", 0).toFixed(2) : "off");
+    show("ay", p.curve ? value("ay", 0).toFixed(2) : "off");
+    show("sigma", p.sigma.toFixed(1));
+    show("smin", p.shrink ? p.smin.toFixed(2) : "off");
+    show("yaw", `${p.yaw}°`);
+    if (input.ax) input.ax.disabled = input.ay.disabled = !p.curve;
+    if (input.smin) input.smin.disabled = !p.shrink;
+    const cost = $(".vol-cost");
+    if (cost) cost.textContent = p.curve ? "14 numbers per Gaussian (12 + the acceleration a)" : "12 numbers per Gaussian";
     drawVolume(p); drawSlice(p); drawWeight(p);
   }
 
-  const seg = $("#vol-model");
-  seg.onclick = (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    model = b.dataset.v;
-    seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    draw();
-  };
+  const seg = $(".vol-model");
+  if (seg) {
+    seg.onclick = (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      model = b.dataset.v;
+      seg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      draw();
+    };
+  }
   Object.values(input).forEach((el) => el.addEventListener("input", draw));
   draw();
 }
