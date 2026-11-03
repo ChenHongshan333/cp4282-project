@@ -115,8 +115,8 @@ def tables(runs: Runs) -> dict:
     t["test_fail_short"] = failure_summary(test)
     t["long_fail_short"] = failure_summary(long)
 
-    # Storage: blobs per budget.
-    t["budget"] = {"head": ["Model", "Numbers per blob", "Blobs at 3,000", "6,000", "12,000", "24,000"],
+    # Storage: Gaussians per budget.
+    t["budget"] = {"head": ["Model", "Numbers per Gaussian", "Gaussians at 3,000", "6,000", "12,000", "24,000"],
                    "rows": [[m, str(n)] + [f"{b // n:,}" for b in BUDGETS]
                             for m, n in (("M0, M2", 12), ("M1, M3", 14), ("D3", 16), ("D7", 24))]}
 

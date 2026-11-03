@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=2">
+<link rel="stylesheet" href="assets/style.css?v=5">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -45,47 +45,50 @@
     <a class="btn" href="#reproduce">Reproduce</a>
   </div>
 </header>
-
-<div class="answer">
-  <h2>The short answer</h2>
-  <ol>
-    <li><b>For compression, folding is not worth the storage.</b> I gave every model the same storage and trained each one fully. Then neither a curved path (M1), nor shrinking (M2), nor both (M3) beat the straight-line baseline of Unit 16 in a steady way, and all three failed the test I wrote in the proposal.</li>
-    <li><b>The early gains came from faster learning.</b> After the 3,000 training steps planned in the proposal, shrinking was ahead by 0.5 to 2.3 dB. It was just as far ahead on still photographs, so motion had nothing to do with it, and the lead disappeared with longer training.</li>
-    <li><b>A curved path does help to draw the frames between the fitted ones.</b> On a synthetic ball the gain grows with the bend of the path, up to about 9 dB. On real video it is about 0.5 dB, and only on the moving object.</li>
-  </ol>
-</div>
 </section>
 
 <!-- ================================================================ 1 MOTIVATION -->
 <section class="chapter" id="motivation">
 <h2><span class="num">1</span>Motivation</h2>
-<p>In Unit 16, a short video is drawn by many coloured blobs called <b>space-time Gaussians</b>. Each blob has a centre, a shape and a colour, and it is visible only for a short time around its peak time <span class="math">t<sub>0</sub></span>. While it is visible, its centre moves in a straight line at constant speed. A frame is the sum of all blobs at that time. Each blob costs 12 stored numbers, however many frames it covers.</p>
-<p>Some motion does not follow a straight line. A galloping horse swings its legs forward and back within a few frames, so the baseline needs several short-lived blobs to follow one leg. VeGaS (Smolak-Dyżewska et al., 2024) gives each blob two extra abilities and calls them <b>folding</b>. With the first, the centre can follow a curve. This costs 2 more numbers per blob, for the acceleration. With the second, a blob shrinks as it fades out, which costs nothing extra.</p>
+<p>In Unit 16, a short video is drawn as the sum of many soft, coloured blobs. Each blob is a <b>space-time Gaussian</b>: a Gaussian over the image coordinates x and y and over time. Because it has an extent in time, it is visible only for a short while around its peak time <span class="math">t<sub>0</sub></span>, and while it is visible its centre moves in a straight line at a constant velocity <span class="math">v</span>. The frame at time <span class="math">t</span> is a slice through every Gaussian at that time, and each slice is a 2D Gaussian whose weight fades away from <span class="math">t<sub>0</sub></span>. A Gaussian costs 12 stored numbers, however many frames it covers.</p>
 
-<div class="widget" id="w-blob">
-  <div class="wtitle">Try it: one space-time Gaussian</div>
-  <div class="whelp">Drag the time slider to watch one blob move and fade. Turn on the curve or shrinking to see what each one changes. The dots mark the centre at the 10 frames of a clip.</div>
-  <div class="grid2">
-    <div class="panel"><canvas width="480" height="270" id="blob-canvas"></canvas></div>
-    <div>
-      <div class="control"><span class="clabel">time t − t<sub>0</sub></span><input type="range" id="blob-t" min="-4.5" max="4.5" step="0.05" value="-2"><output id="blob-t-out"></output></div>
-      <div class="control"><span class="clabel">velocity v</span><input type="range" id="blob-v" min="0" max="30" step="1" value="18"><output id="blob-v-out"></output></div>
-      <div class="control"><label class="check"><input type="checkbox" id="blob-curve"> curve (M1)</label></div>
-      <div class="control"><span class="clabel">acceleration a</span><input type="range" id="blob-a" min="-6" max="6" step="0.25" value="-3.5"><output id="blob-a-out"></output></div>
-      <div class="control"><label class="check"><input type="checkbox" id="blob-shrink"> shrink as it fades (M2)</label></div>
-      <div class="control"><span class="clabel">floor s<sub>min</sub></span><input type="range" id="blob-smin" min="0.05" max="1" step="0.05" value="0.1"><output id="blob-smin-out"></output></div>
-      <p style="margin:12px 0 0;font-size:14px">Visibility <span class="math">w(t)</span>: <b class="counter" id="blob-w"></b><br>
-      Size scale: <b class="counter" id="blob-s"></b><br>
-      Stored numbers per blob: <b class="counter" id="blob-cost"></b></p>
+<div class="widget" id="w-volume">
+  <div class="wtitle">Try it: one space-time Gaussian in the volume of the video</div>
+  <div class="whelp">Left: the video as a volume. Each frame is a vertical plane, and time runs along the long axis. The blue ellipses outline the Gaussian (2σ) in each frame, and the orange plane is the current frame with its cut through the Gaussian. Top right: the current frame, where the cut is a 2D Gaussian. Bottom right: the weight of that slice in each frame. Choose M1 to bend the path, or M2 to make the slice shrink as it fades.</div>
+  <div class="controls"><div class="control"><span class="clabel">model</span><div class="seg" id="vol-model"><button data-v="M0" aria-pressed="true">M0 straight</button><button data-v="M1" aria-pressed="false">M1 curved</button><button data-v="M2" aria-pressed="false">M2 shrinking</button><button data-v="M3" aria-pressed="false">M3 both</button></div></div><span class="status" id="vol-cost" style="margin:0"></span></div>
+  <div class="legend">
+    <span class="key"><span class="swatch" style="background:#a9c6ef;border:1px solid #2a78d6"></span>2σ outline of the Gaussian, one ellipse per half frame</span>
+    <span class="key"><span class="swatch" style="background:#f3c8b5;border:1px solid #d4521d"></span>current frame and its cut through the Gaussian</span>
+    <span class="key"><span class="line" style="background:#1b1b1b"></span>path of the centre</span>
+  </div>
+  <div class="vol-grid">
+    <div class="vol-main"><div class="vlabel">One Gaussian in the volume of the video (x, y, time)</div><svg id="vol-svg" viewBox="0 0 600 300" role="img" aria-label="A space-time Gaussian in the volume of the video"></svg></div>
+    <div class="vol-side">
+      <div class="vlabel" id="vol-frame-label"></div>
+      <canvas id="vol-slice" width="480" height="270"></canvas>
+      <div class="vlabel">Weight of the slice in each frame <span id="vol-weight-key" style="font-weight:400;color:var(--muted)">(line: size of the slice, max(w, s<sub>min</sub>))</span></div>
+      <svg id="vol-weight" viewBox="0 0 360 150" role="img" aria-label="Weight of the slice in each frame"></svg>
     </div>
+  </div>
+  <div class="sliders">
+    <label><span><span>Frame</span> <output id="vol-frame-out"></output></span><input type="range" id="vol-frame" min="1" max="30" step="1" value="15"></label>
+    <label><span><span>Velocity, x (pixels per frame)</span> <output id="vol-vx-out"></output></span><input type="range" id="vol-vx" min="-4" max="4" step="0.1" value="2"></label>
+    <label><span><span>Velocity, y (pixels per frame)</span> <output id="vol-vy-out"></output></span><input type="range" id="vol-vy" min="-4" max="4" step="0.1" value="-0.5"></label>
+    <label><span><span>Duration σ<sub>t</sub> (frames)</span> <output id="vol-sigma-out"></output></span><input type="range" id="vol-sigma" min="1" max="10" step="0.5" value="5"></label>
+    <label><span><span>Acceleration, x (M1, M3)</span> <output id="vol-ax-out"></output></span><input type="range" id="vol-ax" min="-0.4" max="0.4" step="0.01" value="-0.12"></label>
+    <label><span><span>Acceleration, y (M1, M3)</span> <output id="vol-ay-out"></output></span><input type="range" id="vol-ay" min="-0.4" max="0.4" step="0.01" value="0.25"></label>
+    <label><span><span>Shrink floor s<sub>min</sub> (M2, M3)</span> <output id="vol-smin-out"></output></span><input type="range" id="vol-smin" min="0.05" max="1" step="0.05" value="0.1"></label>
+    <label><span><span>View angle (degrees)</span> <output id="vol-yaw-out"></output></span><input type="range" id="vol-yaw" min="5" max="75" step="1" value="35"></label>
   </div>
 </div>
 
-<p>I compare four models that differ only in where a blob is and how big it is at time <span class="math">t</span>. Everything else is the same code: the renderer of Unit 16, the loss, the optimiser and the starting blobs.</p>
+<p>Some motion does not follow a straight line. A galloping horse swings its legs forward and back within a few frames, so the baseline needs several short-lived Gaussians to follow one leg. VeGaS (Smolak-Dyżewska et al., 2024) gives each Gaussian two extra abilities and calls them <b>folding</b>. With the first, the centre can follow a curve, which costs 2 more numbers per Gaussian for the acceleration (M1 in the figure). With the second, the slice shrinks as it fades out, which costs nothing extra (M2).</p>
+
+<p>I compare four models that differ only in where a Gaussian is and how big it is at time <span class="math">t</span>. Everything else is the same code: the renderer of Unit 16, the loss, the optimiser and the starting Gaussians.</p>
 <div class="table-wrap">
 <table>
-<caption><b>Table 1.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, and <span class="math">w(t)</span> is how visible the blob is at time <span class="math">t</span>. <span class="math">L</span> sets the blob's shape.</caption>
-<thead><tr><th>Model</th><th>Centre at time t</th><th>Shape at time t</th><th class="num">Numbers per blob</th></tr></thead>
+<caption><b>Table 1.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, and <span class="math">w(t)</span> is how visible the Gaussian is at time <span class="math">t</span>. <span class="math">L</span> sets the Gaussian's shape.</caption>
+<thead><tr><th>Model</th><th>Centre at time t</th><th>Shape at time t</th><th class="num">Numbers per Gaussian</th></tr></thead>
 <tbody>
 <tr><td><span class="chip" style="background:var(--m0)"></span>M0 straight (Unit 16 baseline)</td><td>μ + vτ</td><td>L Lᵀ</td><td class="num">12</td></tr>
 <tr><td><span class="chip" style="background:var(--m1)"></span>M1 curved</td><td>μ + vτ + aτ²</td><td>L Lᵀ</td><td class="num">14</td></tr>
@@ -94,25 +97,25 @@
 </tbody>
 </table>
 </div>
-<p>VeGaS reports better quality with folding, but its models do not use the same storage. In its ablation, a higher-degree curve adds numbers to every blob, and the final models also have more blobs (0.62M against 0.57M), so the gain cannot be traced to the curve. Shrinking is never tested alone, and model sizes are not reported. A curved blob also pays for its acceleration on background that has no reason to curve. With a fixed budget, a model with fewer blobs that can curve competes with a model with more blobs that only go straight. I did not know in advance which would win.</p>
+<p>VeGaS reports better quality with folding, but its models do not use the same storage. In its ablation, a higher-degree curve adds numbers to every Gaussian, and the final models also have more Gaussians (0.62M against 0.57M), so the gain cannot be traced to the curve. Shrinking is never tested alone, and model sizes are not reported. A curved Gaussian also pays for its acceleration on background that has no reason to curve. With a fixed budget, a model with fewer Gaussians that can curve competes with a model with more Gaussians that only go straight. I did not know in advance which would win.</p>
 </section>
 
 <!-- ================================================================ 2 QUESTIONS -->
 <section class="chapter" id="questions">
 <h2><span class="num">2</span>Questions</h2>
-<p>Fitting blobs to a video compresses it. You store the blobs, and later you draw the same video again from them, as with JPEG or MP4. A compressor is judged by how much it stores and how close the redrawn video is to the original. So I score each model on the frames it was fitted to, as Units 14 and 16 and VeGaS do, and I add one condition: equal storage.</p>
+<p>Fitting Gaussians to a video compresses it. You store the Gaussians, and later you draw the same video again from them, as with JPEG or MP4. A compressor is judged by how much it stores and how close the redrawn video is to the original. So I score each model on the frames it was fitted to, as Units 14 and 16 and VeGaS do, and I add one condition: equal storage.</p>
 <div class="callout finding">
 <span class="label">Main question: compression</span>
 <p><b>Q1.</b> When every model stores the same number of numbers, does curving, shrinking or both give a higher PSNR than the straight-line baseline?</p>
-<p><b>Q2.</b> If it does, is that because the blobs follow the motion better? Then the gain should grow when the motion is more curved or faster, and it should sit on the moving object rather than on the background.</p>
+<p><b>Q2.</b> If it does, is that because the Gaussians follow the motion better? Then the gain should grow when the motion is more curved or faster, and it should sit on the moving object rather than on the background.</p>
 </div>
 <div class="callout">
 <span class="label">Supplementary question: frames between</span>
-<p><b>Q3.</b> The same blobs can also draw frames that were never fitted, for example for slow motion. If a blob's path follows the real motion, those frames come out right too. Does a curved path draw them better? I use this question to explain the answer to Q1; it does not change that answer.</p>
+<p><b>Q3.</b> The same Gaussians can also draw frames that were never fitted, for example for slow motion. If a Gaussian's path follows the real motion, those frames come out right too. Does a curved path draw them better? I use this question to explain the answer to Q1; it does not change that answer.</p>
 </div>
 <div class="table-wrap">
 <table>
-<caption><b>Table 2.</b> Two uses of the same fitted blobs.</caption>
+<caption><b>Table 2.</b> Two uses of the same fitted Gaussians.</caption>
 <thead><tr><th>Use</th><th>Scored on</th><th>Role in this project</th></tr></thead>
 <tbody>
 <tr><td>Compression: store the video and draw it again</td><td>the fitted frames (at stride 3: frames 0, 3, 6, …)</td><td>Main question (proposal §2). The pre-registered tests apply here.</td></tr>
@@ -120,7 +123,7 @@
 </tbody>
 </table>
 </div>
-<p>The two answers can differ. To compress, a straight-line model can hand a curved motion from one short blob to the next and still get every fitted frame right. To draw the frames between, the blobs have to know where things are between those frames.</p>
+<p>The two answers can differ. To compress, a straight-line model can hand a curved motion from one short Gaussian to the next and still get every fitted frame right. To draw the frames between, the Gaussians have to know where things are between those frames.</p>
 
 <div class="callout criteria">
 <span class="label">Written in the proposal before any experiment</span>
@@ -165,24 +168,24 @@
 </div></details>
 
 <h3>Equal storage</h3>
-<p>Every model gets the same budget, counted in stored numbers. A blob of M0 or M2 costs 12 numbers and a blob of M1 or M3 costs 14, so at the same budget the curved models get fewer blobs (Table 3). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
-<div class="table-wrap" data-table="budget" data-caption="<b>Table 3.</b> How many blobs each budget buys. D3 and D7 are the higher-degree paths of Section 7."></div>
-<p>The budgets give M0 between 250 and 2,000 blobs, the counts used in the Unit 16 example. For each random seed, M1 starts from the first blobs of M0 with zero acceleration, so at the start the two models differ only in how many blobs they have.</p>
+<p>Every model gets the same budget, counted in stored numbers. A Gaussian of M0 or M2 costs 12 numbers and a Gaussian of M1 or M3 costs 14, so at the same budget the curved models get fewer Gaussians (Table 3). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
+<div class="table-wrap" data-table="budget" data-caption="<b>Table 3.</b> How many Gaussians each budget buys. D3 and D7 are the higher-degree paths of Section 7."></div>
+<p>The budgets give M0 between 250 and 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 starts from the first Gaussians of M0 with zero acceleration, so at the start the two models differ only in how many Gaussians they have.</p>
 <div class="widget" id="w-budget">
   <div class="wtitle">Try it: what a budget buys</div>
-  <div class="whelp">Move the budget. Each model gets the same number of stored numbers, and more abilities per blob leave room for fewer blobs.</div>
+  <div class="whelp">Move the budget. Each model gets the same number of stored numbers, and more abilities per Gaussian leave room for fewer Gaussians.</div>
   <div class="control"><span class="clabel">budget</span><input type="range" id="budget-range" min="0" max="4" step="1" value="3"><output id="budget-out"></output></div>
   <div class="bars" id="budget-bars"></div>
 </div>
 
 <h3>Protocol</h3>
-<p>Each model is fitted with Adam on all frames of the clip at once, using the course's renderer and its hand-written gradients without changes. No blobs are added or removed during training, so each model keeps its budget exactly. I chose each model's settings on a separate validation clip of Jockey (from frame 60), which does not overlap the test clips, and then used them on all four clips, as in Unit 14. The baseline was tuned too, so every model is compared at its own best setting.</p>
+<p>Each model is fitted with Adam on all frames of the clip at once, using the course's renderer and its hand-written gradients without changes. No Gaussians are added or removed during training, so each model keeps its budget exactly. I chose each model's settings on a separate validation clip of Jockey (from frame 60), which does not overlap the test clips, and then used them on all four clips, as in Unit 14. The baseline was tuned too, so every model is compared at its own best setting.</p>
 <p>Every setting was run with 3 random seeds. When I compare a model with M0, I pair runs with the same clip, budget and seed, and report the mean over the seeds and, where it matters, the range from the lowest to the highest seed. To see where a gain comes from, a Mask R-CNN model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame, and I score PSNR inside and outside that outline.</p>
 <details class="more"><summary>Implementation and checks (steps 1 to 6, and 9)</summary><div class="body">
 <ul>
 <li>The project code in <code>stg/</code> adds the four models' slicing step and its gradients on top of the course program, which is used as it is.</li>
 <li>A finite-difference check confirmed the gradients: 1×10<sup>−8</sup> for the slicing step and 1 to 2×10<sup>−4</sup> for a whole clip (limit 0.02). My faster kernel matches the course kernel to 1×10<sup>−6</sup> in pixels and 2×10<sup>−6</sup> in gradients.</li>
-<li>The course kernel gives one GPU thread to each blob. I gave one thread to each row of a blob and drew all 10 frames in one launch. Fitting became 7 times faster (69 s to 9 s for 300 steps) with the same PSNR. A 3,000-step fit takes 40 to 60 s on a laptop RTX 4060.</li>
+<li>The course kernel gives one GPU thread to each Gaussian. I gave one thread to each row of a Gaussian and drew all 10 frames in one launch. Fitting became 7 times faster (69 s to 9 s for 300 steps) with the same PSNR. A 3,000-step fit takes 40 to 60 s on a laptop RTX 4060.</li>
 <li>PSNR is the main metric. I also report SSIM, and VMAF from Netflix (via ffmpeg, upscaled to 1080p as recommended); at this low resolution VMAF is only a side reference.</li>
 <li>This page draws the fitted models in your browser. I checked its renderer against the Python one on 14 frames, and the two images agree to 118 dB or better.</li>
 </ul>
@@ -201,7 +204,7 @@
 <p>The settings matter little: the best and worst setting of a model differ by 0.3 to 0.6 dB. The best values for M0 and M3 now lie inside the tested range, so the baseline got its own best setting.</p>
 </div></details>
 <details class="more"><summary>A first test on synthetic discs (step 7)</summary><div class="body">
-<p>Coloured discs moved along a parabola, a swing and a straight line over a still background (4 models, 4 budgets, 3 seeds, 3,000 steps). All three extensions beat M0, M3 by up to 2.3 dB. But when I lowered the velocity learning rate from 0.05 to 0.01, M1's gain went from +1.27 to −0.02 dB, and blobs on the still background were moving and curving anyway. Part of the gain came from having more parameters that move, so I tuned the learning rate of every model, the baseline included.</p>
+<p>Coloured discs moved along a parabola, a swing and a straight line over a still background (4 models, 4 budgets, 3 seeds, 3,000 steps). All three extensions beat M0, M3 by up to 2.3 dB. But when I lowered the velocity learning rate from 0.05 to 0.01, M1's gain went from +1.27 to −0.02 dB, and Gaussians on the still background were moving and curving anyway. Part of the gain came from having more parameters that move, so I tuned the learning rate of every model, the baseline included.</p>
 </div></details>
 </section>
 
@@ -223,7 +226,7 @@
 <div class="table-wrap" data-table="test_avg" data-caption="<b>Table A4.</b> Gain over M0 after 3,000 steps (dB), both strides, averaged over budgets."></div>
 <div class="table-wrap" data-table="test_inout" data-caption="<b>Table A5.</b> Gain over M0 after 3,000 steps, inside the object outline / outside it (dB)."></div>
 <div class="table-wrap" data-table="test_other" data-caption="<b>Table A6.</b> SSIM and VMAF gains over M0 after 3,000 steps. They rank the models in the same order as PSNR (M3, M2, M1, M0), so the PSNR gain shows up in structure as well."></div>
-<div class="table-wrap" data-table="long_clip" data-caption="<b>Table A7.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; blobs live longer on a longer clip and their paths bend more."></div>
+<div class="table-wrap" data-table="long_clip" data-caption="<b>Table A7.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; Gaussians live longer on a longer clip and their paths bend more."></div>
 <div class="table-wrap" data-table="cost" data-caption="<b>Table A8.</b> Cost at budget 24,000 (10 frames). Storage is equal by design, and every model uses about 150 MB of GPU memory."></div>
 </div></details>
 </section>
@@ -237,16 +240,16 @@
   <figcaption><b>Figure 2.</b> Gain over M0 on still photographs after 3,000 steps (bars show the mean, lines the range over 3 seeds). The diamond marks M2's gain on the same clip in motion. Shrinking gains about as much on a still photo as on the video.</figcaption>
 </figure>
 <div class="callout finding"><span class="label">What I found</span>
-<p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. Curving also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. So neither gain comes from motion. My reading is that with few blobs, letting each blob change over time lets it do the work of several, at different places or sizes in different frames.</p>
+<p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. Curving also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. So neither gain comes from motion. My reading is that with few Gaussians, letting each Gaussian change over time lets it do the work of several, at different places or sizes in different frames.</p>
 </div>
 <details class="more"><summary>Full table</summary><div class="body">
 <div class="table-wrap" data-table="still" data-caption="<b>Table A9.</b> Still photographs, 3,000 steps: gain over M0 in dB, mean [lowest, highest] over 3 seeds."></div>
 </div></details>
 
 <h3>The learned accelerations do not follow the real motion</h3>
-<p>I compared the accelerations M1's blobs learned with the motion that optical flow measures at each blob's centre (seed 0, budget 12,000, 3,000 steps).</p>
+<p>I compared the accelerations M1's Gaussians learned with the motion that optical flow measures at each Gaussian's centre (seed 0, budget 12,000, 3,000 steps).</p>
 <div class="table-wrap"><table>
-<caption><b>Table 6.</b> Acceleration learned by M1's blobs against the real acceleration (pixels per frame², median). The last column counts blobs whose learned acceleration points the same way as the real one; 50% is chance.</caption>
+<caption><b>Table 6.</b> Acceleration learned by M1's Gaussians against the real acceleration (pixels per frame², median). The last column counts Gaussians whose learned acceleration points the same way as the real one; 50% is chance.</caption>
 <thead><tr><th>Clip and region</th><th class="num">Learned</th><th class="num">Real</th><th class="num">Same direction</th></tr></thead>
 <tbody>
 <tr><td>Jockey, horse</td><td class="num">1.33</td><td class="num">0.83</td><td class="num">63%</td></tr>
@@ -255,11 +258,11 @@
 <tr><td>ShakeNDry, background</td><td class="num">0.77</td><td class="num">0.09</td><td class="num">51%</td></tr>
 <tr><td>Bosphorus, background</td><td class="num">1.19</td><td class="num">0.07</td><td class="num">54%</td></tr>
 </tbody></table></div>
-<p>Almost every blob curves. Over its life, its acceleration moves it 12 to 35 pixels off a straight line (median), and fewer than 1% of blobs leave it unused. On a nearly still background the learned acceleration is more than 10 times the real one, and its direction matches the real motion about half the time, which is what chance gives. Velocity behaves the same way: on the still dog clip and on Bosphorus, blobs move at 1.5 to 2 pixels per frame in directions unrelated to the real motion. Velocity follows the real motion only where that motion is large and even: the Jockey pan, and YachtRide at stride 3.</p>
+<p>Almost every Gaussian curves. Over its life, its acceleration moves it 12 to 35 pixels off a straight line (median), and fewer than 1% of Gaussians leave it unused. On a nearly still background the learned acceleration is more than 10 times the real one, and its direction matches the real motion about half the time, which is what chance gives. Velocity behaves the same way: on the still dog clip and on Bosphorus, Gaussians move at 1.5 to 2 pixels per frame in directions unrelated to the real motion. Velocity follows the real motion only where that motion is large and even: the Jockey pan, and YachtRide at stride 3.</p>
 <details class="more"><summary>More diagnostics (step 15)</summary><div class="body">
 <p>I grouped pixels by how much they change from one frame to the next. If shrinking removed blurry trails behind moving things, its gain would sit on the changing pixels. It does not; the gain is spread roughly in proportion to the number of pixels. On Bosphorus, for example, 73% of pixels barely change and they give 66% of the gain. Only Jockey leans a little towards changing pixels.</p>
 <div class="table-wrap"><table>
-<caption><b>Table A10.</b> Velocity of M0's blobs against the real motion (budget 12,000, pixels per frame, median), stride 1 / stride 3.</caption>
+<caption><b>Table A10.</b> Velocity of M0's Gaussians against the real motion (budget 12,000, pixels per frame, median), stride 1 / stride 3.</caption>
 <thead><tr><th>Clip</th><th class="num">Learned speed</th><th class="num">Real speed</th><th class="num">Direction similarity (1 = same)</th></tr></thead>
 <tbody>
 <tr><td>Jockey</td><td class="num">2.8 / 3.7</td><td class="num">3.7 / 5.2</td><td class="num">0.84 / 0.84</td></tr>
@@ -268,7 +271,7 @@
 <tr><td>ShakeNDry</td><td class="num">1.5 / 1.6</td><td class="num">0.04 / 0.06</td><td class="num">0.50 / 0.30</td></tr>
 </tbody></table></div>
 <div class="table-wrap"><table>
-<caption><b>Table A11.</b> How long blobs live (seed 0): the duration σ<sub>t</sub>, and the number of the 10 frames in which a blob is visible (weight above 0.1).</caption>
+<caption><b>Table A11.</b> How long Gaussians live (seed 0): the duration σ<sub>t</sub>, and the number of the 10 frames in which a Gaussian is visible (weight above 0.1).</caption>
 <thead><tr><th>Clip, budget</th><th class="num">M0: σ<sub>t</sub> / frames</th><th class="num">M1: σ<sub>t</sub> / frames</th></tr></thead>
 <tbody>
 <tr><td>Jockey, 3,000</td><td class="num">2.67 / 7.7</td><td class="num">3.33 / 8.2</td></tr>
@@ -276,14 +279,14 @@
 <tr><td>ShakeNDry, 24,000</td><td class="num">2.61 / 7.4</td><td class="num">3.19 / 8.0</td></tr>
 <tr><td>Bosphorus, 24,000</td><td class="num">2.09 / 6.6</td><td class="num">2.28 / 6.9</td></tr>
 </tbody></table></div>
-<p>Curved blobs live 10 to 25% longer, as the proposal guessed. Even M0's blobs are visible in about 7 of the 10 frames, though, so a 10-frame clip leaves little room for handing motion from blob to blob. For every model the worst frame is almost always the first or last one, which has no earlier or later blobs to help cover it.</p>
+<p>Curved Gaussians live 10 to 25% longer, as the proposal guessed. Even M0's Gaussians are visible in about 7 of the 10 frames, though, so a 10-frame clip leaves little room for handing motion from Gaussian to Gaussian. For every model the worst frame is almost always the first or last one, which has no earlier or later Gaussians to help cover it.</p>
 </div></details>
 </section>
 
 <!-- ================================================================ 6 FULLY TRAINED -->
 <section class="chapter" id="trained">
 <h2><span class="num">6</span>3,000 steps was far from enough</h2>
-<p>A probe with more blobs (step 17) showed two warning signs. Every model was still improving at step 3,000, and M3's lead over M0 kept shrinking during training, for example from +1.40 dB at step 500 to +0.57 dB at step 3,000. That raised the question of whether folding gives a better final picture or only learns faster.</p>
+<p>A probe with more Gaussians (step 17) showed two warning signs. Every model was still improving at step 3,000, and M3's lead over M0 kept shrinking during training, for example from +1.40 dB at step 500 to +0.57 dB at step 3,000. That raised the question of whether folding gives a better final picture or only learns faster.</p>
 <p>I trained Jockey for 30,000 steps. Every model needs 18,000 to 24,000 steps before its PSNR settles within 0.1 dB of its final value, and M0 alone gains 2 to 4 dB from the longer training, more than any extension ever added.</p>
 <div class="widget" id="w-train">
   <div class="wtitle">Try it: PSNR during training</div>
@@ -305,8 +308,8 @@
 </figure>
 <details class="more"><summary>The checks that led here (steps 17 to 21)</summary><div class="body">
 <div class="table-wrap"><table>
-<caption><b>Table A12.</b> Step 17: more blobs, 3,000 steps, Jockey stride 3, seed 0. M3's lead over M0 at step 500 and at step 3,000.</caption>
-<thead><tr><th class="num">Blobs (M0)</th><th class="num">M0 PSNR</th><th class="num">M3 PSNR</th><th class="num">M3 − M0, step 500</th><th class="num">M3 − M0, step 3,000</th></tr></thead>
+<caption><b>Table A12.</b> Step 17: more Gaussians, 3,000 steps, Jockey stride 3, seed 0. M3's lead over M0 at step 500 and at step 3,000.</caption>
+<thead><tr><th class="num">Gaussians (M0)</th><th class="num">M0 PSNR</th><th class="num">M3 PSNR</th><th class="num">M3 − M0, step 500</th><th class="num">M3 − M0, step 3,000</th></tr></thead>
 <tbody>
 <tr><td class="num">4,000</td><td class="num">27.61</td><td class="num">28.18</td><td class="num">+1.40</td><td class="num">+0.57</td></tr>
 <tr><td class="num">8,000</td><td class="num">29.70</td><td class="num">30.10</td><td class="num">+1.45</td><td class="num">+0.40</td></tr>
@@ -364,7 +367,7 @@
 <!-- ================================================================ 7 DEGREE -->
 <section class="chapter" id="degree">
 <h2><span class="num">7</span>Extension: a more flexible path is worse</h2>
-<p>VeGaS uses a path of degree 7 by default. The extension in the proposal asks whether a higher degree helps at equal storage. Each extra degree costs 2 more numbers per blob, so at budget 24,000 a degree-7 model (D7) has only 1,000 blobs against M0's 2,000 (Table 3). I fitted degree 3 (D3) and degree 7 on Jockey and ShakeNDry at stride 3, budgets 6,000 and 24,000, with 3 seeds and full training: 24 fits. For the terms above the square, time is measured in units of half a clip (4.5 frames), so that one training step cannot throw a blob thousands of pixels away.</p>
+<p>VeGaS uses a path of degree 7 by default. The extension in the proposal asks whether a higher degree helps at equal storage. Each extra degree costs 2 more numbers per Gaussian, so at budget 24,000 a degree-7 model (D7) has only 1,000 Gaussians against M0's 2,000 (Table 3). I fitted degree 3 (D3) and degree 7 on Jockey and ShakeNDry at stride 3, budgets 6,000 and 24,000, with 3 seeds and full training: 24 fits. For the terms above the square, time is measured in units of half a clip (4.5 frames), so that one training step cannot throw a Gaussian thousands of pixels away.</p>
 <figure>
   <img src="figures/degree.png" alt="Gain over M0 against the degree of the path">
   <figcaption><b>Figure 5.</b> Gain over M0 against the degree of the path, with the seed range. The higher the degree, the worse the result, and the drop is larger on the frames between (right), which no model was fitted to.</figcaption>
@@ -373,7 +376,7 @@
 <details class="more"><summary>Full table and caveats</summary><div class="body">
 <div class="table-wrap" data-table="poly" data-caption="<b>Table A19.</b> Gain over M0 (dB) by degree, mean [lowest, highest] over 3 seeds."></div>
 <ul>
-<li>Two causes are mixed here: fewer blobs, and paths that swing. Comparing at equal storage includes both on purpose. The large drop on the frames between shows that the swinging is real.</li>
+<li>Two causes are mixed here: fewer Gaussians, and paths that swing. Comparing at equal storage includes both on purpose. The large drop on the frames between shows that the swinging is real.</li>
 <li>I did not tune the learning rate of the higher terms; they reuse M1's acceleration rate. Tuning might help D7 a little, but learning rates changed results by about 0.1 dB elsewhere, and D7 is 1 to 2 dB behind.</li>
 <li>This is a smaller version of the planned extension: 2 clips and 2 budgets of 10 frames, instead of the 30-frame clip.</li>
 </ul>
@@ -383,10 +386,10 @@
 <!-- ================================================================ 8 FRAMES BETWEEN -->
 <section class="chapter" id="between">
 <h2><span class="num">8</span>Supplementary: drawing the frames between</h2>
-<p>At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. The blobs can still be drawn at any time, so I drew those frames from the 192 fully trained models and compared them with the real ones. The proposal planned this check for high-degree paths; here I run it on every model.</p>
+<p>At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. The Gaussians can still be drawn at any time, so I drew those frames from the 192 fully trained models and compared them with the real ones. The proposal planned this check for high-degree paths; here I run it on every model.</p>
 <div class="widget" id="w-player">
   <div class="wtitle">Try it: the fitted models, drawn in your browser</div>
-  <div class="whelp">Each image is drawn live from the stored blobs of a fully trained model (seed 0). Drag the time slider: <span class="badge fit">fitted</span> times are frames the model was fitted to, and <span class="badge between">between</span> times were never seen. Click or drag on an image to move the zoom box.</div>
+  <div class="whelp">Each image is drawn live from the stored Gaussians of a fully trained model (seed 0). Drag the time slider: <span class="badge fit">fitted</span> times are frames the model was fitted to, and <span class="badge between">between</span> times were never seen. Click or drag on an image to move the zoom box.</div>
   <div class="controls">
     <div class="control"><span class="clabel">clip</span><select id="pl-clip"></select></div>
     <div class="control"><span class="clabel">stride</span><div class="seg" id="pl-stride"></div></div>
@@ -413,13 +416,13 @@
   <div class="status" id="pl-status">Loading…</div>
 </div>
 
-<h3>More blobs memorise the fitted frames</h3>
+<h3>More Gaussians memorise the fitted frames</h3>
 <figure>
   <img src="figures/unseen.png" alt="M0 frames between against fitted frames; M1 on the moving object in the frames between">
-  <figcaption><b>Figure 6.</b> Left: how much worse M0 draws the frames between than the fitted frames. On the fast clips (Jockey's pan and the shaking dog), the gap grows with more blobs, up to 3.4 dB. Right: M1 against M0 on the moving object in the frames between, with the seed range.</figcaption>
+  <figcaption><b>Figure 6.</b> Left: how much worse M0 draws the frames between than the fitted frames. On the fast clips (Jockey's pan and the shaking dog), the gap grows with more Gaussians, up to 3.4 dB. Right: M1 against M0 on the moving object in the frames between, with the seed range.</figcaption>
 </figure>
 <div class="callout finding"><span class="label">What I found</span>
-<p>On the two slow boat clips, the frames between are as good as the fitted ones. On the fast clips, extra blobs fit the fitted frames more closely without learning the motion. On Jockey, M0's frames between are worse at budget 24,000 (25.2 dB) than at 12,000 (26.1 dB). On the dog, the frames between gain only 0.5 dB from budget 3,000 to 24,000 (24.1 to 24.6 dB), while the fitted frames gain 3 dB.</p>
+<p>On the two slow boat clips, the frames between are as good as the fitted ones. On the fast clips, extra Gaussians fit the fitted frames more closely without learning the motion. On Jockey, M0's frames between are worse at budget 24,000 (25.2 dB) than at 12,000 (26.1 dB). On the dog, the frames between gain only 0.5 dB from budget 3,000 to 24,000 (24.1 to 24.6 dB), while the fitted frames gain 3 dB.</p>
 <p>On the shaking dog, the curved models draw the frames between better: M1 and M3 are 0.2 to 0.5 dB ahead of M0, while on the fitted frames they are level. All 3 seeds are positive at three of the four budgets. M2, which does not curve, shows no such gain, and on the two straight boat clips curving makes the frames between worse. This was the first result that matched my starting hypothesis. I found it after looking at the data, though; it covers a small region, and at one budget the seeds disagree (−0.44 to +1.46 dB). It needed a test of its own.</p>
 </div>
 <details class="more"><summary>Full tables</summary><div class="body">
@@ -428,10 +431,10 @@
 <div class="table-wrap" data-table="unseen_obj" data-caption="<b>Table A22.</b> Gain over M0 on the moving object in the frames between (dB), mean [lowest, highest] over 3 seeds. Last column: M1 on the object in the fitted frames, for comparison."></div>
 </div></details>
 
-<h3>Do the dog's blobs follow the dog?</h3>
-<p>I followed points on the dog with optical flow through every frame, including the ones the models never saw, and compared that path with the path of each blob on the dog (M0 and M1, all budgets, 3 seeds, blobs with σ<sub>t</sub> ≥ 0.5). First I checked the method on the synthetic arc below, whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
+<h3>Do the dog's Gaussians follow the dog?</h3>
+<p>I followed points on the dog with optical flow through every frame, including the ones the models never saw, and compared that path with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with σ<sub>t</sub> ≥ 0.5). First I checked the method on the synthetic arc below, whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
 <div class="table-wrap"><table>
-<caption><b>Table 9.</b> M1's blobs on ShakeNDry (mean of 3 seeds): the share whose acceleration bends the same way as the real path. 50% is chance.</caption>
+<caption><b>Table 9.</b> M1's Gaussians on ShakeNDry (mean of 3 seeds): the share whose acceleration bends the same way as the real path. 50% is chance.</caption>
 <thead><tr><th class="num">Budget</th><th class="num">On the dog</th><th class="num">On the background</th></tr></thead>
 <tbody>
 <tr><td class="num">3,000</td><td class="num">47%</td><td class="num">52%</td></tr>
@@ -439,10 +442,10 @@
 <tr><td class="num">12,000</td><td class="num">57%</td><td class="num">62%</td></tr>
 <tr><td class="num">24,000</td><td class="num">57%</td><td class="num">57%</td></tr>
 </tbody></table></div>
-<p>On the dog, M1's blobs bend the right way 47% to 57% of the time, about what chance gives, and their path errors (4.5 to 7 pixels) are about as large as the error of the measurement. On Jockey the share is 66% to 70% on the horse, but about the same on the background (63% to 78%), which points to the camera rather than the legs. So the paths give no direct support for the small gain on the dog. Fur and spraying water make flow tracking hard, which makes this a weak check; a clip with a known path is a stronger one.</p>
+<p>On the dog, M1's Gaussians bend the right way 47% to 57% of the time, about what chance gives, and their path errors (4.5 to 7 pixels) are about as large as the error of the measurement. On Jockey the share is 66% to 70% on the horse, but about the same on the background (63% to 78%), which points to the camera rather than the legs. So the paths give no direct support for the small gain on the dog. Fur and spraying water make flow tracking hard, which makes this a weak check; a clip with a known path is a stronger one.</p>
 <details class="more"><summary>Path errors (step 27)</summary><div class="body">
 <div class="table-wrap"><table>
-<caption><b>Table A23.</b> Mean distance in pixels between each blob's path and the real path, ShakeNDry, dog / background.</caption>
+<caption><b>Table A23.</b> Mean distance in pixels between each Gaussian's path and the real path, ShakeNDry, dog / background.</caption>
 <thead><tr><th class="num">Budget</th><th class="num">M0</th><th class="num">M1</th></tr></thead>
 <tbody>
 <tr><td class="num">3,000</td><td class="num">5.65 / 0.23</td><td class="num">4.52 / 0.22</td></tr>
@@ -453,10 +456,10 @@
 </div></details>
 
 <h3>A ball on an arc: the more the path bends, the more the curve helps</h3>
-<p>For a clean test, I made synthetic clips of a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips. I fitted M0 and M1 (budgets 6,000 and 24,000, 3 seeds, full training: 60 fits). Before running, I wrote down four predictions: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain bigger than the seed spread; and M1's blobs on the ball bending the right way well over half the time.</p>
+<p>For a clean test, I made synthetic clips of a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips. I fitted M0 and M1 (budgets 6,000 and 24,000, 3 seeds, full training: 60 fits). Before running, I wrote down four predictions: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain bigger than the seed spread; and M1's Gaussians on the ball bending the right way well over half the time.</p>
 <div class="widget" id="w-arc">
   <div class="wtitle">Try it: bend the path</div>
-  <div class="whelp">Choose how far the path turns. The third image is the true clip, computed exactly at any time. Thin lines show the paths of the blobs on the ball; the dashed line is the true path. The PSNR on the ball is computed live in your browser.</div>
+  <div class="whelp">Choose how far the path turns. The third image is the true clip, computed exactly at any time. Thin lines show the paths of the Gaussians on the ball; the dashed line is the true path. The PSNR on the ball is computed live in your browser.</div>
   <div class="controls">
     <div class="control"><span class="clabel">turn</span><input type="range" id="arc-angle" min="0" max="4" step="1" value="4"><output id="arc-angle-out"></output></div>
     <div class="control"><span class="clabel">budget</span><div class="seg" id="arc-budget"><button data-v="6000" aria-pressed="false">6,000</button><button data-v="24000" aria-pressed="true">24,000</button></div></div>
@@ -486,15 +489,15 @@
 <tr><td>24,000</td><td class="num">−0.69</td><td class="num">+1.40</td><td class="num">+7.90</td><td class="num">+8.08</td><td class="num">+9.21</td></tr>
 </tbody></table></div>
 <div class="callout finding"><span class="label">All four predictions hold</span>
-<p>On the straight line, M1 is slightly behind (it has 14% fewer blobs), and the seed ranges cross zero. The gain grows with the bend at both budgets. At a full turn even the worst seed gains 7.8 or 8.9 dB, far beyond the spread of about ±2 dB on the straight line. M1's blobs on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (at 90°, 1.50 to 1.54 against 1.57 pixels per frame²).</p>
-<p>On the fitted frames the gain stays near 1 dB whatever the bend, because the straight model passes the arc from one short blob to the next and still fits every fitted frame. The curve works through motion, but only between the fitted frames, which is exactly where compression never looks.</p>
+<p>On the straight line, M1 is slightly behind (it has 14% fewer Gaussians), and the seed ranges cross zero. The gain grows with the bend at both budgets. At a full turn even the worst seed gains 7.8 or 8.9 dB, far beyond the spread of about ±2 dB on the straight line. M1's Gaussians on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (at 90°, 1.50 to 1.54 against 1.57 pixels per frame²).</p>
+<p>On the fitted frames the gain stays near 1 dB whatever the bend, because the straight model passes the arc from one short Gaussian to the next and still fits every fitted frame. The curve works through motion, but only between the fitted frames, which is exactly where compression never looks.</p>
 </div>
 <details class="more"><summary>The first version of this test failed by design (steps 28 and 29)</summary><div class="body">
-<p>In the first version, the ball moved 30 pixels between fitted frames and its stripes were 9 pixels apart. Neither model could draw the frames between (about 10 dB on the ball, against 29 dB on the fitted frames). The ball was roughly in place but its colours were scrambled, and its blobs were 14 to 20 pixels off the path. The stripes moved more than half a period per step, which made the direction of motion ambiguous, so I discarded those results.</p>
-<p>The second version moves the ball 9 pixels between fitted frames, makes it smaller (radius 8) and widens the stripes (period 30). I added a precondition before the runs: on the straight line, M0's frames between must come within 3 dB of its fitted frames. A pilot met it easily (0.03 dB apart, with blob paths within 0.02 pixels of the truth), while a full turn cost M0 7 to 12 dB on the frames between.</p>
+<p>In the first version, the ball moved 30 pixels between fitted frames and its stripes were 9 pixels apart. Neither model could draw the frames between (about 10 dB on the ball, against 29 dB on the fitted frames). The ball was roughly in place but its colours were scrambled, and its Gaussians were 14 to 20 pixels off the path. The stripes moved more than half a period per step, which made the direction of motion ambiguous, so I discarded those results.</p>
+<p>The second version moves the ball 9 pixels between fitted frames, makes it smaller (radius 8) and widens the stripes (period 30). I added a precondition before the runs: on the straight line, M0's frames between must come within 3 dB of its fitted frames. A pilot met it easily (0.03 dB apart, with Gaussian paths within 0.02 pixels of the truth), while a full turn cost M0 7 to 12 dB on the frames between.</p>
 <div class="table-wrap" data-table="arc" data-caption="<b>Table A24.</b> The ball, second version: M0's PSNR, then M1 − M0 as mean [lowest, highest] over 3 seeds (dB)."></div>
 <div class="table-wrap"><table>
-<caption><b>Table A25.</b> Paths of the blobs on the ball (mean of 3 seeds): distance from the true path in pixels, and for M1 the share that bends the right way. Only 3 to 25 blobs per model sit on the ball, so these numbers are rough.</caption>
+<caption><b>Table A25.</b> Paths of the Gaussians on the ball (mean of 3 seeds): distance from the true path in pixels, and for M1 the share that bends the right way. Only 3 to 25 Gaussians per model sit on the ball, so these numbers are rough.</caption>
 <thead><tr><th>Turn</th><th class="num">M0 distance, 6k / 24k</th><th class="num">M1 distance, 6k / 24k</th><th class="num">M1 bends the right way, 6k / 24k</th></tr></thead>
 <tbody>
 <tr><td>0°</td><td class="num">0.01 / 0.03</td><td class="num">0.04 / 0.02</td><td class="num">—</td></tr>
@@ -524,7 +527,7 @@
 <div class="table-wrap" data-table="confirm_other" data-caption="<b>Table A27.</b> M1 − M0 on scores outside the rule."></div>
 </div></details>
 <div class="callout"><span class="label">Answer to Q3</span>
-<p>A curved path does help to draw the frames between, and the help comes from motion: on the synthetic arc it grows with the bend and the blobs bend the right way, and on new real clips it passes the test fixed in advance. On real video it is small, about 0.5 dB, and limited to the moving object, because most blobs on real objects do not learn the real motion. The answer for compression stays the same.</p>
+<p>A curved path does help to draw the frames between, and the help comes from motion: on the synthetic arc it grows with the bend and the Gaussians bend the right way, and on new real clips it passes the test fixed in advance. On real video it is small, about 0.5 dB, and limited to the moving object, because most Gaussians on real objects do not learn the real motion. The answer for compression stays the same.</p>
 </div>
 </section>
 
@@ -546,7 +549,7 @@
 <tr class="group"><td colspan="3">Frames between (supplementary)</td></tr>
 <tr><td>When the motion bends and can be learned, curving draws the frames between much better, and more so the more it bends (0 to +9 dB).</td><td>Reliable: 4 predictions written first</td><td>8</td></tr>
 <tr><td>On new real clips, curving draws the moving object about 0.5 dB better between frames, but not the whole frame.</td><td>Fairly reliable: rule fixed first, 9 of 12</td><td>8</td></tr>
-<tr><td>On the dog, the blobs do not visibly bend with the real motion.</td><td>Fairly reliable; flow has 3 to 6 px of error</td><td>8</td></tr>
+<tr><td>On the dog, the Gaussians do not visibly bend with the real motion.</td><td>Fairly reliable; flow has 3 to 6 px of error</td><td>8</td></tr>
 </tbody>
 </table>
 </div>
@@ -554,7 +557,7 @@
 
 <h3>Limitations</h3>
 <ul>
-<li>I used 250 to 2,000 blobs per 10-frame clip, at most 0.015 blobs per pixel, while VeGaS uses hundreds of thousands (about 0.65 per pixel). A probe with up to 64,000 blobs kept M3 ahead by 0.4 to 0.8 dB after 3,000 steps, but I never fully trained with many blobs, since one fit would take 1 to 2 hours. With many more blobs, the blobs might follow the motion more and the answer could change.</li>
+<li>I used 250 to 2,000 Gaussians per 10-frame clip, at most 0.015 Gaussians per pixel, while VeGaS uses hundreds of thousands (about 0.65 per pixel). A probe with up to 64,000 Gaussians kept M3 ahead by 0.4 to 0.8 dB after 3,000 steps, but I never fully trained with many Gaussians, since one fit would take 1 to 2 hours. With many more Gaussians, the Gaussians might follow the motion more and the answer could change.</li>
 <li>The clips are short (10 frames, plus one 30-frame clip) and small (480×270), from 4 UVG sequences. The conclusions hold for these clips, budgets and resolution only.</li>
 <li>Settings were tuned on one Jockey clip and checked on one ShakeNDry clip. The acceleration ratio and s<sub>min</sub> were tuned at 3,000 steps and not again for full training, and the rate of the higher-degree terms was not tuned.</li>
 <li>The object outlines come from Mask R-CNN, not drawn by hand as planned, and I checked them by eye. The optical flow used to compare paths has 3 to 6 pixels of error.</li>
@@ -569,7 +572,7 @@
 <li>Added full training (30,000 steps) after finding that 3,000 steps was far too short. The 3,000-step results are reported as a comparison at equal training steps.</li>
 <li>Ran the degree extension on 2 clips and 2 budgets of 10 frames, not on the 30-frame clip.</li>
 <li>Added the frames-between analysis, the synthetic arc and the confirmatory test to explain the result.</li>
-<li>Did not run stride 2, HoneyBee, or a fully trained run with many blobs.</li>
+<li>Did not run stride 2, HoneyBee, or a fully trained run with many Gaussians.</li>
 </ul>
 </div></details>
 </section>
@@ -613,6 +616,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=2"></script>
+<script type="module" src="assets/js/main.js?v=5"></script>
 </body>
 </html>

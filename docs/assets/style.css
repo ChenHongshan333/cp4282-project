@@ -221,3 +221,22 @@ footer { max-width: var(--page); margin: 60px auto 0; padding: 18px 16px 40px; b
 }
 
 td.small { color: #a8a6a0; }
+
+/* one Gaussian in the volume of the video (volume.js) */
+.vol-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-top: 8px; }
+.vol-main, .vol-side { border: 1px solid var(--rule); background: #fff; padding: 8px 10px; }
+.vlabel { font-weight: 600; font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+.vol-main svg { width: 100%; height: auto; display: block; }
+.vol-main svg text, .vol-side svg text { font-size: 12px; fill: var(--ink-2); font-family: var(--sans); }
+#vol-slice { width: 100%; height: auto; display: block; border: 1.5px solid #d4521d; margin-bottom: 12px; }
+#vol-weight { width: 100%; height: auto; display: block; }
+.sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 28px; margin-top: 14px; }
+.sliders label { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.sliders label > span { display: flex; justify-content: space-between; gap: 8px; }
+.sliders output { font-weight: 400; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sliders input[type="range"] { width: 100%; }
+.sliders input:disabled { opacity: 0.35; }
+.legend .swatch { width: 12px; height: 12px; border-radius: 2px; margin-right: 0; }
+@media (max-width: 760px) { .vol-grid { grid-template-columns: 1fr; } }
+.vol-main { display: flex; flex-direction: column; }
+.vol-main svg { margin: auto 0; }

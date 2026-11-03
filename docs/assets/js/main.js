@@ -1,9 +1,10 @@
-// The interactive parts of the project page: tables from data/tables.json, the single-blob demo, the
+// The interactive parts of the project page: tables from data/tables.json, one Gaussian in the volume of the video, the
 // budget bars, the training curves, the player of fitted models and the arc demo.
 
 import { WIDTH, HEIGHT, SPECS, numbersPerGaussian, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
          ARC } from "./gauss.js";
 import { makeRenderer } from "./gl.js";
+import { volumeWidget } from "./volume.js?v=2";
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -65,68 +66,6 @@ async function fillTables() {
   if (location.hash) $(location.hash)?.scrollIntoView();
 }
 
-// ===================================================================================== one blob
-function blobWidget() {
-  const canvas = $("#blob-canvas");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const image = new Float32Array(WIDTH * HEIGHT * 3);
-  const ids = ["t", "v", "a", "smin"];
-  const el = Object.fromEntries(ids.map((k) => [k, $(`#blob-${k}`)]));
-  const curve = $("#blob-curve"), shrink = $("#blob-shrink");
-  const sigmaT = 1.6, scale = 26;
-
-  function draw() {
-    const t = +el.t.value, v = +el.v.value, a = curve.checked ? +el.a.value : 0, smin = +el.smin.value;
-    el.a.disabled = !curve.checked;
-    el.smin.disabled = !shrink.checked;
-    $("#blob-t-out").textContent = fmt(t, 2) + " frames";
-    $("#blob-v-out").textContent = v + " px/frame";
-    $("#blob-a-out").textContent = curve.checked ? fmt(a, 2) + " px/frame²" : "off";
-    $("#blob-smin-out").textContent = shrink.checked ? fmt(smin, 2) : "off";
-    const centre = (tau) => [WIDTH / 2 + v * tau * 0.9, HEIGHT / 2 + a * tau * tau];
-    const w = Math.exp(-0.5 * (t / sigmaT) ** 2);
-    const s = shrink.checked ? Math.max(w, smin) : 1;
-    const r = Math.sqrt(s);
-    const [x, y] = centre(t);
-    // one Gaussian, slanted, drawn by the same renderer as the models
-    // the weight of the blob at each pixel (times its visibility w), by the renderer of the models
-    const slice = { count: 1, mu: new Float32Array([x, y]), chol: new Float32Array([scale * 1.3 * r, scale * 0.5 * r, scale * 0.7 * r]),
-                    colour: new Float32Array([w, w, w]) };
-    renderCPU(slice, image);
-    const out = ctx.createImageData(WIDTH, HEIGHT);
-    const bg = [0.985, 0.985, 0.98], blob = [0.92, 0.42, 0.12];
-    for (let p = 0, q = 0; p < image.length; p += 3, q += 4) {
-      const alpha = Math.min(image[p], 1);
-      for (let c = 0; c < 3; c++) out.data[q + c] = Math.round(255 * (bg[c] * (1 - alpha) + blob[c] * alpha));
-      out.data[q + 3] = 255;
-    }
-    ctx.putImageData(out, 0, 0);
-    // the path over the clip, and the centre at the 10 frames of a clip
-    ctx.strokeStyle = "rgba(20,20,20,0.35)";
-    ctx.setLineDash([4, 4]);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let k = 0; k <= 90; k++) { const [px, py] = centre(-4.5 + k / 10); k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for (let k = -4.5; k <= 4.5; k += 1) {
-      const [px, py] = centre(k);
-      ctx.fillStyle = `rgba(20,20,20,${0.25 + 0.6 * Math.exp(-0.5 * (k / sigmaT) ** 2)})`;
-      ctx.beginPath(); ctx.arc(px, py, 2.5, 0, 2 * Math.PI); ctx.fill();
-    }
-    ctx.fillStyle = "#141414";
-    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 2 * Math.PI); ctx.fill();
-    ctx.font = "12px Inter, sans-serif";
-    ctx.fillText("peak time t₀", WIDTH / 2 - 30, HEIGHT / 2 + 54);
-    $("#blob-w").textContent = fmt(w, 2);
-    $("#blob-s").textContent = shrink.checked ? `max(w, s_min) = ${fmt(s, 2)}` : "1 (no shrinking)";
-    $("#blob-cost").textContent = curve.checked ? "14 (12 + acceleration)" : "12";
-  }
-  [...Object.values(el), curve, shrink].forEach((e) => e.addEventListener("input", draw));
-  draw();
-}
-
 // ===================================================================================== budget
 function budgetWidget() {
   const range = $("#budget-range");
@@ -143,7 +82,7 @@ function budgetWidget() {
     for (const m of models) {
       const n = Math.floor(b / numbersPerGaussian(m));
       $(`[data-m="${m}"]`, bars).style.width = `${(100 * n) / max}%`;
-      $(`[data-n="${m}"]`, bars).textContent = n.toLocaleString("en") + " blobs";
+      $(`[data-n="${m}"]`, bars).textContent = n.toLocaleString("en") + " Gaussians";
     }
   };
   range.addEventListener("input", draw);
@@ -428,11 +367,11 @@ async function playerWidget() {
       if (state.mask && mask) l.drawImage(mask.canvas, x, y, w, h, 0, 0, WIDTH, HEIGHT);
       if (state.paths && i < 2) drawPaths(l, ms[i], state.t, state.box, 2);
     });
-    $("#pl-status").textContent = `${ms.map((m) => `${m.info.model}: ${m.n.toLocaleString("en")} blobs`).join(" · ")} · seed 0 · `
+    $("#pl-status").textContent = `${ms.map((m) => `${m.info.model}: ${m.n.toLocaleString("en")} Gaussians`).join(" · ")} · seed 0 · `
       + `PSNR of the whole frame and of the object, from the evaluation of each fit · renderer: ${r.precision === "cpu" ? "CPU" : "WebGL"}`;
   }
 
-  // Paths of the visible blobs whose centre is inside the zoom box now, from 1.5 frames before to
+  // Paths of the visible Gaussians whose centre is inside the zoom box now, from 1.5 frames before to
   // 1.5 frames after (clip time), drawn into the view [vx, vy, vw, vh] of a 480 x 270 canvas.
   function drawPaths(o, model, t, [vx, vy, vw, vh], width) {
     const s = sliceAt(model, t);
@@ -561,7 +500,7 @@ async function arcWidget() {
       for (let f = 0; f <= 27; f += 0.25) { const [x, y] = T(...arcCentre(state.angle, f)); f ? o.lineTo(x, y) : o.moveTo(x, y); }
       o.stroke(); o.setLineDash([]);
       if (i === 2) return;
-      // blobs on the ball: centre within the ball at their peak time, and living long enough to have a path
+      // Gaussians on the ball: centre within the ball at their peak time, and living long enough to have a path
       const m = ms[i];
       o.strokeStyle = i === 0 ? "#cfcfcf" : "#7fb6ff"; o.lineWidth = 2;
       for (let j = 0; j < m.n; j++) {
@@ -576,7 +515,7 @@ async function arcWidget() {
       }
     });
     psnrs.forEach((p, i) => { $(`[data-psnr="${i}"]`, root).textContent = `ball ${p.toFixed(2)} dB`; });
-    $("#arc-status").textContent = `M0: ${ms[0].n.toLocaleString("en")} blobs, M1: ${ms[1].n.toLocaleString("en")} blobs · seed 0 · PSNR inside the ball at this time, computed in the browser`;
+    $("#arc-status").textContent = `M0: ${ms[0].n.toLocaleString("en")} Gaussians, M1: ${ms[1].n.toLocaleString("en")} Gaussians · seed 0 · PSNR inside the ball at this time, computed in the browser`;
   }
   $("#arc-angle").oninput = () => { state.angle = angles[+$("#arc-angle").value]; render(); };
   $("#arc-t").oninput = () => { state.t = +$("#arc-t").value; render(); };
@@ -603,7 +542,7 @@ function setupToc() {
 }
 
 setupToc();
-blobWidget();
+volumeWidget($("#w-volume"));
 budgetWidget();
 fillTables();
 trainingWidget();
