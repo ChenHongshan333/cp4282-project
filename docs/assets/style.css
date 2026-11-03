@@ -258,3 +258,10 @@ figure.w-70 { max-width: 70%; }
 table.across th, table.across td { text-align: center; }
 table.across td { font-variant-numeric: tabular-nums; }
 table.across th:last-child, table.across td:last-child { border-left: 1px solid var(--rule-strong); }
+/* folded explanation under a research question */
+details.why { margin: -4px 0 12px; }
+details.why > summary { cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--muted); list-style: none; display: inline-block; }
+details.why > summary::-webkit-details-marker { display: none; }
+details.why > summary::before { content: "+"; display: inline-block; width: 14px; font-weight: 600; }
+details.why[open] > summary::before { content: "\2212"; }
+details.why > p { font-size: 0.9em; color: var(--ink-2); margin: 6px 0 0; }

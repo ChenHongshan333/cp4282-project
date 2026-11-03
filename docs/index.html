@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=10">
+<link rel="stylesheet" href="assets/style.css?v=13">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -105,28 +105,18 @@
 <!-- ================================================================ 2 QUESTIONS -->
 <section class="chapter" id="questions">
 <h2><span class="num">2</span>Research questions</h2>
-<p>Fitting Gaussians to a video compresses it. You store the Gaussians, and later you draw the same video again from them, as with JPEG or MP4. A compressor is judged by how much it stores and how close the redrawn video is to the original. So I score each model on the frames it was fitted to, as Units 14 and 16 and VeGaS do, and I add one condition: every model gets the same storage.</p>
+<h3>2.1 Primary Focus: Representation Efficiency under Capacity Constraints</h3>
 <div class="callout finding">
-<span class="label">Main question: compression</span>
-<p><b>Q1.</b> When every model stores the same number of numbers, does a curved path, shrinking, or both give a higher PSNR than the straight-line baseline of Unit 16?</p>
-<p><b>Q2.</b> If they do, is that because the Gaussians follow the motion better? Then the gain should grow when the motion is more curved or faster, and it should sit on the moving object rather than on the background.</p>
+<p><b>Q1.</b> Under a fixed storage budget, does Gaussian folding provide a net benefit in reconstruction quality over linear space-time baselines?</p>
+<details class="why"><summary>Context &amp; Metric</summary><p>Treating fitted Gaussians as a compact scene representation, I evaluate each model by its reconstruction PSNR on training frames under an identical total parameter/storage footprint. This explicitly tests whether parameterizing dynamic trajectories (curved paths, dynamic temporal scaling, or both) outweighs the loss of spatial resolution caused by reducing the total primitive count.</p></details>
+<p><b>Q2.</b> If trajectory folding yields performance gains, are these improvements driven specifically by superior motion modeling?</p>
+<details class="why"><summary>Hypothesis</summary><p>If gains stem from faithful physical trajectory modeling rather than generic capacity allocation, the PSNR advantage should scale with scene motion magnitude (higher velocity and curvature) and concentrate overwhelmingly within dynamic foreground regions rather than static/linearly drifting backgrounds.</p></details>
 </div>
+<h3>2.2 Supplementary Analysis: Temporal Interpolation Capability</h3>
 <div class="callout">
-<span class="label">Supplementary question: frames between</span>
-<p><b>Q3.</b> The same Gaussians can draw frames that were never fitted, for example to make slow motion. If a Gaussian's path follows the real motion, those frames come out right too. Does a curved path draw them better? The proposal planned this as an extension ("render slices between frames"). It helps to explain the answer to Q2, and it does not change the answer to Q1.</p>
+<p><b>Q3.</b> Does non-linear trajectory modeling improve reconstruction accuracy on unseen intermediate frames (video frame interpolation)?</p>
+<details class="why"><summary>Context &amp; Rationale</summary><p>When trained on temporally sub-sampled frames (e.g., at a stride of 3: frames <span class="math">0, 3, 6, …</span>), a linear baseline can approximate complex curves on training frames using a piecewise sequence of short-lived Gaussians. However, this piecewise approximation fails on unobserved intermediate timestamps (<span class="math">1, 2, 4, 5, …</span>). Evaluating interpolation fidelity isolated from storage constraints serves as a direct validation of whether folded models truly capture underlying motion dynamics (informing Q2).</p></details>
 </div>
-<div class="table-wrap">
-<table>
-<caption><b>Table 2.</b> Two uses of the same fitted Gaussians.</caption>
-<thead><tr><th>Use</th><th>Scored on</th><th>Role in this project</th></tr></thead>
-<tbody>
-<tr><td>Compression: store the video and draw it again</td><td>the fitted frames (at stride 3: frames 0, 3, 6, …)</td><td>Main question (Q1, Q2)</td></tr>
-<tr><td>Frames between: draw the video between the fitted frames</td><td>the skipped frames (1, 2, 4, 5, …)</td><td>Supplementary question (Q3)</td></tr>
-</tbody>
-</table>
-</div>
-<p>The two answers can differ. To compress, a straight-line model can hand a curved motion from one short Gaussian to the next and still get every fitted frame right. To draw the frames between, the Gaussians have to know where things are between those frames.</p>
-<p>Before running anything, I expected the curved path to help most where the motion bends (the dog, the horse's legs) and when the motion is faster, not at all where the motion is straight, and mostly on the moving object.</p>
 </section>
 
 <!-- ================================================================ 3 DESIGN -->
@@ -135,10 +125,10 @@
 <p>To answer these questions, I compare models that differ in one ability at a time, give them all the same storage, and fit them to clips chosen for their kind of motion.</p>
 
 <h3>Four models: the two abilities apart and together</h3>
-<p>VeGaS uses a curved path and shrinking together, so its results cannot say what each one does. I separate them into a 2×2 design (Table 3). M0 is the baseline of Unit 16. M1 adds only a curved path, M2 adds only shrinking, and M3 adds both. For the curve I use the simplest one, a quadratic: an acceleration <span class="math">a</span> on top of the velocity, which costs 2 more numbers per Gaussian. Shrinking scales the slice by its weight <span class="math">w(t)</span>, with a floor <span class="math">s<sub>min</sub></span> so that it never vanishes, and costs nothing extra. As an extension, two more models, D3 and D7, use paths of degree 3 and 7 (the VeGaS default) to test whether a more flexible path helps.</p>
+<p>VeGaS uses a curved path and shrinking together, so its results cannot say what each one does. I separate them into a 2×2 design (Table 2). M0 is the baseline of Unit 16. M1 adds only a curved path, M2 adds only shrinking, and M3 adds both. For the curve I use the simplest one, a quadratic: an acceleration <span class="math">a</span> on top of the velocity, which costs 2 more numbers per Gaussian. Shrinking scales the slice by its weight <span class="math">w(t)</span>, with a floor <span class="math">s<sub>min</sub></span> so that it never vanishes, and costs nothing extra. As an extension, two more models, D3 and D7, use paths of degree 3 and 7 (the VeGaS default) to test whether a more flexible path helps.</p>
 <div class="table-wrap">
 <table>
-<caption><b>Table 3.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> is the weight of the slice at time <span class="math">t</span>, and <span class="math">L</span> is the Cholesky factor that sets its shape. Everything else (renderer, loss, optimiser, starting Gaussians) is the same for all four.</caption>
+<caption><b>Table 2.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> is the weight of the slice at time <span class="math">t</span>, and <span class="math">L</span> is the Cholesky factor that sets its shape. Everything else (renderer, loss, optimiser, starting Gaussians) is the same for all four.</caption>
 <thead><tr><th>Model</th><th>Centre at time t</th><th>Shape at time t</th><th class="num">Numbers per Gaussian</th></tr></thead>
 <tbody>
 <tr><td><span class="chip" style="background:var(--m0)"></span>M0 straight (Unit 16 baseline)</td><td>μ + vτ</td><td>L Lᵀ</td><td class="num">12</td></tr>
@@ -177,8 +167,8 @@
 </div>
 
 <h3>Equal storage</h3>
-<p>Every model gets the same budget, counted in stored numbers. A Gaussian of M0 or M2 costs 12 numbers and a Gaussian of M1 or M3 costs 14, so at the same budget the curved models get fewer Gaussians (Table 4). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
-<div class="table-wrap" data-table="budget" data-caption="<b>Table 4.</b> How many Gaussians each budget buys."></div>
+<p>Every model gets the same budget, counted in stored numbers. A Gaussian of M0 or M2 costs 12 numbers and a Gaussian of M1 or M3 costs 14, so at the same budget the curved models get fewer Gaussians (Table 3). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
+<div class="table-wrap" data-table="budget" data-caption="<b>Table 3.</b> How many Gaussians each budget buys."></div>
 <p>The four budgets give M0 between 250 and 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 starts from the first Gaussians of M0 with zero acceleration, so at the start the two models differ only in how many Gaussians they have.</p>
 <div class="widget" id="w-budget">
   <div class="wtitle">Try it: what a budget buys</div>
@@ -237,7 +227,7 @@
 <p>Each model's settings were chosen on a separate validation clip of Jockey (from frame 60), which does not overlap the test clips, and then used unchanged on all clips, as in Unit 14. The baseline was tuned too, so every model is compared at its own best setting.</p>
 <div class="table-wrap">
 <table>
-<caption><b>Table 5.</b> The experiments in the order I ran them. The first three were planned in the proposal; each later one answers a question raised by the results before it. Section 5 follows the same order.</caption>
+<caption><b>Table 4.</b> The experiments in the order I ran them. The first three were planned in the proposal; each later one answers a question raised by the results before it. Section 5 follows the same order.</caption>
 <thead><tr><th>Experiment</th><th>What it answers</th><th class="num">Fits</th><th class="num">Training steps</th><th>Results</th></tr></thead>
 <tbody>
 <tr><td>Synthetic discs</td><td>Does fitting work on motion with a known path?</td><td class="num">48</td><td class="num">3,000</td><td>details below</td></tr>
@@ -290,8 +280,8 @@
   <img src="figures/rd.png" alt="PSNR against storage for the four models, after 3,000 steps (top) and fully trained (bottom)">
   <figcaption><b>Figure 2.</b> PSNR on the fitted frames against storage, at stride 3 (mean of 3 seeds). After 3,000 steps (top row), M3 and M2 lie above the baseline on every clip. Fully trained (bottom row, Section 5.3), the four lines nearly meet.</figcaption>
 </figure>
-<div class="table-wrap" data-table="test_avg_s3" data-caption="<b>Table 6.</b> Gain over M0 after 3,000 steps (dB), stride 3, averaged over the 4 budgets and 3 seeds."></div>
-<div class="table-wrap" data-table="test_fail_short" data-caption="<b>Table 7.</b> The pre-registered test after 3,000 steps: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips."></div>
+<div class="table-wrap" data-table="test_avg_s3" data-caption="<b>Table 5.</b> Gain over M0 after 3,000 steps (dB), stride 3, averaged over the 4 budgets and 3 seeds."></div>
+<div class="table-wrap" data-table="test_fail_short" data-caption="<b>Table 6.</b> The pre-registered test after 3,000 steps: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips."></div>
 <p>Shrinking helps on every clip, by 0.5 to 2.3 dB, and passes the test; M3 helps the most and passes too. The curved path fails. On ShakeNDry, the most curved clip, M1 gains only about 0.1 dB, less than on the two straight boat clips (+0.23 to +0.28 dB). On Jockey most of M1's gain is in the background (at stride 3, +0.15 dB on the horse and +0.66 dB off it). The dog is the only place where M1 gains more on the object than off it, and there the gain is small. By the second rule of the test, then, M1's gain probably does not come from curved motion.</p>
 <details class="more"><summary>Per budget, stride 1, object against background, SSIM and VMAF, the 30-frame clip, costs</summary><div class="body">
 <div class="table-wrap" data-table="test_fail" data-caption="<b>Table A3.</b> The test after 3,000 steps, per budget (3k, 6k, 12k, 24k): gain over M0 in dB; ✓ means more than 0.3 dB and more than the seed spread."></div>
@@ -309,9 +299,9 @@
   <figcaption><b>Figure 3.</b> Gain over M0 on still photographs after 3,000 steps (bars show the mean, lines the range over 3 seeds). The diamond marks M2's gain on the same clip in motion. Shrinking gains about as much on a still photo as on the video.</figcaption>
 </figure>
 <p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. The curved path also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. Neither gain comes from motion.</p>
-<p>I also compared the accelerations that M1's Gaussians learned with the motion that optical flow measures at each Gaussian's centre (Table 8).</p>
+<p>I also compared the accelerations that M1's Gaussians learned with the motion that optical flow measures at each Gaussian's centre (Table 7).</p>
 <div class="table-wrap"><table>
-<caption><b>Table 8.</b> Acceleration learned by M1's Gaussians against the real acceleration (seed 0, budget 12,000, stride 3, pixels per frame², median). The last column counts Gaussians whose learned acceleration points the same way as the real one; 50% is chance.</caption>
+<caption><b>Table 7.</b> Acceleration learned by M1's Gaussians against the real acceleration (seed 0, budget 12,000, stride 3, pixels per frame², median). The last column counts Gaussians whose learned acceleration points the same way as the real one; 50% is chance.</caption>
 <thead><tr><th>Clip and region</th><th class="num">Learned</th><th class="num">Real</th><th class="num">Same direction</th></tr></thead>
 <tbody>
 <tr><td>Jockey, horse</td><td class="num">1.33</td><td class="num">0.83</td><td class="num">63%</td></tr>
@@ -370,8 +360,8 @@
   <img src="figures/gain_budget.png" alt="Gain over M0 against storage: 3,000 steps against fully trained">
   <figcaption><b>Figure 5.</b> Gain over M0 against storage. Dashed lines with hollow markers are the 3,000-step fits; solid lines are the fully trained ones, with the seed range. The grey band is ±0.3 dB, the margin of the pre-registered test. After full training most gains fall inside the band, and some fall below zero.</figcaption>
 </figure>
-<div class="table-wrap" data-table="long_avg_trained" data-shade data-caption="<b>Table 9.</b> Gain over M0 when fully trained (dB), averaged over the 4 budgets and 3 seeds. Grey: within ±0.3 dB. Compare with Table 6."></div>
-<div class="table-wrap" data-table="long_fail_short" data-caption="<b>Table 10.</b> The pre-registered test, fully trained: all three abilities fail."></div>
+<div class="table-wrap" data-table="long_avg_trained" data-shade data-caption="<b>Table 8.</b> Gain over M0 when fully trained (dB), averaged over the 4 budgets and 3 seeds. Grey: within ±0.3 dB. Compare with Table 5."></div>
+<div class="table-wrap" data-table="long_fail_short" data-caption="<b>Table 9.</b> The pre-registered test, fully trained: all three abilities fail."></div>
 <p>After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below. The seeds agree closely (usually within 0.1 to 0.2 dB), so the small differences that remain are real, but they do not follow the motion. M1 leads only on Jockey, and mostly in the background (+0.33 to +0.69 dB, against +0.21 to +0.50 dB on the horse). M2 leads only on Bosphorus, the straightest clip, again in the background. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.</p>
 <details class="more"><summary>The checks that led to full training</summary><div class="body">
 <div class="table-wrap"><table>
@@ -478,7 +468,7 @@
 <h4>Do the dog's Gaussians follow the dog?</h4>
 <p>I followed points on the dog with optical flow through every frame, including the ones the models never saw, and compared that path with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with σ<sub>t</sub> ≥ 0.5). First I checked the method on the synthetic arc below, whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
 <div class="table-wrap"><table>
-<caption><b>Table 11.</b> M1's Gaussians on ShakeNDry (mean of 3 seeds): the share whose acceleration bends the same way as the real path. 50% is chance.</caption>
+<caption><b>Table 10.</b> M1's Gaussians on ShakeNDry (mean of 3 seeds): the share whose acceleration bends the same way as the real path. 50% is chance.</caption>
 <thead><tr><th class="num">Budget</th><th class="num">On the dog</th><th class="num">On the background</th></tr></thead>
 <tbody>
 <tr><td class="num">3,000</td><td class="num">47%</td><td class="num">52%</td></tr>
@@ -526,7 +516,7 @@
   <figcaption><b>Figure 8.</b> M1 against M0 on the ball, by how far the path turns, with the seed range. On the fitted frames (left) the gain stays near 1 dB at every bend. On the frames between (right) it rises from about 0 on a straight line to about 9 dB for a full turn.</figcaption>
 </figure>
 <div class="table-wrap"><table>
-<caption><b>Table 12.</b> Gain of M1 over M0 on the ball in the frames between (dB, mean of 3 seeds).</caption>
+<caption><b>Table 11.</b> Gain of M1 over M0 on the ball in the frames between (dB, mean of 3 seeds).</caption>
 <thead><tr><th>Budget</th><th class="num">0° (straight)</th><th class="num">90°</th><th class="num">180°</th><th class="num">270°</th><th class="num">360° (full turn)</th></tr></thead>
 <tbody>
 <tr><td>6,000</td><td class="num">−1.10</td><td class="num">+0.71</td><td class="num">+1.85</td><td class="num">+6.85</td><td class="num">+9.07</td></tr>
@@ -555,7 +545,7 @@
 <div class="callout criteria"><span class="label">The rule, fixed before the runs</span>
 <p>Only the moving object in the frames between is scored. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. I also predicted that the gain would be larger at stride 5 than at stride 3.</p>
 </div>
-<div class="table-wrap" data-table="confirm_short" data-caption="<b>Table 13.</b> The confirmatory test: M1 − M0 on the moving object in the frames between (dB, mean of 3 seeds). ✓ means all 3 seeds are above zero. <b>9 of 12 cells pass.</b>"></div>
+<div class="table-wrap" data-table="confirm_short" data-caption="<b>Table 12.</b> The confirmatory test: M1 − M0 on the moving object in the frames between (dB, mean of 3 seeds). ✓ means all 3 seeds are above zero. <b>9 of 12 cells pass.</b>"></div>
 <figure class="w-90">
   <img src="figures/confirm.png" alt="The 12 cells of the confirmatory test">
   <figcaption><b>Figure 9.</b> The same 12 cells with their seed ranges (circles: the moving object). The squares show the whole frame, which is not part of the test.</figcaption>
@@ -579,7 +569,7 @@
 </div>
 <div class="table-wrap">
 <table>
-<caption><b>Table 14.</b> What I found, and how sure I am of it.</caption>
+<caption><b>Table 13.</b> What I found, and how sure I am of it.</caption>
 <thead><tr><th>Finding</th><th>How sure</th><th>Section</th></tr></thead>
 <tbody>
 <tr class="group"><td colspan="3">Compression (Q1, Q2)</td></tr>
