@@ -539,13 +539,123 @@ async function arcWidget() {
 }
 
 // ===================================================================================== table of contents
+// The left column (and the top bar on narrow screens) lists the sections. It is drawn as one space-time
+// Gaussian, as in Section 1: the page is the time axis, each section a frame. The centre follows a curved
+// path; a dot on it marks the reading position, and the slices along it fade and shrink away from the dot.
+// The right column lists the headings of the section being read, then its demos, figures and tables.
+// Both follow the scroll position.
+const BONE_X0 = 36, BONE_SWAY = 13;
+const boneX = (u) => BONE_X0 + BONE_SWAY * Math.sin(1.15 * u);
+
+function drawBone(svg, nodes, uDot, hover) {
+  const { width: W, height: H } = svg.getBoundingClientRect();
+  if (!W || !H) return;
+  const n = nodes.length;
+  const boneY = (u) => {   // y of the path at parameter u (u = i at section i), continued past both ends
+    const i = Math.max(0, Math.min(n - 2, Math.floor(u)));
+    return nodes[i] + (u - i) * (nodes[i + 1] - nodes[i]);
+  };
+  const ell = (u, k, attrs) => {
+    const x = boneX(u), y = boneY(u);
+    return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(13 * k).toFixed(1)}" ry="${(7 * k).toFixed(1)}" transform="rotate(-30 ${x.toFixed(1)} ${y.toFixed(1)})" ${attrs}/>`;
+  };
+  const w = (u) => Math.exp(-0.5 * ((u - uDot) / 1.1) ** 2);   // the weight of the slice, peaked at the reading position
+  let s = "";
+  // the path of the centre
+  const pts = [];
+  for (let u = -0.45; u <= n - 1 + 0.45; u += 0.05) pts.push(`${boneX(u).toFixed(1)} ${boneY(u).toFixed(1)}`);
+  s += `<path d="M${pts.join("L")}" fill="none" stroke="#1b1b1b" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.7"/>`;
+  // the Gaussian between the frames: one outline every eighth of a section, shrinking as it fades
+  for (let u = -0.375; u <= n - 1 + 0.375; u += 0.125) {
+    const k = w(u);
+    s += ell(u, Math.max(k, 0.4), `fill="#2a78d6" fill-opacity="${(0.04 * k).toFixed(3)}" stroke="#2a78d6" stroke-width="0.9" stroke-opacity="${(0.15 + 0.6 * k).toFixed(2)}"`);
+  }
+  // the frames: one plane per section; the section being read is the orange one
+  const cur = Math.max(0, Math.min(n - 1, Math.floor(uDot + 1e-6)));
+  nodes.forEach((y, i) => {
+    const x = boneX(i), on = i === cur, hot = i === hover;
+    const plane = [[x - 15, y - 21], [x + 15, y - 13], [x + 15, y + 21], [x - 15, y + 13]].map((p) => p.map((v) => v.toFixed(1)).join(" "));
+    s += `<path d="M${plane.join("L")}Z" fill="${on ? "#d4521d" : "#8f8d86"}" fill-opacity="${on ? 0.1 : hot ? 0.08 : 0.03}" stroke="${on ? "#d4521d" : "#8f8d86"}" stroke-width="${on || hot ? 1.4 : 0.8}" stroke-opacity="${on || hot ? 1 : 0.5}"/>`;
+    const k = Math.max(w(i), 0.4);
+    s += on ? ell(i, k, `fill="#d4521d" fill-opacity="0.75" stroke="#d4521d" stroke-width="1.4"`)
+            : ell(i, k, `fill="${i < cur ? "#2a78d6" : "none"}" fill-opacity="${(0.15 + 0.5 * w(i)).toFixed(2)}" stroke="#2a78d6" stroke-width="1" stroke-opacity="${(0.3 + 0.6 * w(i)).toFixed(2)}"`);
+  });
+  // the reading position
+  s += `<circle cx="${boneX(uDot).toFixed(1)}" cy="${boneY(uDot).toFixed(1)}" r="3.2" fill="#1b1b1b"/>`;
+  svg.innerHTML = s;
+}
+
 function setupToc() {
-  const links = $$("#toc a");
-  const sections = links.map((a) => $(a.getAttribute("href")));
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
-  }, { rootMargin: "-40% 0px -55% 0px" });
-  sections.forEach((s) => s && io.observe(s));
+  const links = $$("#toc a, #toc-top a");
+  const sideLinks = $$("#toc a");
+  const sections = $$("section.chapter[id]");
+  const bone = $(".side-left .bone");
+  const otp = $("#otp"), its = $("#its"), itsTitle = $(".side-title-2");
+  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  sections.forEach((sec) => sec.querySelectorAll("h3, h4").forEach((h) => { if (!h.id) h.id = `${sec.id}-${slug(h.textContent)}`; }));
+  let current = null, heads = [], nodes = [], hover = -1, frame = 0;
+
+  // place the section names down the whole column, a frame each
+  const layout = () => {
+    const H = bone.getBoundingClientRect().height, n = sideLinks.length;
+    const gap = Math.min(110, (H - 60) / (n - 1)), top = (H - gap * (n - 1)) / 2;
+    nodes = sideLinks.map((_, i) => top + i * gap);
+    sideLinks.forEach((a, i) => { a.style.top = `${nodes[i]}px`; });
+  };
+  sideLinks.forEach((a, i) => {
+    a.addEventListener("mouseenter", () => { hover = i; update(); });
+    a.addEventListener("mouseleave", () => { hover = -1; update(); });
+  });
+
+  // the demos, figures and tables of a section, outside the folded details, each as a small card:
+  // a thumbnail (the figure itself, or an icon), the kind and number, and a short name (data-short)
+  const ICON_DEMO = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#d4521d"/><path d="M9.5 7.5v9l7-4.5z" fill="#fff"/></svg>`;
+  const ICON_TABLE = `<svg viewBox="0 0 24 24" fill="none" stroke="#6b6a65" stroke-width="1.4"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 9.5h18M3 14h18M10 5v14"/></svg>`;
+  const contents = (sec) => [...sec.querySelectorAll(".widget, figure, .table-wrap")].filter((el) => !el.closest("details")).map((el) => {
+    if (el.classList.contains("widget")) {
+      const t = el.querySelector(".wtitle")?.textContent.replace(/^Try it:\s*/, "") ?? "";
+      return { id: el.id, kind: "Interactive", name: t.charAt(0).toUpperCase() + t.slice(1), thumb: ICON_DEMO, demo: true };
+    }
+    const cap = el.querySelector(".tcap, figcaption, caption") ?? { textContent: el.dataset.caption ? el.dataset.caption.replace(/<[^>]+>/g, "") : "" };
+    const m = cap.textContent.match(/^(Figure|Table) (\d+)\./);
+    if (!m) return null;
+    if (!el.id) el.id = `${m[1].toLowerCase()}-${m[2]}`;
+    const img = el.querySelector("img");
+    return { id: el.id, kind: `${m[1]} ${m[2]}`, name: el.dataset.short ?? "", thumb: img ? `<img src="${img.getAttribute("src")}" alt="">` : ICON_TABLE };
+  }).filter((x) => x && x.id);
+
+  const update = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const line = innerHeight * 0.3;
+      let idx = 0;
+      sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= line) idx = i; });
+      const sec = sections[idx];
+      if (sec !== current) {
+        current = sec;
+        links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + sec.id));
+        heads = [...sec.querySelectorAll("h3, h4")];
+        otp.innerHTML = heads.map((h) => `<a href="#${h.id}"${h.tagName === "H4" ? ' class="sub"' : ""}>${h.textContent}</a>`).join("");
+        const items = contents(sec);
+        its.innerHTML = items.map((c) => `<a class="card" href="#${c.id}"><span class="thumb${c.demo ? " demo" : ""}">${c.thumb}</span><span class="txt"><span class="kind${c.demo ? " demo" : ""}">${c.kind}</span><span class="name">${c.name}</span></span></a>`).join("");
+        otp.previousElementSibling.style.display = otp.style.display = heads.length ? "" : "none";
+        itsTitle.style.display = its.style.display = items.length ? "" : "none";
+        itsTitle.style.marginTop = heads.length ? "" : "5px";
+        otp.parentElement.scrollTop = 0;   // a new section starts at the top of the right column
+      }
+      let head = null;
+      for (const h of heads) if (h.getBoundingClientRect().top <= line) head = h;
+      otp.querySelectorAll("a").forEach((a) => a.classList.toggle("active", head !== null && a.getAttribute("href") === "#" + head.id));
+      // reading position: the section index plus how far through it the reader is
+      const r = sec.getBoundingClientRect();
+      const uDot = idx + Math.max(0, Math.min(0.999, (line - r.top) / r.height));
+      if (bone && nodes.length) drawBone(bone, nodes, uDot, hover);
+    });
+  };
+  addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", () => { layout(); update(); });
+  layout();
+  update();
 }
 
 setupToc();
