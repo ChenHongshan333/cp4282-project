@@ -141,15 +141,15 @@
 <!-- ================================================================ 3 DESIGN -->
 <section class="chapter" id="design">
 <h2><span class="num">3</span>Experiment design</h2>
-<p>This section describes the design fixed in the proposal, before any experiment ran: the models, the clips, how each research question is answered, and how runs are repeated and compared. What changed while running it, and what I added after seeing results, is in Section 4.</p>
+<p>This section describes the experimental design fixed in the proposal prior to execution: the evaluated models, the test sequences and their motion, the protocol for each research question, and the optimization and reporting procedures. Methodological modifications and post-hoc analyses developed after observing initial results are detailed in Section 4.</p>
 
 <h3>3.1 Model variants and controlled factors</h3>
-<p>VeGaS uses a curved path and shrinking together, so its results cannot say what each one does. I separate them into two factors: the path of the centre (straight or quadratic) and shrinking (off or on). Together they give four models (Table 2). M0 is the baseline of Unit 16. M1 adds only a curved path, M2 adds only shrinking, and M3 adds both. For the curve I use the simplest one, a quadratic: an acceleration <span class="math">a</span> on top of the velocity, which costs 2 more numbers per Gaussian. Shrinking scales the slice by its weight <span class="math">w(t)</span>, with a floor <span class="math">s<sub>min</sub></span> so that it never vanishes, and costs nothing extra.</p>
-<p>M1 against M0 tests the curved path alone, and M2 against M0 tests shrinking alone. M3 shows what the two give together; the proposal fixed no separate test for it.</p>
+<p>The VeGaS architecture combines curved trajectories and shrinking within a single model, making it impossible to isolate their individual effects. To address this, the design factorizes the representation into two orthogonal components: the trajectory of the centre (straight or quadratic) and shrinking (disabled or enabled). This yields four model variants (Table 2). Comparing M1 against M0 evaluates the curved trajectory alone, while comparing M2 against M0 evaluates shrinking alone. M3 represents the combined implementation; no separate test for M3 was fixed in the proposal.</p>
+<p>For the curved trajectory, a quadratic path is selected as the minimal non-linear formulation by adding a constant acceleration <span class="math">a</span> to the velocity <span class="math">v</span>, incurring 2 additional scalars per Gaussian. Shrinking scales the spatial slice by its weight <span class="math">w(t)</span> above a floor <span class="math">s<sub>min</sub></span> to prevent total vanishing, incurring no extra storage cost. The fading weight <span class="math">w(t)</span> itself is shared by all four models; shrinking adds only the change of size.</p>
 <div class="table-wrap" data-short="The four models">
 <table>
-<caption><b>Table 2.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> is the weight of the slice at time <span class="math">t</span>, and <span class="math">L</span> is the Cholesky factor that sets its shape. Everything else (renderer, loss, optimiser, starting Gaussians) is the same for all four; only the learning rates are tuned for each model (Section 4).</caption>
-<thead><tr><th>Model</th><th>Centre at time t</th><th>Shape at time t</th><th class="num">Numbers per Gaussian</th></tr></thead>
+<caption><b>Table 2.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> denotes the slice weight at time <span class="math">t</span>, and <span class="math">L</span> is the Cholesky factor governing spatial shape. All other components (renderer, loss objective, optimizer and starting Gaussians) are held constant across models. The proposal held the learning rates of the shared parameters fixed; Section 4 explains why they were later tuned for each model.</caption>
+<thead><tr><th>Model</th><th>Centre position at time t</th><th>Shape (covariance) at time t</th><th class="num">Storage per Gaussian (scalars)</th></tr></thead>
 <tbody>
 <tr><td><span class="chip" style="background:var(--m0)"></span>M0 straight (Unit 16 baseline)</td><td>μ + vτ</td><td>L Lᵀ</td><td class="num">12</td></tr>
 <tr><td><span class="chip" style="background:var(--m1)"></span>M1 curved</td><td>μ + vτ + aτ²</td><td>L Lᵀ</td><td class="num">14</td></tr>
@@ -158,8 +158,7 @@
 </tbody>
 </table>
 </div>
-
-<p>Held fixed for all four: the renderer, the loss (mean squared error over all frames, fitted jointly), the Adam optimiser and the learning rates of the shared parameters, the number of training steps, the resolution and number of frames, and the random seed and starting values of the shared parameters. The acceleration starts at zero, so M1 is identical to M0 at the start. No Gaussians are added or removed during training, so each model keeps its budgeted number exactly.</p>
+<p><b>Controlled factors across all variants.</b> The rendering pipeline, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer settings for shared parameters, iteration counts, spatial resolution, temporal sequence length, random seeds, and initial parameters of shared Gaussians are held identical. Accelerations start at zero. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.</p>
 
 <div class="widget w-volume" id="w-volume-models">
   <div class="wtitle">Try it: the four models in the volume of the video</div>
@@ -188,19 +187,24 @@
   </div>
 </div>
 
-<p>As an extension, the proposal also planned paths of higher degree. A path of degree <span class="math">d</span> costs <span class="math">12 + 2(d − 1)</span> numbers per Gaussian, so D3 costs 16 and D7, the VeGaS default, costs 24. Comparing degrees 1, 2, 3 and 7 at equal storage tests whether the gain of a higher degree in the VeGaS ablation survives once storage is controlled. These are supplementary models, not part of the 2×2 design.</p>
+<p><b>Higher-degree extensions.</b> As an extension, polynomial paths of higher degrees are evaluated. A path of degree <span class="math">d</span> requires <span class="math">12 + 2(d − 1)</span> scalars per Gaussian. Thus, degree 3 (D3) costs 16 scalars and degree 7 (D7, the VeGaS default) costs 24 scalars. Comparing degrees 1, 2, 3 and 7 (M0, M1, D3, D7) under an equal storage budget tests whether the performance gains reported in the VeGaS ablation persist once storage overhead is controlled. These represent supplementary models outside the primary 2×2 factorial design.</p>
 
 <h3>3.2 Data and motion characterization</h3>
-<p>All clips come from the UVG data set (Mercat et al., 2020): 1080p at 120 frames per second, reduced to 480×270 as in Unit 16. Each clip has 10 frames. To see whether a gain follows the motion, I need clips with curved motion and a control whose motion is nearly straight. Each sequence has one role, and each has a limit on how a result on it can be read.</p>
+<p>All test clips are drawn from the UVG dataset (Mercat et al., 2020) at 1080p and 120 frames per second, downsampled to 480×270 resolution as in Unit 16. Each clip spans 10 frames.</p>
+<p>To determine whether performance gains follow motion characteristics, sequences with curved trajectories were selected alongside a control sequence exhibiting straight motion. Sequence roles were assigned following visual inspection. The proposal specified confirming these roles prior to the main runs by quantifying motion via optical flow, with any sequence failing to match its intended role being replaced.</p>
 <div class="cards">
-  <div class="card"><img src="data/frames/Jockey_k0/0012.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans with a galloping horse whose legs swing. The main case, as in the Unit 16 notes. Over the whole frame, the motion is mostly the steady pan.</span></div>
-  <div class="card"><img src="data/frames/ShakeNDry_k0/0012.webp" alt="ShakeNDry frame" loading="lazy"><b>ShakeNDry</b><span>A still camera and a dog shaking water off. The most curved motion: where a curved path should help most. The dog is small in the frame.</span></div>
-  <div class="card"><img src="data/frames/YachtRide_k0/0012.webp" alt="YachtRide frame" loading="lazy"><b>YachtRide</b><span>The camera follows a boat. Planned as the straight control, but the waves bend the motion over the whole frame, so I keep it for the boat itself.</span></div>
-  <div class="card"><img src="data/frames/Bosphorus_k0/0012.webp" alt="Bosphorus frame" loading="lazy"><b>Bosphorus</b><span>The camera follows a small boat on calm water. The straightest motion; added as the control after measuring. It is also slow, so "straight" and "slow" cannot be told apart.</span></div>
+  <div class="card"><img src="data/frames/Jockey_k0/0012.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans alongside a galloping horse whose legs swing. The primary case, as in Unit 16. Over the whole frame, motion is dominated by the steady camera pan, while the swinging legs bend.</span></div>
+  <div class="card"><img src="data/frames/ShakeNDry_k0/0012.webp" alt="ShakeNDry frame" loading="lazy"><b>ShakeNDry</b><span>A stationary camera captures a dog shaking off water. This clip exhibits the highest bend, the scenario where curved paths should provide maximum benefit. The dog occupies a small portion of the frame.</span></div>
+  <div class="card"><img src="data/frames/YachtRide_k0/0012.webp" alt="YachtRide frame" loading="lazy"><b>YachtRide</b><span>Planned initially as the straight control, with the camera following a boat. Optical flow measurement revealed that the waves bend the motion over the whole frame, so the clip is retained for the boat motion rather than as a straight control.</span></div>
+  <div class="card"><img src="data/frames/Bosphorus_k0/0012.webp" alt="Bosphorus frame" loading="lazy"><b>Bosphorus</b><span>The camera follows a small boat on calm water. Introduced after optical flow quantification as the revised straight-motion control. Because the motion is both straight and slow, straight motion and low speed cannot be decoupled on this sequence.</span></div>
 </div>
-<p>I assigned the roles after watching the sequences. The proposal said to confirm them by measuring the motion with optical flow before the main runs, and to replace a sequence whose motion does not fit its role. The measurement showed that YachtRide's motion is not straight, so I added Bosphorus as the control.</p>
-<details class="more"><summary>How I measured the motion</summary><div class="body">
-<p>Speed is the mean displacement per frame. Acceleration follows a point and measures how much its displacement changes from one frame to the next. Bend is acceleration divided by speed; the larger it is, the further the motion is from steady and straight.</p>
+<details class="more"><summary>Quantification of motion</summary><div class="body">
+<p>Motion properties are evaluated using optical flow (Farnebäck) displacement fields:</p>
+<ul>
+<li><b>Speed:</b> the mean displacement per frame across the image plane (pixels per frame).</li>
+<li><b>Acceleration:</b> measured along feature trajectories, the frame-to-frame change of displacement (pixels per frame²).</li>
+<li><b>Bend:</b> acceleration divided by speed. A higher bend indicates a greater departure from steady, straight motion.</li>
+</ul>
 <div class="table-wrap"><table>
 <caption><b>Table A1.</b> Motion of the test clips over the whole frame, camera motion included (pixels per frame, and per frame²).</caption>
 <thead><tr><th>Clip</th><th class="num">Stride</th><th class="num">Speed</th><th class="num">Acceleration</th><th class="num">Bend</th></tr></thead>
@@ -214,22 +218,16 @@
 <tr><td>Bosphorus</td><td class="num">1</td><td class="num">0.40</td><td class="num">0.04</td><td class="num">—</td></tr>
 <tr><td>Bosphorus</td><td class="num">3</td><td class="num">1.29</td><td class="num">0.09</td><td class="num">—</td></tr>
 </tbody></table></div>
-<p>Stride 3 makes the motion faster and more curved: the acceleration grows 3 to 7 times. Clip by clip:</p>
-<ul>
-<li><b>ShakeNDry</b> bends the most, as planned. Its speed is low because the camera is still and the dog is small in the frame.</li>
-<li><b>Jockey</b>'s motion is mostly a steady camera pan, and only the legs bend.</li>
-<li><b>YachtRide</b> was planned as the straight control, but its waves move up and down, so its bend is even higher than Jockey's. I keep it for its boat.</li>
-<li><b>Bosphorus</b> takes its place as the straight control, since the proposal said to replace a clip whose motion does not fit its role. Its acceleration at stride 3 is a seventh of YachtRide's. It is also slow, so on this clip "straight" and "slow" cannot be told apart.</li>
-</ul>
 </div></details>
-<p>A clip with <b>stride 3</b> keeps every third frame (0, 3, …, 27). This makes the motion between frames larger and more curved, while the content and the number of frames stay the same. Each sequence is used at stride 1 and stride 3. Jockey also has a 30-frame clip at stride 1, with the budgets tripled, to test a longer clip. Settings are chosen on a separate validation clip of Jockey that does not overlap the test clips.</p>
+<p>Evaluating at temporal stride 3 retains every third frame (0, 3, 6, …, 27), increasing inter-frame displacement and bend while preserving frame count and visual content. Acceleration increases by 3 to 7 times at stride 3. Each sequence is evaluated at both stride 1 and stride 3.</p>
+<p>Additionally, a 30-frame clip of Jockey at stride 1 is included with tripled storage budgets to test a longer clip. Hyperparameter tuning is conducted on a validation clip of Jockey that does not overlap with the test sequences.</p>
 
 <h3>3.3 Q1: Reconstruction under a fixed storage budget</h3>
-<p>Every model gets the same budget, counted in stored numbers. A Gaussian of M0 or M2 costs 12 numbers and a Gaussian of M1 or M3 costs 14, so at the same budget the curved models get fewer Gaussians (Table 3). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
+<p>To enforce an equal storage budget across variants, total capacity is defined by the count of stored scalars. Gaussians in M0 and M2 require 12 scalars, whereas M1 and M3 require 14 scalars. Consequently, under an identical storage budget, curved models are allocated fewer Gaussians (Table 3). Parameters are stored as 32-bit floating-point values without quantization, matching scalar counts directly to file storage footprint.</p>
 <div class="table-wrap" data-short="Gaussians per budget">
 <table class="budget">
-<caption><b>Table 3.</b> How many Gaussians each budget buys. The last column compares each model with M0.</caption>
-<thead><tr><th>Model</th><th class="num">Numbers per Gaussian</th><th class="num">Gaussians at 3,000</th><th class="num">6,000</th><th class="num">12,000</th><th class="num">24,000</th><th>Gaussians, relative to M0</th></tr></thead>
+<caption><b>Table 3.</b> Allocated Gaussian counts across the storage budgets (stored scalars). The last column compares each model with M0.</caption>
+<thead><tr><th>Model</th><th class="num">Storage per Gaussian (scalars)</th><th class="num">Gaussians at 3,000</th><th class="num">6,000</th><th class="num">12,000</th><th class="num">24,000</th><th>Gaussian count relative to M0</th></tr></thead>
 <tbody>
 <tr><td>M0, M2</td><td class="num">12</td><td class="num">250</td><td class="num">500</td><td class="num">1,000</td><td class="num">2,000</td><td><span class="rbar"><i style="width:100%"></i></span>100%</td></tr>
 <tr><td>M1, M3</td><td class="num">14</td><td class="num">214</td><td class="num">428</td><td class="num">857</td><td class="num">1,714</td><td><span class="rbar"><i style="width:86%"></i></span>86%</td></tr>
@@ -238,37 +236,42 @@
 </tbody>
 </table>
 </div>
-<p>The four budgets give M0 between 250 and 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 starts from the first Gaussians of M0 with zero acceleration, so at the start the two models differ only in how many Gaussians they have.</p>
-<p>The main answer is PSNR on the fitted frames against the budget, one curve per model, clip and stride. SSIM checks whether a PSNR gain reflects real structure or only smoother colour. So that a result cannot be read in whichever way suits me after the fact, the proposal fixed the test before any experiment ran. Section 5 applies it.</p>
+<p>The four evaluation budgets provide M0 with 250 to 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 is initialized using the first Gaussians of M0 with zero acceleration, ensuring initial model differences stem solely from total Gaussian count.</p>
+<p>Primary evaluation relies on PSNR of fitted frames plotted against storage budgets. SSIM is recorded to verify whether PSNR improvements reflect structural fidelity rather than colour smoothing.</p>
 <div class="callout criteria">
-<span class="label">Primary efficiency test (fixed in the proposal)</span>
-<p>The curved path passes only if M1 beats M0 by more than 0.3 dB, and by more than the spread between seeds, at three or more of the four budgets, on both Jockey and ShakeNDry at stride 3, the clips with the most curved motion. Otherwise it fails. Shrinking is judged by the same test, with M2 in place of M1.</p>
+<span class="label">Decision rule fixed in the proposal</span>
+<p>The curved trajectory (M1) passes if and only if M1 outperforms M0 by more than 0.3 dB, and by more than the range between seeds, on at least 3 of the 4 storage budgets on both Jockey and ShakeNDry at stride 3, the two clips chosen in the proposal for their curved motion. Otherwise, it fails. Shrinking is judged by the same decision rule, comparing M2 against M0.</p>
 </div>
-<p>Failing this test says only that the ability does not raise whole-frame quality at equal storage. A local gain, or a gain on the frames between (Q3), can still exist.</p>
+<p>Failing this criterion indicates only that the capability does not improve whole-frame reconstruction quality under an equal storage budget. Local improvements on moving subjects or performance gains on unseen intermediate frames (Q3) may still exist.</p>
 
 <h3>3.4 Q2: Attribution to motion modeling</h3>
-<p>If a gain comes from modeling curved motion, it should grow with the motion and sit where the motion is. Two kinds of evidence test this:</p>
+<p>If performance gains originate from modeling dynamic trajectories, improvements should correlate with motion magnitude and concentrate within moving regions. Two lines of evaluation test this attribution:</p>
 <ul>
-<li><b>Across clips.</b> The gain over M0 is plotted against the measured motion of each clip. It should grow from stride 1 to stride 3, and from the straight control to Jockey and ShakeNDry.</li>
-<li><b>Inside the frame.</b> PSNR is scored inside and outside the moving object (the horse and rider, the dog, the boats). The proposal planned hand-drawn masks for the horse and masks from optical flow for the other clips; Section 4 explains what I used instead.</li>
+<li><b>Cross-sequence comparison:</b> PSNR deltas relative to M0 are evaluated against measured sequence bend. Gains should increase from stride 1 to stride 3, and from the straight control sequence to Jockey and ShakeNDry.</li>
+<li><b>Spatial region decomposition:</b> PSNR is evaluated separately inside and outside the moving object (e.g., horse and rider, dog, boats). The proposal specified hand-drawn masks for Jockey and optical-flow-derived masks for the remaining clips; Section 4 details the masks adopted during implementation.</li>
 </ul>
-<p>Two checks look at the Gaussians themselves. I compare the fitted accelerations with the acceleration of the optical flow at each Gaussian's centre. And on a synthetic clip, where coloured discs move along known curved paths, M1 against M0 separates two reasons for no gain: if M1 cannot beat M0 even there, the optimiser does not learn to use the acceleration; if it can, the video does not need it.</p>
+<p>Two diagnostic tests examine optimized Gaussian behaviour directly. First, the optimized Gaussian accelerations are compared against the acceleration of the optical flow at each Gaussian's centre. Second, a synthetic diagnostic clip featuring coloured discs moving along known curved paths is evaluated. Comparing M1 against M0 on this clip separates two explanations: if M1 fails to beat M0 on known curved paths, the optimizer fails to learn the acceleration; if M1 succeeds on synthetic data but fails on real video, non-linear trajectories are unneeded for the target video dynamics.</p>
 <div class="callout criteria">
-<span class="label">How to read a result (fixed in the proposal)</span>
-<ul>
-<li>If an ability passes only on some clips or only at stride 3, it helps only for that kind of motion, not in general.</li>
-<li>If M1 also gains on a clip with nearly straight motion, the gain is probably not caused by curved motion, and I find its cause before drawing a conclusion.</li>
-<li>If a gain shows up inside the moving object but whole-frame PSNR does not rise, the gain is local and not worth its storage.</li>
-</ul>
+<span class="label">Interpretation rules fixed in the proposal</span>
+<ol>
+<li>If a modeling capability passes only on specific clips or exclusively at stride 3, it provides targeted benefit for those motion profiles rather than a general improvement.</li>
+<li>If M1 yields gains on the straight-motion control clip, the improvement is likely not caused by curved motion, requiring identification of the underlying cause before drawing conclusions.</li>
+<li>If performance gains appear inside the moving object mask without increasing whole-frame PSNR, the improvement is local and fails to justify its storage overhead at the frame level.</li>
+</ol>
 </div>
 
 <h3>3.5 Q3: Temporal interpolation</h3>
-<p>The proposal planned one check between frames, for the extension: render the higher-degree models at times between the fitted frames (for example <span class="math">t = 4.5</span>) to see whether their paths swing between the frames they were fitted to.</p>
-<p>After the main results, I extended this check to the four main models. From the same fitted models, I draw the frames that stride 3 skips (1, 2, 4, 5, …) and score them as in Q1 and Q2, over the whole frame and on the moving object. Storage is equal, as in Q1, so the curved models also have fewer Gaussians here. A linear model may fit the training frames well and still draw these frames poorly; this is the hypothesis Q3 tests.</p>
+<p>The proposal originally planned a single intermediate frame evaluation, restricted to the higher-degree extension models (D3, D7): rendering them at times between the fitted frames (e.g., <span class="math">t = 4.5</span>) to check whether optimized trajectories swing unphysically between fitted frames.</p>
+<p>Following the main results, this evaluation was extended post-hoc to all four primary models. Using the same models fitted at stride 3, the unobserved intermediate frames (1, 2, 4, 5, …) are rendered and evaluated over whole frames and within moving object masks, under the same equal storage budget as Q1. The curved models therefore also have fewer Gaussians here.</p>
+<p>This tests the hypothesis that a linear model (M0) can achieve strong fitting performance on training frames via a piecewise sequence of short-lived Gaussians while failing on the unobserved intermediate frames, and that a curved path does better on them.</p>
 
 <h3>3.6 Optimization and statistical reporting</h3>
-<p>Following Unit 14, the settings that differ between models are chosen by PSNR on the validation clip and then used unchanged on all test clips: the floor <span class="math">s<sub>min</sub></span> (0.05, 0.1 or 0.2) for M2 and M3, and the learning rate of the acceleration (0.3, 1 or 3 times that of the velocity) for M1 and M3. The other factors are not tuned; every combination of them is run.</p>
-<p>Every combination of model, clip, stride and budget is fitted with 3 random seeds. A model is always compared with M0 at the same clip, stride, budget and seed. I report the mean over the seeds with the range from the lowest to the highest seed.</p>
+<p>Following the optimization methodology in Unit 14, model-specific hyperparameters are selected using validation performance on the non-overlapping Jockey validation clip and subsequently applied without alteration across all test sequences:</p>
+<ul>
+<li><b>Scale floor (<span class="math">s<sub>min</sub></span>):</b> evaluated over 0.05, 0.1 and 0.2 for M2 and M3.</li>
+<li><b>Acceleration learning rate multiplier:</b> evaluated over 0.3×, 1× and 3× the velocity learning rate for M1 and M3.</li>
+</ul>
+<p>All other factors are left untuned. Every combination of model, clip, temporal stride and storage budget is fitted across 3 random seeds. Model comparisons are strictly paired: each model variant is evaluated against M0 at identical clip, stride, budget and seed conditions. Results are reported as mean values across seeds alongside the range from the lowest to the highest seed.</p>
 </section>
 
 <!-- ================================================================ 4 METHOD -->
