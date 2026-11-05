@@ -326,3 +326,4 @@ details.why.rq > p { font-size: 1em; color: var(--ink); margin: 6px 0 4px; }
 details.more.supp > .body { background: var(--panel); border-radius: 0 0 6px 6px; }
 /* a table whose number column holds only a few values: centred (Table 2) */
 table.mid-num td.num, table.mid-num th.num { text-align: center; }
+.vol-hint { font-size: 12px; color: #8f8d86; margin-top: 2px; }

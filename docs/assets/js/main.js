@@ -4,7 +4,7 @@
 import { WIDTH, HEIGHT, SPECS, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
          ARC } from "./gauss.js";
 import { makeRenderer } from "./gl.js";
-import { volumeWidget } from "./volume.js?v=6";
+import { volumeWidget } from "./volume.js?v=8";
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];

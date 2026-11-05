@@ -106,7 +106,6 @@ export function volumeWidget(root) {
     s += `<text x="${lx}" y="${ly - 8}" fill="${ORANGE}" font-weight="600" text-anchor="middle">frame ${t}</text>`;
     const [ax, ay] = P(1, WIDTH, HEIGHT), [bx, by] = P(FRAMES, WIDTH, HEIGHT);
     s += `<text x="${ax}" y="${ay + 16}" text-anchor="middle">frame 1</text><text x="${bx}" y="${by + 16}" text-anchor="end">frame ${FRAMES}</text>`;
-    s += `<text x="8" y="292" fill="#8f8d86">drag sideways to turn</text>`;
     svg.innerHTML = s;
   }
 
@@ -188,16 +187,25 @@ export function volumeWidget(root) {
 
   // drag the volume sideways to turn it
   let drag = null;
-  svg.style.cursor = "grab";
+  // a dark left-right arrow: the system "grab" hand is white on Windows
+  const ARROW = "url(\"data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><path d="M2 14l6-6v4h12V8l6 6-6 6v-4H8v4z" fill="#1b1b1b" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>') + "\") 14 14, ew-resize";
+  svg.style.cursor = ARROW;
+  // the hint sits under the figure, so it never meets the labels inside it
+  const hint = document.createElement("div");
+  hint.className = "vol-hint";
+  hint.textContent = "drag sideways to turn";
+  svg.after(hint);
   svg.style.touchAction = "pan-y";
-  svg.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, yaw }; svg.setPointerCapture(e.pointerId); svg.style.cursor = "grabbing"; });
+  svg.style.userSelect = "none";   // dragging must not select the labels in the figure
+  svg.addEventListener("pointerdown", (e) => { e.preventDefault(); drag = { x: e.clientX, yaw }; svg.setPointerCapture(e.pointerId); });
   svg.addEventListener("pointermove", (e) => {
     if (!drag) return;
     const k = 600 / svg.getBoundingClientRect().width;   // drag in viewBox units
     yaw = Math.min(YAW_MAX, Math.max(YAW_MIN, drag.yaw - 0.25 * k * (e.clientX - drag.x)));
     draw();
   });
-  const stop = () => { drag = null; svg.style.cursor = "grab"; };
+  const stop = () => { drag = null; };
   svg.addEventListener("pointerup", stop);
   svg.addEventListener("pointercancel", stop);
 
