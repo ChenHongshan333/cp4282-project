@@ -2150,6 +2150,7 @@ node docs/assets/js/check.mjs <文件夹>                          # 和网页�
 | 6. 删掉米色框左边的深棕色竖条 | 删了，红色警告框的竖条也一起删了 |
 | 7. 失败判定放在节末有点奇怪 | 位置不变（它要用到前面讲的 seed 之间的差距和物体内外的 PSNR），改为单独一小节 "3.5 How a result is judged"，前面加一句引导：这些规则在 proposal 里事先定好，免得看到结果后再挑有利的读法，第 5 节按它们判定。框的标题简化为 "Decided before any experiment"。第 3 节的小标题都编了号：3.1 Four models、3.2 Equal storage、3.3 Clips、3.4 Runs and scores、3.5 How a result is judged |
 | 8. 3.5 的第一句是否定句，难读 | 改成正面说法，意思不变："The curved path passes only if M1 beats M0 by more than 0.3 dB, and by more than the spread between seeds, at three or more of the four budgets, on both Jockey and ShakeNDry at stride 3 … Otherwise it fails. Shrinking is judged by the same test, with M2 in place of M1." |
+| 9. 学习率有没有提？ | 第 4 节和附录里都写了（每个模型分别调学习率，表 A14 是全训练时的重调）。但 Table 2 的表注说 "optimiser … is the same for all four"，容易被误解为学习率也一样，所以表注末尾补了半句 "only the learning rates are tuned for each model (Section 4)" |
 
 **代码改动：** `docs/index.html`（第 3 节）；`docs/assets/style.css`（表格字体、两种框去掉竖条、表格里的小横条 `.rbar`）；`docs/assets/js/volume.js`（橙色大小线和小点，去掉 "numbers per Gaussian"）；`docs/assets/js/main.js`（删掉预算互动图）。版本号改为 `?v=20261105a`，`volume.js` 改为 `?v=6`。
 
