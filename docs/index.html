@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261103e">
+<link rel="stylesheet" href="assets/style.css?v=20261105a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
-<body>
+<body>12 numbers per Gaussian
 
 <div class="topbar">
   <div class="inner">
@@ -143,7 +143,7 @@
 <h2><span class="num">3</span>Experiment design</h2>
 <p>To answer these questions, I compare models that differ in one ability at a time, give them all the same storage, and fit them to clips chosen for their kind of motion.</p>
 
-<h3>Four models: the two abilities apart and together</h3>
+<h3>3.1 Four models: the two abilities apart and together</h3>
 <p>VeGaS uses a curved path and shrinking together, so its results cannot say what each one does. I separate them into a 2×2 design (Table 2). M0 is the baseline of Unit 16. M1 adds only a curved path, M2 adds only shrinking, and M3 adds both. For the curve I use the simplest one, a quadratic: an acceleration <span class="math">a</span> on top of the velocity, which costs 2 more numbers per Gaussian. Shrinking scales the slice by its weight <span class="math">w(t)</span>, with a floor <span class="math">s<sub>min</sub></span> so that it never vanishes, and costs nothing extra. As an extension, two more models, D3 and D7, use paths of degree 3 and 7 (the VeGaS default) to test whether a more flexible path helps.</p>
 <div class="table-wrap" data-short="The four models">
 <table>
@@ -161,7 +161,7 @@
 <div class="widget w-volume" id="w-volume-models">
   <div class="wtitle">Try it: the four models in the volume of the video</div>
   <div class="whelp">The same figure as in Section 1. M1 bends the path, M2 shrinks the slice as it fades, and M3 does both.</div>
-  <div class="controls"><div class="control"><span class="clabel">model</span><div class="seg vol-model"><button data-v="M0" aria-pressed="true">M0 straight</button><button data-v="M1" aria-pressed="false">M1 curved</button><button data-v="M2" aria-pressed="false">M2 shrinking</button><button data-v="M3" aria-pressed="false">M3 both</button></div></div><span class="status vol-cost" style="margin:0"></span></div>
+  <div class="controls"><div class="control"><span class="clabel">model</span><div class="seg vol-model"><button data-v="M0" aria-pressed="true">M0 straight</button><button data-v="M1" aria-pressed="false">M1 curved</button><button data-v="M2" aria-pressed="false">M2 shrinking</button><button data-v="M3" aria-pressed="false">M3 both</button></div></div></div>
   <div class="legend">
     <span class="key"><span class="swatch" style="background:#a9c6ef;border:1px solid #2a78d6"></span>the Gaussian over time</span>
     <span class="key"><span class="swatch" style="background:#f3c8b5;border:1px solid #d4521d"></span>the current frame and its slice</span>
@@ -185,18 +185,23 @@
   </div>
 </div>
 
-<h3>Equal storage</h3>
+<h3>3.2 Equal storage</h3>
 <p>Every model gets the same budget, counted in stored numbers. A Gaussian of M0 or M2 costs 12 numbers and a Gaussian of M1 or M3 costs 14, so at the same budget the curved models get fewer Gaussians (Table 3). All numbers are 32-bit floats and none are quantised, so the same count of numbers also means the same file size.</p>
-<div class="table-wrap" data-short="Gaussians per budget" data-table="budget" data-caption="<b>Table 3.</b> How many Gaussians each budget buys."></div>
-<p>The four budgets give M0 between 250 and 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 starts from the first Gaussians of M0 with zero acceleration, so at the start the two models differ only in how many Gaussians they have.</p>
-<div class="widget" id="w-budget">
-  <div class="wtitle">Try it: what a budget buys</div>
-  <div class="whelp">Move the budget. Every model gets the same number of stored numbers, and more abilities per Gaussian leave room for fewer Gaussians.</div>
-  <div class="control"><span class="clabel">budget</span><input type="range" id="budget-range" min="0" max="4" step="1" value="3"><output id="budget-out"></output></div>
-  <div class="bars" id="budget-bars"></div>
+<div class="table-wrap" data-short="Gaussians per budget">
+<table class="budget">
+<caption><b>Table 3.</b> How many Gaussians each budget buys. The last column compares each model with M0.</caption>
+<thead><tr><th>Model</th><th class="num">Numbers per Gaussian</th><th class="num">Gaussians at 3,000</th><th class="num">6,000</th><th class="num">12,000</th><th class="num">24,000</th><th>Gaussians, relative to M0</th></tr></thead>
+<tbody>
+<tr><td>M0, M2</td><td class="num">12</td><td class="num">250</td><td class="num">500</td><td class="num">1,000</td><td class="num">2,000</td><td><span class="rbar"><i style="width:100%"></i></span>100%</td></tr>
+<tr><td>M1, M3</td><td class="num">14</td><td class="num">214</td><td class="num">428</td><td class="num">857</td><td class="num">1,714</td><td><span class="rbar"><i style="width:86%"></i></span>86%</td></tr>
+<tr><td>D3</td><td class="num">16</td><td class="num">187</td><td class="num">375</td><td class="num">750</td><td class="num">1,500</td><td><span class="rbar"><i style="width:75%"></i></span>75%</td></tr>
+<tr><td>D7</td><td class="num">24</td><td class="num">125</td><td class="num">250</td><td class="num">500</td><td class="num">1,000</td><td><span class="rbar"><i style="width:50%"></i></span>50%</td></tr>
+</tbody>
+</table>
 </div>
+<p>The four budgets give M0 between 250 and 2,000 Gaussians, the counts used in the Unit 16 example. For each random seed, M1 starts from the first Gaussians of M0 with zero acceleration, so at the start the two models differ only in how many Gaussians they have.</p>
 
-<h3>Clips with different kinds of motion</h3>
+<h3>3.3 Clips with different kinds of motion</h3>
 <p>All clips come from the UVG data set (Mercat et al., 2020): 1080p at 120 frames per second, reduced to 480×270 as in Unit 16. Each clip has 10 frames. The four sequences were chosen for their motion, so that I can see whether a gain grows where the motion bends.</p>
 <div class="cards">
   <div class="card"><img src="data/frames/Jockey_k0/0012.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans with a galloping horse whose legs swing. The main case, as in the Unit 16 notes.</span></div>
@@ -206,7 +211,7 @@
 </div>
 <p>Most experiments use <b>stride 3</b>: a clip keeps every third frame (0, 3, …, 27). This makes the motion between frames three times larger while the content and the number of frames stay the same. The frames that stride 3 skips are the frames between of Q3.</p>
 <details class="more"><summary>How I measured the motion, and why Bosphorus was added</summary><div class="body">
-<p>I measured each clip with optical flow (Farnebäck). Speed is the mean displacement per frame. Acceleration follows a point and measures how much its displacement changes from one frame to the next. Bend is acceleration divided by speed; the larger it is, the further the motion is from steady and straight.</p>
+<p>Each clip was chosen for one kind of motion. To check that it has that motion, I measured it with optical flow (Farnebäck). Speed is the mean displacement per frame. Acceleration follows a point and measures how much its displacement changes from one frame to the next. Bend is acceleration divided by speed; the larger it is, the further the motion is from steady and straight.</p>
 <div class="table-wrap"><table>
 <caption><b>Table A1.</b> Motion of the test clips over the whole frame, camera motion included (pixels per frame, and per frame²).</caption>
 <thead><tr><th>Clip</th><th class="num">Stride</th><th class="num">Speed</th><th class="num">Acceleration</th><th class="num">Bend</th></tr></thead>
@@ -220,17 +225,24 @@
 <tr><td>Bosphorus</td><td class="num">1</td><td class="num">0.40</td><td class="num">0.04</td><td class="num">—</td></tr>
 <tr><td>Bosphorus</td><td class="num">3</td><td class="num">1.29</td><td class="num">0.09</td><td class="num">—</td></tr>
 </tbody></table></div>
-<p>Stride 3 makes the motion faster and more curved: the acceleration grows 3 to 7 times. ShakeNDry bends the most, as planned; its speed is low because the camera is still and the dog is small in the frame. Jockey's motion is mostly a steady camera pan, and only the legs bend.</p>
-<p>YachtRide's waves move up and down, so its bend is even higher than Jockey's. The proposal said to replace a clip whose motion does not fit its role, so I added Bosphorus, whose acceleration at stride 3 is a seventh of YachtRide's, and kept YachtRide for its boat. Bosphorus is also slow, so on this clip "straight" and "slow" cannot be told apart.</p>
+<p>Stride 3 makes the motion faster and more curved: the acceleration grows 3 to 7 times. Clip by clip:</p>
+<ul>
+<li><b>ShakeNDry</b> bends the most, as planned. Its speed is low because the camera is still and the dog is small in the frame.</li>
+<li><b>Jockey</b>'s motion is mostly a steady camera pan, and only the legs bend.</li>
+<li><b>YachtRide</b> was planned as the straight control, but its waves move up and down, so its bend is even higher than Jockey's. I keep it for its boat.</li>
+<li><b>Bosphorus</b> takes its place as the straight control, since the proposal said to replace a clip whose motion does not fit its role. Its acceleration at stride 3 is a seventh of YachtRide's. It is also slow, so on this clip "straight" and "slow" cannot be told apart.</li>
+</ul>
 </div></details>
 
-<h3>What is scored</h3>
-<p>The main score is PSNR on the fitted frames. I also record SSIM, and VMAF from Netflix (via ffmpeg, upscaled to 1080p as recommended), which at this low resolution is only a side reference. To see where a gain comes from, a Mask R-CNN model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame, and I score PSNR inside and outside that outline. For Q3, I draw the skipped frames from the fitted model and score them the same way.</p>
+<h3>3.4 Runs and scores</h3>
 <p>Every setting is run with 3 random seeds. When I compare a model with M0, I pair runs with the same clip, budget and seed, and report the mean over the seeds and, where it matters, the range from the lowest to the highest seed.</p>
+<p>The main score is PSNR on the fitted frames. I also record SSIM, and VMAF from Netflix (via ffmpeg, upscaled to 1080p as recommended), which at this low resolution is only a side reference. To see where a gain comes from, a Mask R-CNN model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame, and I score PSNR inside and outside that outline. For Q3, I draw the skipped frames from the fitted model and score them the same way.</p>
 
+<h3>3.5 How a result is judged</h3>
+<p>So that a result cannot be read in whichever way suits me after the fact, the proposal fixed these rules before any experiment ran. Section 5 applies them.</p>
 <div class="callout criteria">
-<span class="label">When an ability counts as a failure (written in the proposal before any experiment)</span>
-<p>The curved path fails if M1 does not beat M0 by more than 0.3 dB, and by more than the spread between seeds, at three or more of the four budgets. This has to hold on both Jockey and ShakeNDry at stride 3, the clips with the most curved motion. Shrinking fails under the same test, with M2 in place of M1. Three more rules decide how to read a result:</p>
+<span class="label">Decided before any experiment</span>
+<p>The curved path passes only if M1 beats M0 by more than 0.3 dB, and by more than the spread between seeds, at three or more of the four budgets, on both Jockey and ShakeNDry at stride 3, the clips with the most curved motion. Otherwise it fails. Shrinking is judged by the same test, with M2 in place of M1. Three more rules decide how to read a result:</p>
 <ul>
 <li>If an ability passes on some clips only, it helps only for that kind of motion.</li>
 <li>If M1 also gains on a clip with nearly straight motion, the gain probably does not come from curved motion.</li>
@@ -672,6 +684,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261103e"></script>
+<script type="module" src="assets/js/main.js?v=20261105a"></script>
 </body>
 </html>

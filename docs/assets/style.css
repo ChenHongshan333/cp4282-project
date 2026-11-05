@@ -106,8 +106,8 @@ li { margin: 3px 0; }
 /* ---- callouts ---- */
 .callout { border-radius: 6px; padding: 14px 18px; margin: 18px 0; background: var(--panel); }
 .callout.finding { background: var(--accent-soft); }
-.callout.criteria { background: #fbf7ee; border-left: 3px solid #c98500; }
-.callout.warn { background: #fdf1ef; border-left: 3px solid var(--bad); }
+.callout.criteria { background: #fbf7ee; }
+.callout.warn { background: #fdf1ef; }
 .callout > :last-child { margin-bottom: 0; }
 .callout .label { font-family: var(--sans); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); display: block; margin-bottom: 4px; }
 
@@ -122,7 +122,7 @@ figcaption b:first-child { color: var(--ink); }
 .table-wrap { margin: 18px auto 24px; }
 .tbox { width: fit-content; max-width: 100%; margin: 0 auto; overflow-x: auto; }
 .tbox > .tcap { width: 0; min-width: 100%; }
-table { border-collapse: collapse; font-family: var(--sans); font-size: 13.5px; line-height: 1.4; width: auto; font-variant-numeric: tabular-nums; }
+table { border-collapse: collapse; font-family: var(--serif); font-size: 15px; line-height: 1.4; width: auto; font-variant-numeric: tabular-nums; }
 caption, .tcap { caption-side: top; text-align: left; font-family: var(--serif); font-size: 15px; color: var(--ink-2); padding-bottom: 8px; line-height: 1.5; }
 caption b:first-child, .tcap b:first-child { color: var(--ink); }
 thead th { border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--ink); font-weight: 600; text-align: left; padding: 6px 16px 6px 10px; vertical-align: bottom; }
@@ -133,6 +133,9 @@ td .pass { color: var(--good); font-weight: 600; }
 td .fail { color: var(--bad); font-weight: 600; }
 td.hl, tr.hl td { background: #f3f7fd; }
 tr.group td { padding-top: 12px; font-weight: 600; border-bottom: none; color: var(--ink-2); }
+/* a small bar in a table cell, for a share of 100% (Table 3) */
+.rbar { display: inline-block; width: 90px; height: 9px; background: var(--panel); border-radius: 2px; margin-right: 8px; vertical-align: 0; }
+.rbar i { display: block; height: 100%; background: var(--rule-strong); border-radius: 2px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
 
 /* ---- details (supporting material) ---- */

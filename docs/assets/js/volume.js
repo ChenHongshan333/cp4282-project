@@ -139,7 +139,8 @@ export function volumeWidget(root) {
     $(".vol-frame-label").textContent = on ? `Frame ${t}: the slice is a 2D Gaussian` : `Frame ${t}: the Gaussian is not visible`;
   }
 
-  // --- the weight of the slice in each frame, and with shrinking its size scale
+  // --- the weight of the slice in each frame, and with shrinking its size scale, in the orange of
+  // the outline of the slice (same width on screen: 3 px on the 480 px canvas = 2.25 in this 360 view)
   function drawWeight(p) {
     const W = 360, H = 150, L = 8, R = 8, T = 10, B = 26, bw = (W - L - R) / FRAMES;
     let s = `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#8f8d86"/>`;
@@ -150,7 +151,8 @@ export function volumeWidget(root) {
     if (p.shrink) {
       const pts = [];
       for (let t = 1; t <= FRAMES; t += 0.25) if (visible(p, t)) pts.push([L + (t - 0.5) * bw, H - B - (H - T - B) * scale(p, t)]);
-      s += `<path d="${path(pts)}" fill="none" stroke="${INK}" stroke-width="1.6"/>`;
+      s += `<path d="${path(pts)}" fill="none" stroke="${ORANGE}" stroke-width="2.25"/>`;
+      if (visible(p, p.t)) s += `<circle cx="${(L + (p.t - 0.5) * bw).toFixed(1)}" cy="${(H - B - (H - T - B) * scale(p, p.t)).toFixed(1)}" r="4" fill="${ORANGE}" stroke="#fff" stroke-width="1.2"/>`;
     }
     s += `<text x="${L}" y="${H - 8}">1</text><text x="${W / 2}" y="${H - 8}" text-anchor="middle">frame</text><text x="${W - R}" y="${H - 8}" text-anchor="end">${FRAMES}</text>`;
     weightSvg.innerHTML = s;
@@ -169,8 +171,6 @@ export function volumeWidget(root) {
     show("smin", p.shrink ? `${Math.round(100 * p.smin)}% of full size` : "M2, M3 only");
     if (input.bend) input.bend.disabled = !p.curve;
     if (input.smin) input.smin.disabled = !p.shrink;
-    const cost = $(".vol-cost");
-    if (cost) cost.textContent = p.curve ? "14 numbers per Gaussian (12 + the acceleration a)" : "12 numbers per Gaussian";
     drawVolume(p); drawSlice(p); drawWeight(p);
   }
 

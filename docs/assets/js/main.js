@@ -1,10 +1,10 @@
 // The interactive parts of the project page: tables from data/tables.json, one Gaussian in the volume of the video, the
-// budget bars, the training curves, the player of fitted models and the arc demo.
+// training curves, the player of fitted models and the arc demo.
 
-import { WIDTH, HEIGHT, SPECS, numbersPerGaussian, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
+import { WIDTH, HEIGHT, SPECS, parseModel, sliceAt, renderCPU, centreAt, arcCentre, arcFrame,
          ARC } from "./gauss.js";
 import { makeRenderer } from "./gl.js";
-import { volumeWidget } from "./volume.js?v=5";
+import { volumeWidget } from "./volume.js?v=6";
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -71,29 +71,6 @@ async function fillTables() {
   }
   // the tables change the height of the page: go to the linked section again
   if (location.hash) $(location.hash)?.scrollIntoView();
-}
-
-// ===================================================================================== budget
-function budgetWidget() {
-  const range = $("#budget-range");
-  if (!range) return;
-  const budgets = [3000, 6000, 12000, 24000, 96000];
-  const models = ["M0", "M1", "M2", "M3", "D3", "D7"];
-  const extra = { M0: "", M1: "+ acceleration", M2: "+ shrinking (free)", M3: "+ both", D3: "degree-3 path", D7: "degree-7 path (VeGaS default)" };
-  const bars = $("#budget-bars");
-  bars.innerHTML = models.map((m) => `<span><span class="chip" style="background:${COLOUR[m]}"></span>${m} <span style="color:var(--muted)">${numbersPerGaussian(m)} numbers ${extra[m]}</span></span><div><div class="bar" data-m="${m}" style="background:${COLOUR[m]}"></div></div><span class="n" data-n="${m}"></span>`).join("");
-  const draw = () => {
-    const b = budgets[+range.value];
-    $("#budget-out").textContent = b.toLocaleString("en") + " numbers = " + (4 * b / 1000).toLocaleString("en") + " kB";
-    const max = Math.floor(b / 12);
-    for (const m of models) {
-      const n = Math.floor(b / numbersPerGaussian(m));
-      $(`[data-m="${m}"]`, bars).style.width = `${(100 * n) / max}%`;
-      $(`[data-n="${m}"]`, bars).textContent = n.toLocaleString("en") + " Gaussians";
-    }
-  };
-  range.addEventListener("input", draw);
-  draw();
 }
 
 // ===================================================================================== training curves
@@ -660,7 +637,6 @@ function setupToc() {
 
 setupToc();
 $$(".w-volume").forEach(volumeWidget);
-budgetWidget();
 fillTables();
 trainingWidget();
 playerWidget();
