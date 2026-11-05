@@ -307,3 +307,22 @@ details.why > p { font-size: 0.9em; color: var(--ink-2); margin: 6px 0 0; }
   .topbar nav { display: none; }
 }
 section[id], h3[id], h4[id] { scroll-margin-top: 56px; }
+/* a note beside the text (Section 3): grey, small, sans */
+p.note { font-size: 0.9em; line-height: 1.55; color: var(--ink-2); background: var(--panel); padding: 9px 14px; border-radius: 5px; }
+/* a rule stated formally, on its own background (not the blue of findings or the yellow of criteria) */
+.rule { background: #f1eff8; border-radius: 6px; padding: 14px 18px; margin: 18px 0; }
+.rule > p:last-child { margin-bottom: 0; }
+/* two items side by side as cards (Sections 3.4 and 3.6) */
+.evi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0 18px; }
+.evi-card { background: var(--panel); border-radius: 6px; padding: 12px 16px; }
+.evi-card > b { display: block; margin-bottom: 4px; }
+.evi-card > p { margin: 0; font-size: 0.92em; color: var(--ink-2); }
+@media (max-width: 760px) { .evi { grid-template-columns: 1fr; } }
+/* the research question repeated at the top of 3.3 to 3.5: blue like the questions of Section 2 */
+details.why.rq { background: var(--accent-soft); border-radius: 6px; padding: 7px 14px; margin: 0 0 14px; }
+details.why.rq > summary { color: var(--accent); }
+details.why.rq > p { font-size: 1em; color: var(--ink); margin: 6px 0 4px; }
+/* supplementary material folded: grey when open */
+details.more.supp > .body { background: var(--panel); border-radius: 0 0 6px 6px; }
+/* a table whose number column holds only a few values: centred (Table 2) */
+table.mid-num td.num, table.mid-num th.num { text-align: center; }
