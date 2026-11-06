@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261106j">
+<link rel="stylesheet" href="assets/style.css?v=20261106l">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -388,11 +388,17 @@
 <!-- ================================================================ 6 CONCLUSION -->
 <section class="chapter" id="conclusion">
 <h2><span class="num">6</span>Conclusion</h2>
-<div class="callout finding">
-<span class="label">Answers to the research questions</span>
-<p><b>Q1.</b> At equal storage, folding is not worth it for compression. After the planned 3,000 steps, shrinking and both abilities together beat the baseline by 0.5 to 2.3 dB. With full training the straight-line model catches up, and all three abilities fail the test written in the proposal.</p>
-<p><b>Q2.</b> The early gains do not come from motion. They appear just as strongly on still photographs, the learned accelerations do not follow the real motion, and the few gains left after full training sit in the background. What the abilities buy is faster learning: if training time is short and fixed, shrinking does give a better picture.</p>
-<p><b>Q3.</b> A curved path does help to draw the frames between, and that help comes from motion: on a synthetic arc it grows with the bend, up to about 9 dB, and the Gaussians bend the right way. On new real clips it passes the rule fixed in advance, but it is small, about 0.5 dB, and limited to the moving object.</p>
+<div class="callout finding qa">
+<p class="qa-q"><b>Q1.</b> Under a fixed storage budget, does Gaussian folding provide a net benefit in reconstruction quality over linear space-time baselines?</p>
+<p class="qa-a"><b>Answer.</b> For the clips, budgets and settings tested here, folding does not give a lasting gain in reconstruction efficiency at equal storage. After the planned 3,000 steps, shrinking (M2) and both abilities together (M3) beat the straight-line baseline by 0.5 to 2.3 dB and pass the test fixed in the proposal, while the curved path (M1) does not. With full training the baseline catches up. No ability keeps a steady whole-frame gain on the fitted frames, and all three fail the test.</p>
+</div>
+<div class="callout finding qa">
+<p class="qa-q"><b>Q2.</b> If trajectory folding yields performance gains, are these improvements driven specifically by superior motion modeling?</p>
+<p class="qa-a"><b>Answer.</b> The evidence does not support attributing the early gains mainly to the recovery of real motion; it is more consistent with faster optimization. Similar gains appear on still photographs, the learned accelerations do not consistently follow the real motion, the few leads left after full training sit in the background, and the early leads shrink as training continues. Within a short, fixed number of training steps, shrinking therefore does give a better picture.</p>
+</div>
+<div class="callout finding qa">
+<p class="qa-q"><b>Q3.</b> Does non-linear trajectory modeling improve reconstruction accuracy on unseen intermediate frames (video frame interpolation)?</p>
+<p class="qa-a"><b>Answer.</b> A curved path improves the frames between, with stronger evidence on synthetic motion than on real video. On synthetic arcs with known motion, the gain on the frames between grows with the bend, up to about 9 dB, and the learned Gaussians bend with the known motion, which supports a motion-based mechanism in that setting. On new real clips, the moving object is drawn about 0.5 dB better on average in the unseen frames between, which meets the threshold fixed before the test. The whole frame does not improve consistently, and the path diagnostics on the real clips do not directly confirm the same mechanism. This is a local interpolation gain, separate from the reconstruction efficiency addressed in Q1.</p>
 </div>
 <div class="table-wrap" data-short="Summary of findings">
 <table>
@@ -760,6 +766,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261106j"></script>
+<script type="module" src="assets/js/main.js?v=20261106l"></script>
 </body>
 </html>

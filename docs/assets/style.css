@@ -109,6 +109,10 @@ li { margin: 3px 0; }
 .callout.criteria { background: #fbf7ee; }
 .callout.warn { background: #fdf1ef; }
 .callout > :last-child { margin-bottom: 0; }
+.callout.qa { margin: 14px 0; }
+.callout p.qa-q { font-size: 0.9em; font-style: italic; color: var(--ink-2); margin: 0 0 4px; }
+.callout p.qa-q b { font-style: normal; }
+.callout p.qa-a { margin-top: 0; }
 .callout .label { font-family: var(--sans); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); display: block; margin-bottom: 4px; }
 
 /* ---- figures ---- */
