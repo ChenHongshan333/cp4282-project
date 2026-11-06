@@ -149,21 +149,49 @@ table.data thead th.span, table.data thead th[colspan] { text-align: center; bor
 table.data thead tr:first-child th[rowspan] { border-bottom: 1px solid var(--ink); }
 table.data tbody td { padding: 6px 14px 6px 10px; }
 table.data tr.group td { padding-top: 14px; border-bottom: 1px solid #eeede9; }
-/* appendix layout (step 58). Single tables start at the left edge of the text, like the text around them;
-   figures take a full row. Two related tables of similar size share a row (.tpair): equal columns, at least
-   --min wide each (the narrowest width at which both tables read without squeezing), so the row falls back to
-   one column, left table first, as soon as the text column is too narrow for two. Subgrid rows keep the two
-   captions in one row, so both tables start at the same height. */
-.app-group .tbox { margin: 0; }
+/* appendix layout (steps 58-59). Three layouts, chosen per table:
+   1. a single table or figure takes a row; a table is centred at its own width (the default .tbox), its
+      caption above it, left-aligned and as wide as the table;
+   2. two related tables of similar size share a row (.tpair);
+   3. a narrow table with its own text puts the caption and that text on its right (.tside).
+   Layouts 2 and 3 switch on the width of the appendix column (container queries), not of the screen. */
+.app-group { container-type: inline-size; }
 .app-group figure { margin: 30px 0; max-width: 100%; }
-.tpair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--min, 400px), 100%), 1fr));
-  grid-template-rows: auto auto; column-gap: 28px; row-gap: 0; align-items: start; margin: 22px 0 30px; }
+
+/* 2. pairs: equal columns, 28 px apart, captions in one row (subgrid) so both tables start at one height; each
+   table keeps its own width and is never stretched to the height of its neighbour. Below 856 px (two columns
+   of 414 px, the width of the wider table in each pair, plus the gap) the two become single centred tables,
+   left one first. */
+.tpair { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; column-gap: 28px;
+  align-items: start; margin: 22px 0 30px; }
 .tpair > .table-wrap { margin: 0 0 18px; min-width: 0; display: grid; grid-row: span 2; grid-template-rows: subgrid; }
 .tpair .tbox { width: 100%; min-width: 0; display: grid; grid-row: span 2; grid-template-rows: subgrid;
-  grid-template-columns: minmax(0, 1fr); }      /* the caption wraps at the visible width; only the table scrolls */
+  grid-template-columns: minmax(0, 1fr); }
 .tpair .tbox > .tcap { width: auto; min-width: 0; }
-/* the table keeps its own width, starts at the left, and is never stretched to the height of its neighbour */
 .tpair table { justify-self: start; align-self: start; }
+@container (max-width: 855.98px) {
+  .tpair { display: block; margin: 0; }
+  .tpair > .table-wrap { display: block; margin: 18px auto 24px; }
+  .tpair .tbox { display: block; width: fit-content; max-width: 100%; margin: 0 auto; }
+  .tpair .tbox > .tcap { width: 0; min-width: 100%; }
+}
+
+/* 3. table left, its caption and its own text right, as one block across the text column; the table keeps its
+   width (A2, A11: about 425 px), so the text needs at least 340 px beside it: below 800 px the block stacks,
+   the table centred and the caption and text below it. The table-wrap keeps its id, so links still land here. */
+.tside { margin: 22px 0 30px; }
+.tside .tbox { display: flex; flex-direction: column; width: 100%; margin: 0; overflow-x: auto; }
+.tside table { order: 1; margin: 0 auto; }               /* centred, and still scrollable when wider than the column */
+.tside .tbox > .tcap { order: 2; width: auto; min-width: 0; padding: 10px 0 0; }
+.tside .tside-text { margin: 6px 0 0; }
+@container (min-width: 800px) {
+  .tside { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr;
+    column-gap: 32px; align-items: start; }
+  .tside .tbox { display: contents; }
+  .tside table { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
+  .tside .tbox > .tcap { grid-column: 2; grid-row: 1; padding: 0 0 8px; }
+  .tside .tside-text { grid-column: 2; grid-row: 2; margin: 0; }
+}
 /* a cell that meets the criterion of Section 3.3: shaded and bold, so it does not rest on colour alone */
 td.meet { background: #e6f1ea; font-weight: 650; }
 td .pass { color: var(--good); font-weight: 600; }
