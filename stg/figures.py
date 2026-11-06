@@ -532,37 +532,69 @@ def fig_unseen(runs: Runs, out: Path, plt):
 
 
 def fig_confirm(runs: Runs, out: Path, plt):
+    """The confirmatory test (step 32): M1 - M0 on the frames between, the moving object above and the
+    whole frame below, on the same scale. A dot is the mean of the 3 seeds, the bar their range."""
     conf = runs.where(stage="confirm")
-    clips = (("ShakeNDry", 30, "dog, from 30"), ("Jockey", 120, "horse, from 120"), ("Jockey", 200, "horse, from 200"))
-    fig, ax = plt.subplots(figsize=(8.4, 3.3))
-    ax.axhline(0, color=MUTED, lw=0.8)
-    x, labels = 0, []
-    for i, (seq, start, name) in enumerate(clips):
-        ax.text(4 * i + 1.5, -0.2, name, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=8, color=INK)
-        if i:
+    clips = (("ShakeNDry", 30, "dog, from frame 30"), ("Jockey", 120, "horse, from frame 120"), ("Jockey", 200, "horse, from frame 200"))
+    cells = [(seq, start, stride, b) for seq, start, _ in clips for stride in (3, 5) for b in (6000, 24000)]
+    fig, axes = plt.subplots(2, 1, figsize=(8.4, 4.8), sharex=True, sharey=True)
+    for ax, (value, title) in zip(axes, (("unseen_in", "moving object"), ("unseen", "whole frame"))):
+        ax.axhline(0, color=INK, lw=0.9)
+        gains = [conf.where(sequence=seq, start=start, stride=stride, budget=b).gain("M1", value) for seq, start, stride, b in cells]
+        errorline(ax, range(len(cells)), gains, marker="o", ms=5, ls="none", color="#2a78d6")
+        for i in (1, 2):
             ax.axvline(4 * i - 0.5, color=GRID, lw=1)
-        for stride in (3, 5):
-            for b in (6000, 24000):
-                cell = conf.where(sequence=seq, start=start, stride=stride, budget=b)
-                g = cell.gain("M1", "unseen_in")
-                ok = g[1] > 0
-                ax.errorbar([x], [g[0]], yerr=[[g[0] - g[1]], [g[2] - g[0]]], marker="o", ms=6, capsize=3,
-                            color="#2a78d6" if ok else MUTED, mfc="#2a78d6" if ok else "white")
-                w = cell.gain("M1", "unseen")[0]
-                ax.plot([x + 0.22], [w], marker="s", ms=4.5, ls="none", color="#eb6834")
-                labels.append(f"stride {stride}\n{b // 1000}k")
-                x += 1
-    ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, fontsize=7)
-    ax.grid(axis="x", visible=False)
-    ax.set_ylabel("M1 − M0 on frames between (dB)")
-    from matplotlib.lines import Line2D
-    ax.legend(handles=[Line2D([], [], color="#2a78d6", marker="o", ls="none", label="object: passes (all 3 seeds > 0)"),
-                       Line2D([], [], color=MUTED, marker="o", mfc="white", ls="none", label="object: does not pass"),
-                       Line2D([], [], color="#eb6834", marker="s", ls="none", label="whole frame (not part of the test)")],
-              loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3)
+        ax.grid(axis="x", visible=False)
+        ax.set_title(f"{title}: M1 − M0 on the frames between (dB)", loc="left")
+        if value == "unseen_in":
+            n = sum(g[1] > 0 for g in gains)
+            ax.text(0.995, 0.97, f"{n} of {len(cells)} cells: all 3 seeds above zero", transform=ax.transAxes,
+                    ha="right", va="top", fontsize=8, color=INK)
+    axes[1].set_xticks(range(len(cells)))
+    axes[1].set_xticklabels([f"stride {stride}\n{b // 1000}k" for _, _, stride, b in cells], fontsize=7)
+    for i, (_, _, name) in enumerate(clips):
+        axes[1].text(4 * i + 1.5, -0.32, name, transform=axes[1].get_xaxis_transform(), ha="center", va="top", fontsize=8, color=INK)
     fig.tight_layout()
     save(fig, out, "confirm")
+    plt.close(fig)
+
+
+def fig_arc_paths(out: Path, plt):
+    """The true paths of the ball in the arc clips (``stg.data.arc_centres``, style ``arcs``), all at
+    the same pixel scale: the fitted frames of stride 3 as dots, the skipped frames as open dots."""
+    from stg.data import ARC_ANGLES, ARC_FRAMES, ARC_STYLES, arc_centres
+    style = ARC_STYLES["arcs"]
+    fig, axes = plt.subplots(1, len(ARC_ANGLES), figsize=(8.4, 1.9))
+    paths = {a: arc_centres(a, np.linspace(0, ARC_FRAMES, 400), speed=style["speed"]) for a in ARC_ANGLES}
+    pad = style["radius"] + 4
+    half_x = max(np.ptp(p[:, 0]) for p in paths.values()) / 2 + pad
+    half_y = max(np.ptp(p[:, 1]) for p in paths.values()) / 2 + pad + 6
+    for ax, angle in zip(axes, ARC_ANGLES):
+        path = paths[angle]
+        cx, cy = (path.max(0) + path.min(0)) / 2
+        fitted = arc_centres(angle, np.arange(0, ARC_FRAMES + 1, 3), speed=style["speed"])
+        between = arc_centres(angle, np.array([t for t in range(ARC_FRAMES + 1) if t % 3]), speed=style["speed"])
+        ax.add_patch(plt.Circle(tuple(fitted[0]), style["radius"], fill=False, ls=":", lw=0.8, color=MUTED))
+        ax.plot(path[:, 0], path[:, 1], color=INK, lw=1.2, zorder=1)
+        ax.plot(between[:, 0], between[:, 1], "o", ms=2.6, mfc="white", mec="#eb6834", mew=0.8, zorder=2)
+        ax.plot(fitted[:, 0], fitted[:, 1], "o", ms=4.2, color="#2a78d6", zorder=3)
+        ax.annotate("", xy=path[-1], xytext=path[-30], arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.4, mutation_scale=14), zorder=4)
+        ax.text(*fitted[0] + np.array([0, style["radius"] + 3]), "frame 0", ha="center", va="top", fontsize=7, color=MUTED)
+        ax.set_xlim(cx - half_x, cx + half_x)
+        ax.set_ylim(cy + half_y, cy - half_y)          # image coordinates: y grows downwards
+        ax.set_aspect("equal")
+        ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+        for side in ax.spines.values():
+            side.set_visible(True); side.set_color(GRID)
+        ax.set_title(f"turn {angle}°", loc="center")
+    from matplotlib.lines import Line2D
+    fig.legend(handles=[Line2D([], [], color=INK, lw=1.2, label="true path of the ball's centre"),
+                        Line2D([], [], color="#2a78d6", marker="o", ls="none", label="fitted frames (0, 3, …, 27)"),
+                        Line2D([], [], color="#eb6834", marker="o", mfc="white", ls="none", label="frames between (never fitted)"),
+                        Line2D([], [], color=MUTED, ls=":", label="size of the ball at frame 0")],
+               loc="lower center", bbox_to_anchor=(0.5, -0.08), ncol=4)
+    fig.tight_layout()
+    save(fig, out, "arc_paths")
     plt.close(fig)
 
 
@@ -655,6 +687,7 @@ def main(argv=None):
     plt = style()
     for fig in (fig_rd, fig_gain_budget, fig_training, fig_still, fig_degree, fig_arc, fig_unseen, fig_confirm):
         fig(runs, a.out, plt)
+    fig_arc_paths(a.out, plt)
     if a.crops:
         fig_motion(a.out, plt)
         fig_crops(a.out, plt)
