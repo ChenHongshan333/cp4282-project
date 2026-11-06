@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261106d">
+<link rel="stylesheet" href="assets/style.css?v=20261106e">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -302,7 +302,7 @@
 <p><span class="term" data-term="vmaf" tabindex="0" role="button" aria-expanded="false">VMAF</span> from Netflix was also added (via ffmpeg, upscaled to 1080p as recommended); at this low resolution it is only a side reference. For the test of Section 3.3, the spread between seeds is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared.</p>
 
 <h3>4.5 Experimental roadmap</h3>
-<p>Figure 2 shows the experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it, and Section 5 follows the same order. The frames between of Q3 needed no new fits: they were drawn from the 192 fully trained models of the main experiment. The full record of fits and training steps is in Table A28 (Appendix).</p>
+<p>Figure 2 shows the experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it. Section 5 groups the results by research question; the Results column of Table A28 gives where each experiment is reported. The frames between of Q3 needed no new fits: they were drawn from the 192 fully trained models of the main experiment. The full record of fits and training steps is in Table A28 (Appendix).</p>
 <figure class="roadmap" data-short="Experiment roadmap">
   <svg viewBox="0 0 760 638" role="img" aria-label="Roadmap of the experiments: the main line from the synthetic discs to the fully trained main experiment, with the still photographs, degree 3 and 7, and the three steps of Q3 as branches"><defs><marker id="rm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3d3c39"/></marker></defs><text x="20" y="20" class="rm-lane">Main line</text><text x="470" y="20" class="rm-lane">Diagnostics and extensions</text><rect x="20" y="34" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#141414" stroke-width="1.3"/><text x="32" y="55" class="rm-name">Synthetic discs</text><text x="32" y="73" class="rm-q">Does fitting work on motion with a known path?</text><rect x="20" y="110" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#141414" stroke-width="1.3"/><text x="32" y="131" class="rm-name">Tuning</text><text x="32" y="149" class="rm-q">Best settings of each model</text><rect x="20" y="186" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#141414" stroke-width="1.3"/><text x="32" y="207" class="rm-name">Main experiment, 3,000 steps</text><text x="32" y="225" class="rm-q">Q1 at the planned training length</text><rect x="20" y="262" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="32" y="283" class="rm-name">More Gaussians; longer training</text><text x="32" y="301" class="rm-q">Is 3,000 steps enough?</text><rect x="20" y="338" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="32" y="359" class="rm-name">Re-tuning for full training</text><text x="32" y="377" class="rm-q">Learning rates at 30,000 steps</text><rect x="20" y="414" width="310" height="54" rx="6" fill="#f6f5f2" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="32" y="435" class="rm-name">Main experiment, fully trained</text><text x="32" y="453" class="rm-q">Q1 and Q2 with full training</text><line x1="175" y1="88" x2="175" y2="108" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="175" y1="164" x2="175" y2="184" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="175" y1="240" x2="175" y2="260" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="175" y1="316" x2="175" y2="336" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="175" y1="392" x2="175" y2="412" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><rect x="470" y="186" width="270" height="54" rx="6" fill="#ffffff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="482" y="207" class="rm-name">Still photographs</text><text x="482" y="225" class="rm-q">Q2: does the gain need motion?</text><line x1="330" y1="213.0" x2="468" y2="213.0" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><rect x="470" y="414" width="270" height="54" rx="6" fill="#ffffff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="482" y="435" class="rm-name">Degree 3 and 7</text><text x="482" y="453" class="rm-q">Does a more flexible path help?</text><line x1="330" y1="441.0" x2="468" y2="441.0" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><text x="96" y="514" class="rm-lane">Q3: the frames between</text><rect x="20" y="526" width="222" height="70" rx="6" fill="#ffffff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="32" y="547" class="rm-name">Frames between</text><text x="32" y="565" class="rm-q">No new fits: drawn from the</text><text x="32" y="580" class="rm-q">fully trained models</text><rect x="268" y="526" width="222" height="70" rx="6" fill="#ffffff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="280" y="547" class="rm-name">Synthetic arcs (two versions)</text><text x="280" y="565" class="rm-q">Q3 on motion with a known,</text><text x="280" y="580" class="rm-q">adjustable bend</text><rect x="516" y="526" width="222" height="70" rx="6" fill="#ffffff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="528" y="547" class="rm-name">Confirmatory test</text><text x="528" y="565" class="rm-q">Q3 on new real clips,</text><text x="528" y="580" class="rm-q">with the rule fixed first</text><line x1="80" y1="468" x2="80" y2="524" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="242" y1="561.0" x2="266" y2="561.0" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><line x1="490" y1="561.0" x2="514" y2="561.0" stroke="#3d3c39" stroke-width="1.3" marker-end="url(#rm-arrow)"/><rect x="20" y="615" width="26" height="14" rx="3" fill="#fff" stroke="#141414" stroke-width="1.3"/><text x="54" y="626" class="rm-q">planned in the proposal</text><rect x="230" y="615" width="26" height="14" rx="3" fill="#fff" stroke="#8f8d86" stroke-width="1.3" stroke-dasharray="5 4"/><text x="264" y="626" class="rm-q">added to answer a question raised by earlier results</text></svg>
   <figcaption><b>Figure 2.</b> The experiments in the order they were run. The main line runs from the synthetic test to the fully trained main experiment; the still photographs, the higher-degree paths and the three steps of Q3 branch off it.</figcaption>
@@ -313,73 +313,29 @@
 <section class="chapter" id="results">
 <h2><span class="num">5</span>Results and analysis</h2>
 
-<h3 id="r1">5.1 After 3,000 training steps, shrinking wins</h3>
+<h3>5.1 Reconstruction efficiency under equal storage</h3>
+<h4>5.1.1 Results at the planned training length</h4>
 <p>The main experiment ran every combination of 4 models, 4 budgets, 4 clips, 2 strides and 3 seeds, plus a 30-frame Jockey clip, with the 3,000 training steps planned in the proposal.</p>
 <figure data-short="PSNR against storage">
   <img src="figures/rd.png" alt="PSNR against storage for the four models, after 3,000 steps (top) and fully trained (bottom)">
-  <figcaption><b>Figure 3.</b> PSNR on the fitted frames against storage, at stride 3 (mean of 3 seeds). After 3,000 steps (top row), M3 and M2 lie above the baseline on every clip. Fully trained (bottom row, Section 5.3), the four lines nearly meet.</figcaption>
+  <figcaption><b>Figure 3.</b> PSNR on the fitted frames against storage, at stride 3 (mean of 3 seeds). After 3,000 steps (top row), M3 and M2 lie above the baseline on every clip. Fully trained (bottom row, Section 5.1.2), the four lines nearly meet.</figcaption>
 </figure>
 <div class="table-wrap" data-short="Gain after 3,000 steps" data-table="test_avg_s3" data-caption="<b>Table 4.</b> Gain over M0 after 3,000 steps (dB), stride 3, averaged over the 4 budgets and 3 seeds."></div>
 <div class="table-wrap" data-short="Pre-registered test, 3,000 steps" data-table="test_fail_short" data-caption="<b>Table 5.</b> The pre-registered test after 3,000 steps: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips."></div>
-<p>Shrinking helps on every clip, by 0.5 to 2.3 dB, and passes the test; M3 helps the most and passes too. The curved path fails. On ShakeNDry, the most curved clip, M1 gains only about 0.1 dB, less than on the two straight boat clips (+0.23 to +0.28 dB). On Jockey most of M1's gain is in the background (at stride 3, +0.15 dB on the horse and +0.66 dB off it). The dog is the only place where M1 gains more on the object than off it, and there the gain is small. By the second rule of the test, then, M1's gain probably does not come from curved motion.</p>
-<details class="more"><summary>Per budget, stride 1, object against background, SSIM and VMAF, the 30-frame clip, costs</summary><div class="body">
+<p>Shrinking helps on every clip, by 0.5 to 2.3 dB, and passes the test; M3 helps the most and passes too. The curved path fails. These results hold at the planned training length; Section 5.1.2 shows how they change with full training.</p>
+<details class="more"><summary>Per budget, stride 1, SSIM and VMAF, the 30-frame clip, costs</summary><div class="body">
 <div class="table-wrap" data-table="test_fail" data-caption="<b>Table A3.</b> The test after 3,000 steps, per budget (3k, 6k, 12k, 24k): gain over M0 in dB; ✓ means more than 0.3 dB and more than the seed spread."></div>
 <div class="table-wrap" data-table="test_avg" data-caption="<b>Table A4.</b> Gain over M0 after 3,000 steps (dB), both strides, averaged over budgets."></div>
-<div class="table-wrap" data-table="test_inout" data-caption="<b>Table A5.</b> Gain over M0 after 3,000 steps, inside the object outline / outside it (dB)."></div>
-<div class="table-wrap" data-table="test_other" data-caption="<b>Table A6.</b> SSIM and VMAF gains over M0 after 3,000 steps. They rank the models in the same order as PSNR (M3, M2, M1, M0), so the PSNR gain shows up in structure as well."></div>
-<div class="table-wrap" data-table="long_clip" data-caption="<b>Table A7.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; Gaussians live longer on a longer clip and their paths bend more."></div>
-<div class="table-wrap" data-table="cost" data-caption="<b>Table A8.</b> Cost at budget 24,000 (10 frames). Storage is equal by design, and every model uses about 150 MB of GPU memory."></div>
+<div class="table-wrap" data-table="test_other" data-caption="<b>Table A5.</b> SSIM and VMAF gains over M0 after 3,000 steps. They rank the models in the same order as PSNR (M3, M2, M1, M0), so the PSNR gain shows up in structure as well."></div>
+<div class="table-wrap" data-table="long_clip" data-caption="<b>Table A6.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; Gaussians live longer on a longer clip and their paths bend more."></div>
+<div class="table-wrap" data-table="cost" data-caption="<b>Table A7.</b> Cost at budget 24,000 (10 frames). Storage is equal by design, and every model uses about 150 MB of GPU memory."></div>
 </div></details>
 
-<h3 id="r2">5.2 The gains do not come from motion</h3>
-<p>If shrinking helped because it handles motion, it should not help when nothing moves. I copied the first frame of each clip 10 times to make still videos, and fitted them with exactly the same settings.</p>
-<figure data-short="Gains on still photos">
-  <img src="figures/still.png" alt="Gains over M0 on still photographs, with the gain of M2 on the moving clip">
-  <figcaption><b>Figure 4.</b> Gain over M0 on still photographs after 3,000 steps (bars show the mean, lines the range over 3 seeds). The diamond marks M2's gain on the same clip in motion. Shrinking gains about as much on a still photo as on the video.</figcaption>
-</figure>
-<p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. The curved path also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. Neither gain comes from motion.</p>
-<p>I also compared the accelerations that M1's Gaussians learned with the motion that optical flow measures at each Gaussian's centre (Table 6).</p>
-<div class="table-wrap" data-short="Learned vs. real acceleration"><table>
-<caption><b>Table 6.</b> Acceleration learned by M1's Gaussians against the real acceleration (seed 0, budget 12,000, stride 3, pixels per frame², median). The last column counts Gaussians whose learned acceleration points the same way as the real one; 50% is chance.</caption>
-<thead><tr><th>Clip and region</th><th class="num">Learned</th><th class="num">Real</th><th class="num">Same direction</th></tr></thead>
-<tbody>
-<tr><td>Jockey, horse</td><td class="num">1.33</td><td class="num">0.83</td><td class="num">63%</td></tr>
-<tr><td>Jockey, background</td><td class="num">1.75</td><td class="num">0.49</td><td class="num">50%</td></tr>
-<tr><td>ShakeNDry, dog</td><td class="num">3.06</td><td class="num">2.56</td><td class="num">42%</td></tr>
-<tr><td>ShakeNDry, background</td><td class="num">0.77</td><td class="num">0.09</td><td class="num">51%</td></tr>
-<tr><td>Bosphorus, background</td><td class="num">1.19</td><td class="num">0.07</td><td class="num">54%</td></tr>
-</tbody></table></div>
-<p>Almost every Gaussian curves. Over its life, its acceleration moves it 12 to 35 pixels off a straight line (median), and fewer than 1% of Gaussians leave it unused. On a nearly still background the learned acceleration is more than 10 times the real one, and its direction matches the real motion about half the time, which is what chance gives. Velocity behaves the same way: on the still dog clip and on Bosphorus, Gaussians move at 1.5 to 2 pixels per frame in directions unrelated to the real motion. Velocity follows the real motion only where that motion is large and even: the Jockey pan, and YachtRide at stride 3.</p>
-<p>My reading is that with few Gaussians, letting each one change over time lets it do the work of several, at different places or sizes in different frames. This helps whether or not anything moves.</p>
-<details class="more"><summary>More diagnostics: still photos in full, velocities, lifetimes, where shrinking helps</summary><div class="body">
-<div class="table-wrap" data-table="still" data-caption="<b>Table A9.</b> Still photographs, 3,000 steps: gain over M0 in dB, mean [lowest, highest] over 3 seeds."></div>
-<div class="table-wrap"><table>
-<caption><b>Table A10.</b> Velocity of M0's Gaussians against the real motion (budget 12,000, pixels per frame, median), stride 1 / stride 3.</caption>
-<thead><tr><th>Clip</th><th class="num">Learned speed</th><th class="num">Real speed</th><th class="num">Direction similarity (1 = same)</th></tr></thead>
-<tbody>
-<tr><td>Jockey</td><td class="num">2.8 / 3.7</td><td class="num">3.7 / 5.2</td><td class="num">0.84 / 0.84</td></tr>
-<tr><td>YachtRide</td><td class="num">1.9 / 2.7</td><td class="num">0.8 / 2.4</td><td class="num">0.47 / 0.78</td></tr>
-<tr><td>Bosphorus</td><td class="num">2.0 / 2.1</td><td class="num">0.5 / 1.6</td><td class="num">−0.01 / 0.21</td></tr>
-<tr><td>ShakeNDry</td><td class="num">1.5 / 1.6</td><td class="num">0.04 / 0.06</td><td class="num">0.50 / 0.30</td></tr>
-</tbody></table></div>
-<div class="table-wrap"><table>
-<caption><b>Table A11.</b> How long Gaussians live (seed 0): the duration σ<sub>t</sub>, and the number of the 10 frames in which a Gaussian is visible (weight above 0.1).</caption>
-<thead><tr><th>Clip, budget</th><th class="num">M0: σ<sub>t</sub> / frames</th><th class="num">M1: σ<sub>t</sub> / frames</th></tr></thead>
-<tbody>
-<tr><td>Jockey, 3,000</td><td class="num">2.67 / 7.7</td><td class="num">3.33 / 8.2</td></tr>
-<tr><td>Jockey, 24,000</td><td class="num">2.19 / 6.8</td><td class="num">2.63 / 7.6</td></tr>
-<tr><td>ShakeNDry, 24,000</td><td class="num">2.61 / 7.4</td><td class="num">3.19 / 8.0</td></tr>
-<tr><td>Bosphorus, 24,000</td><td class="num">2.09 / 6.6</td><td class="num">2.28 / 6.9</td></tr>
-</tbody></table></div>
-<p>Curved Gaussians live 10 to 25% longer, as the proposal guessed. Even M0's Gaussians are visible in about 7 of the 10 frames, though, so a 10-frame clip leaves little room for handing motion from one Gaussian to the next. For every model the worst frame is almost always the first or last one, which has no earlier or later Gaussians to help cover it.</p>
-<p>I also grouped pixels by how much they change from one frame to the next. If shrinking removed blurry trails behind moving things, its gain would sit on the changing pixels. It does not; the gain is spread roughly in proportion to the number of pixels. On Bosphorus, for example, 73% of pixels barely change and they give 66% of the gain.</p>
-</div></details>
-
-<h3 id="r3">5.3 With full training, the advantage disappears</h3>
-<p>A probe with more Gaussians showed two warning signs. Every model was still improving at step 3,000, and M3's lead over M0 kept shrinking during training, for example from +1.40 dB at step 500 to +0.57 dB at step 3,000. That raised the question of whether folding gives a better final picture or only learns faster. I trained Jockey for 30,000 steps: every model needs 18,000 to 24,000 steps before its PSNR settles within 0.1 dB of its final value, and M0 alone gains 2 to 4 dB from the longer training, more than any ability ever added. I re-tuned the learning rates for 30,000 steps and re-ran the main comparison at stride 3 with full training (192 fits).</p>
+<h4>5.1.2 Results after extended training</h4>
+<p>A probe with more Gaussians showed two warning signs. Every model was still improving at step 3,000, and M3's lead over M0 kept shrinking during training, for example from +1.40 dB at step 500 to +0.57 dB at step 3,000. That raised the question of whether folding gives a better final picture or only learns faster. Jockey was then trained for 30,000 steps: every model needs 18,000 to 24,000 steps before its PSNR settles within 0.1 dB of its final value, and M0 alone gains 2 to 4 dB from the longer training, more than any ability ever added. The learning rates were re-tuned for 30,000 steps, and the main comparison was re-run at stride 3 with full training (192 fits).</p>
 <div class="widget" id="w-train">
   <div class="wtitle">Try it: PSNR during training</div>
-  <div class="whelp">The 30,000-step fits of the main comparison, mean of 3 seeds. Drag across the left chart to move the cursor; the right chart shows each model's gain over M0 at that point, with the seed range. Diamonds are the separate 3,000-step fits of Section 5.1.</div>
+  <div class="whelp">The 30,000-step fits of the main comparison, mean of 3 seeds. Drag across the left chart to move the cursor; the right chart shows each model's gain over M0 at that point, with the seed range. Diamonds are the separate 3,000-step fits of Section 5.1.1.</div>
   <div class="controls">
     <div class="control"><span class="clabel">clip</span><select id="train-seq"><option>Jockey</option><option>ShakeNDry</option><option>YachtRide</option><option>Bosphorus</option></select></div>
     <div class="control"><span class="clabel">budget</span><select id="train-budget"><option value="3000">3,000</option><option value="6000" selected>6,000</option><option value="12000">12,000</option><option value="24000">24,000</option></select></div>
@@ -393,18 +349,18 @@
 </div>
 <figure data-short="PSNR during training">
   <img src="figures/training.png" alt="PSNR against training step and training time, and the gain over M0 by step">
-  <figcaption><b>Figure 5.</b> Left and middle: Jockey at budget 6,000, PSNR by training step and by training time (mean of 3 seeds). Right: gain over M0 at each step, averaged over all clips, budgets and seeds. Each ability starts ahead, and by about 10,000 steps all three are inside ±0.3 dB (grey band). A 30,000-step run lowers its learning rate more slowly, so its PSNR at step 3,000 differs from that of a separate 3,000-step run (diamonds).</figcaption>
+  <figcaption><b>Figure 4.</b> Left and middle: Jockey at budget 6,000, PSNR by training step and by training time (mean of 3 seeds). Right: gain over M0 at each step, averaged over all clips, budgets and seeds. Each ability starts ahead, and by about 10,000 steps all three are inside ±0.3 dB (grey band). A 30,000-step run lowers its learning rate more slowly, so its PSNR at step 3,000 differs from that of a separate 3,000-step run (diamonds).</figcaption>
 </figure>
 <figure data-short="Gain against storage">
   <img src="figures/gain_budget.png" alt="Gain over M0 against storage: 3,000 steps against fully trained">
-  <figcaption><b>Figure 6.</b> Gain over M0 against storage. Dashed lines with hollow markers are the 3,000-step fits; solid lines are the fully trained ones, with the seed range. The grey band is ±0.3 dB, the margin of the pre-registered test. After full training most gains fall inside the band, and some fall below zero.</figcaption>
+  <figcaption><b>Figure 5.</b> Gain over M0 against storage. Dashed lines with hollow markers are the 3,000-step fits; solid lines are the fully trained ones, with the seed range. The grey band is ±0.3 dB, the margin of the pre-registered test. After full training most gains fall inside the band, and some fall below zero.</figcaption>
 </figure>
-<div class="table-wrap" data-short="Gain when fully trained" data-table="long_avg_trained" data-shade data-caption="<b>Table 7.</b> Gain over M0 when fully trained (dB), averaged over the 4 budgets and 3 seeds. Grey: within ±0.3 dB. Compare with Table 4."></div>
-<div class="table-wrap" data-short="Pre-registered test, fully trained" data-table="long_fail_short" data-caption="<b>Table 8.</b> The pre-registered test, fully trained: all three abilities fail."></div>
-<p>After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below. The seeds agree closely (usually within 0.1 to 0.2 dB), so the small differences that remain are real, but they do not follow the motion. M1 leads only on Jockey, and mostly in the background (+0.33 to +0.69 dB, against +0.21 to +0.50 dB on the horse). M2 leads only on Bosphorus, the straightest clip, again in the background. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.</p>
+<div class="table-wrap" data-short="Gain when fully trained" data-table="long_avg_trained" data-shade data-caption="<b>Table 6.</b> Gain over M0 when fully trained (dB), averaged over the 4 budgets and 3 seeds. Grey: within ±0.3 dB. Compare with Table 4."></div>
+<div class="table-wrap" data-short="Pre-registered test, fully trained" data-table="long_fail_short" data-caption="<b>Table 7.</b> The pre-registered test, fully trained: all three abilities fail."></div>
+<p>After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below. The seeds agree closely (usually within 0.1 to 0.2 dB), so the small differences that remain are real. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.</p>
 <details class="more"><summary>The checks that led to full training</summary><div class="body">
 <div class="table-wrap"><table>
-<caption><b>Table A12.</b> More Gaussians, 3,000 steps, Jockey stride 3, seed 0. M3's lead over M0 at step 500 and at step 3,000.</caption>
+<caption><b>Table A8.</b> More Gaussians, 3,000 steps, Jockey stride 3, seed 0. M3's lead over M0 at step 500 and at step 3,000.</caption>
 <thead><tr><th class="num">Gaussians (M0)</th><th class="num">M0 PSNR</th><th class="num">M3 PSNR</th><th class="num">M3 − M0, step 500</th><th class="num">M3 − M0, step 3,000</th></tr></thead>
 <tbody>
 <tr><td class="num">4,000</td><td class="num">27.61</td><td class="num">28.18</td><td class="num">+1.40</td><td class="num">+0.57</td></tr>
@@ -413,9 +369,9 @@
 <tr><td class="num">32,000</td><td class="num">35.38</td><td class="num">35.93</td><td class="num">+1.68</td><td class="num">+0.55</td></tr>
 <tr><td class="num">64,000</td><td class="num">38.89</td><td class="num">39.67</td><td class="num">+2.17</td><td class="num">+0.78</td></tr>
 </tbody></table></div>
-<p>I then trained Jockey (stride 3, seed 0) for 10,000 steps. I had decided beforehand that if less than half of the lead remained, the gain would count as faster learning. None of the abilities kept half.</p>
+<p>Jockey (stride 3, seed 0) was then trained for 10,000 steps. It had been decided beforehand that if less than half of the lead remained, the gain would count as faster learning. None of the abilities kept half.</p>
 <div class="table-wrap"><table>
-<caption><b>Table A13.</b> Gain over M0 after 3,000 and after 10,000 steps (dB).</caption>
+<caption><b>Table A9.</b> Gain over M0 after 3,000 and after 10,000 steps (dB).</caption>
 <thead><tr><th class="num">Budget</th><th>Steps</th><th class="num">M0 PSNR</th><th class="num">M1</th><th class="num">M2</th><th class="num">M3</th></tr></thead>
 <tbody>
 <tr><td class="num">6,000</td><td>3,000</td><td class="num">22.07</td><td class="num">+1.15</td><td class="num">+0.80</td><td class="num">+1.44</td></tr>
@@ -427,7 +383,7 @@
 </tbody></table></div>
 <p>At 30,000 steps, every model had been within 0.1 dB of its final value since step 18,000 to 24,000, and the last 5,000 steps added only 0.03 to 0.08 dB. On that one test clip M1 kept about +0.4 dB, but this did not repeat on the validation clip.</p>
 <div class="table-wrap"><table>
-<caption><b>Table A14.</b> The velocity learning rate re-tuned for 30,000 steps on the validation clip (Jockey from frame 60, stride 3, seed 0). PSNR for the rates 0.05 / 0.1 / 0.2.</caption>
+<caption><b>Table A10.</b> The velocity learning rate re-tuned for 30,000 steps on the validation clip (Jockey from frame 60, stride 3, seed 0). PSNR for the rates 0.05 / 0.1 / 0.2.</caption>
 <thead><tr><th>Model</th><th class="num">Budget 6,000</th><th class="num">Budget 24,000</th><th class="num">Chosen rate</th><th class="num">Gap to M0, 6k / 24k</th></tr></thead>
 <tbody>
 <tr><td>M0</td><td class="num">25.79 / 25.74 / 25.82</td><td class="num">29.13 / 29.15 / 29.32</td><td class="num">0.2</td><td class="num">—</td></tr>
@@ -435,33 +391,91 @@
 <tr><td>M2</td><td class="num">25.60 / 25.74 / 25.55</td><td class="num">28.40 / 28.67 / 28.55</td><td class="num">0.1</td><td class="num">−0.08 / −0.65</td></tr>
 <tr><td>M3</td><td class="num">25.67 / 25.47 / 25.60</td><td class="num">28.16 / 28.26 / 28.36</td><td class="num">0.2</td><td class="num">−0.22 / −0.96</td></tr>
 </tbody></table></div>
-<p>The learning rate moves the result by about 0.1 dB with no pattern, far less than the gaps between models. I checked these rates on another clip (ShakeNDry from frame 100, budget 6,000): the two rates I tried per model differ by only 0.02 to 0.05 dB, so the rates chosen on Jockey carry over.</p>
+<p>The learning rate moves the result by about 0.1 dB with no pattern, far less than the gaps between models. These rates were checked on another clip (ShakeNDry from frame 100, budget 6,000): the two rates tried per model differ by only 0.02 to 0.05 dB, so the rates chosen on Jockey carry over.</p>
 </div></details>
-<details class="more"><summary>Every cell, per-budget test, object against background</summary><div class="body">
-<div class="table-wrap" data-table="long_cells" data-caption="<b>Table A15.</b> Gain over M0 (dB). Fully trained: mean [lowest, highest] over 3 seeds; next to it, the mean after 3,000 steps."></div>
-<div class="table-wrap" data-table="long_fail" data-caption="<b>Table A16.</b> The test when fully trained, per budget (3k, 6k, 12k, 24k), with the seed spread of these fits."></div>
-<div class="table-wrap" data-table="long_avg" data-caption="<b>Table A17.</b> Gain over M0, averaged over budgets: fully trained / after 3,000 steps (dB)."></div>
-<div class="table-wrap" data-table="long_inout" data-caption="<b>Table A18.</b> Fully trained gain over M0, inside the object outline / outside it (dB)."></div>
+<details class="more"><summary>Every cell and the per-budget test</summary><div class="body">
+<div class="table-wrap" data-table="long_cells" data-caption="<b>Table A11.</b> Gain over M0 (dB). Fully trained: mean [lowest, highest] over 3 seeds; next to it, the mean after 3,000 steps."></div>
+<div class="table-wrap" data-table="long_fail" data-caption="<b>Table A12.</b> The test when fully trained, per budget (3k, 6k, 12k, 24k), with the seed spread of these fits."></div>
+<div class="table-wrap" data-table="long_avg" data-caption="<b>Table A13.</b> Gain over M0, averaged over budgets: fully trained / after 3,000 steps (dB)."></div>
 </div></details>
 
-<h3 id="r4">5.4 A more flexible path is worse</h3>
-<p>Each degree above 2 costs 2 more numbers per Gaussian, so at budget 24,000 a degree-7 model (D7) has only 1,000 Gaussians against M0's 2,000. I fitted D3 and D7 on Jockey and ShakeNDry at stride 3, budgets 6,000 and 24,000, with 3 seeds and full training. For the terms above the square, time is measured in units of half a clip (4.5 frames), so that one training step cannot throw a Gaussian thousands of pixels away.</p>
+<h4>5.1.3 Higher-degree trajectories</h4>
+<p>Each degree above 2 costs 2 more numbers per Gaussian, so at budget 24,000 a degree-7 model (D7) has only 1,000 Gaussians against M0's 2,000. D3 and D7 were fitted on Jockey and ShakeNDry at stride 3, budgets 6,000 and 24,000, with 3 seeds and full training. For the terms above the square, time is measured in units of half a clip (4.5 frames), so that one training step cannot throw a Gaussian thousands of pixels away.</p>
 <figure class="w-90" data-short="Gain against path degree">
   <img src="figures/degree.png" alt="Gain over M0 against the degree of the path">
-  <figcaption><b>Figure 7.</b> Gain over M0 against the degree of the path, with the seed range. The higher the degree, the worse the result, and the drop is larger on the frames between (right), which no model was fitted to.</figcaption>
+  <figcaption><b>Figure 6.</b> Gain over M0 against the degree of the path, with the seed range. The higher the degree, the worse the result, and the drop is larger on the frames between (right), which no model was fitted to.</figcaption>
 </figure>
-<p>D3 is worse than M1 in 7 of 8 cells. D7 is worse everywhere: by 1.1 to 2.3 dB on the fitted frames and by up to 4 dB on the frames between. On Jockey at budget 24,000, D7 loses about 5 dB from the fitted frames to the frames between, while M0 loses 3.4 dB and M1 2.9 dB. A degree-7 path swings about between the frames it was fitted to; in the player of Section 5.5, pick D7 and turn on "paths" to see it.</p>
+<p>D3 is worse than M1 in 7 of 8 cells. D7 is worse everywhere, by 1.1 to 2.3 dB on the fitted frames. Its result on the frames between is discussed in Section 5.3.2.</p>
 <details class="more"><summary>Full table and caveats</summary><div class="body">
-<div class="table-wrap" data-table="poly" data-caption="<b>Table A19.</b> Gain over M0 (dB) by degree, mean [lowest, highest] over 3 seeds."></div>
+<div class="table-wrap" data-table="poly" data-caption="<b>Table A14.</b> Gain over M0 (dB) by degree, mean [lowest, highest] over 3 seeds."></div>
 <ul>
-<li>Two causes are mixed here: fewer Gaussians, and paths that swing. Comparing at equal storage includes both on purpose. The large drop on the frames between shows that the swinging is real.</li>
-<li>I did not tune the learning rate of the higher terms; they reuse M1's acceleration rate. Tuning might help D7 a little, but learning rates changed results by about 0.1 dB elsewhere, and D7 is 1 to 2 dB behind.</li>
+<li>Two causes are mixed here: fewer Gaussians, and paths that swing. Comparing at equal storage includes both on purpose.</li>
+<li>The learning rate of the higher terms was not tuned; they reuse M1's acceleration rate. Tuning might help D7 a little, but learning rates changed results by about 0.1 dB elsewhere, and D7 is 1 to 2 dB behind.</li>
 <li>This is a smaller version of the planned extension: 2 clips and 2 budgets of 10 frames, instead of the 30-frame clip.</li>
 </ul>
 </div></details>
 
-<h3 id="r5">5.5 The frames between (Q3)</h3>
-<p>At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. Its Gaussians can still be drawn at any time, so I drew those frames from the 192 fully trained models and compared them with the real ones. You can do the same below.</p>
+<h3>5.2 Attribution of reconstruction gains</h3>
+<h4>5.2.1 Dependence on motion and spatial region</h4>
+<p>After 3,000 steps (Section 5.1.1), on ShakeNDry, the most curved clip, M1 gains only about 0.1 dB, less than on the two straight boat clips (+0.23 to +0.28 dB). On Jockey most of M1's gain is in the background (at stride 3, +0.15 dB on the horse and +0.66 dB off it). The dog is the only place where M1 gains more on the object than off it, and there the gain is small. By the second rule of the test, then, M1's gain probably does not come from curved motion.</p>
+<p>Fully trained (Section 5.1.2), the small differences that remain do not follow the motion. M1 leads only on Jockey, and mostly in the background (+0.33 to +0.69 dB, against +0.21 to +0.50 dB on the horse). M2 leads only on Bosphorus, the straightest clip, again in the background.</p>
+<details class="more"><summary>Object against background</summary><div class="body">
+<div class="table-wrap" data-table="test_inout" data-caption="<b>Table A15.</b> Gain over M0 after 3,000 steps, inside the object outline / outside it (dB)."></div>
+<div class="table-wrap" data-table="long_inout" data-caption="<b>Table A16.</b> Fully trained gain over M0, inside the object outline / outside it (dB)."></div>
+</div></details>
+
+<h4>5.2.2 Static-image control</h4>
+<p>If shrinking helped because it handles motion, it should not help when nothing moves. The first frame of each clip was copied 10 times to make still videos, which were fitted with exactly the same settings.</p>
+<figure data-short="Gains on still photos">
+  <img src="figures/still.png" alt="Gains over M0 on still photographs, with the gain of M2 on the moving clip">
+  <figcaption><b>Figure 7.</b> Gain over M0 on still photographs after 3,000 steps (bars show the mean, lines the range over 3 seeds). The diamond marks M2's gain on the same clip in motion. Shrinking gains about as much on a still photo as on the video.</figcaption>
+</figure>
+<p>On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. The curved path also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. Neither gain comes from motion.</p>
+<details class="more"><summary>Still photographs in full</summary><div class="body">
+<div class="table-wrap" data-table="still" data-caption="<b>Table A17.</b> Still photographs, 3,000 steps: gain over M0 in dB, mean [lowest, highest] over 3 seeds."></div>
+</div></details>
+
+<h4>5.2.3 Learned Gaussian motion and interpretation</h4>
+<p>The accelerations that M1's Gaussians learned were also compared with the motion that optical flow measures at each Gaussian's centre (Table 8).</p>
+<div class="table-wrap" data-short="Learned vs. real acceleration"><table>
+<caption><b>Table 8.</b> Acceleration learned by M1's Gaussians against the real acceleration (seed 0, budget 12,000, stride 3, pixels per frame², median). The last column counts Gaussians whose learned acceleration points the same way as the real one; 50% is chance.</caption>
+<thead><tr><th>Clip and region</th><th class="num">Learned</th><th class="num">Real</th><th class="num">Same direction</th></tr></thead>
+<tbody>
+<tr><td>Jockey, horse</td><td class="num">1.33</td><td class="num">0.83</td><td class="num">63%</td></tr>
+<tr><td>Jockey, background</td><td class="num">1.75</td><td class="num">0.49</td><td class="num">50%</td></tr>
+<tr><td>ShakeNDry, dog</td><td class="num">3.06</td><td class="num">2.56</td><td class="num">42%</td></tr>
+<tr><td>ShakeNDry, background</td><td class="num">0.77</td><td class="num">0.09</td><td class="num">51%</td></tr>
+<tr><td>Bosphorus, background</td><td class="num">1.19</td><td class="num">0.07</td><td class="num">54%</td></tr>
+</tbody></table></div>
+<p>Almost every Gaussian curves. Over its life, its acceleration moves it 12 to 35 pixels off a straight line (median), and fewer than 1% of Gaussians leave it unused. On a nearly still background the learned acceleration is more than 10 times the real one, and its direction matches the real motion about half the time, which is what chance gives. Velocity behaves the same way: on the still dog clip and on Bosphorus, Gaussians move at 1.5 to 2 pixels per frame in directions unrelated to the real motion. Velocity follows the real motion only where that motion is large and even: the Jockey pan, and YachtRide at stride 3.</p>
+<p>The reading here is that with few Gaussians, letting each one change over time lets it do the work of several, at different places or sizes in different frames. This helps whether or not anything moves. Section 5.1.2 shows the same pattern over training: each ability starts ahead and its lead fades, which by the rule fixed before the 10,000-step run counts as faster learning.</p>
+<details class="more"><summary>More diagnostics: velocities, lifetimes, where shrinking helps</summary><div class="body">
+<div class="table-wrap"><table>
+<caption><b>Table A18.</b> Velocity of M0's Gaussians against the real motion (budget 12,000, pixels per frame, median), stride 1 / stride 3.</caption>
+<thead><tr><th>Clip</th><th class="num">Learned speed</th><th class="num">Real speed</th><th class="num">Direction similarity (1 = same)</th></tr></thead>
+<tbody>
+<tr><td>Jockey</td><td class="num">2.8 / 3.7</td><td class="num">3.7 / 5.2</td><td class="num">0.84 / 0.84</td></tr>
+<tr><td>YachtRide</td><td class="num">1.9 / 2.7</td><td class="num">0.8 / 2.4</td><td class="num">0.47 / 0.78</td></tr>
+<tr><td>Bosphorus</td><td class="num">2.0 / 2.1</td><td class="num">0.5 / 1.6</td><td class="num">−0.01 / 0.21</td></tr>
+<tr><td>ShakeNDry</td><td class="num">1.5 / 1.6</td><td class="num">0.04 / 0.06</td><td class="num">0.50 / 0.30</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<caption><b>Table A19.</b> How long Gaussians live (seed 0): the duration σ<sub>t</sub>, and the number of the 10 frames in which a Gaussian is visible (weight above 0.1).</caption>
+<thead><tr><th>Clip, budget</th><th class="num">M0: σ<sub>t</sub> / frames</th><th class="num">M1: σ<sub>t</sub> / frames</th></tr></thead>
+<tbody>
+<tr><td>Jockey, 3,000</td><td class="num">2.67 / 7.7</td><td class="num">3.33 / 8.2</td></tr>
+<tr><td>Jockey, 24,000</td><td class="num">2.19 / 6.8</td><td class="num">2.63 / 7.6</td></tr>
+<tr><td>ShakeNDry, 24,000</td><td class="num">2.61 / 7.4</td><td class="num">3.19 / 8.0</td></tr>
+<tr><td>Bosphorus, 24,000</td><td class="num">2.09 / 6.6</td><td class="num">2.28 / 6.9</td></tr>
+</tbody></table></div>
+<p>Curved Gaussians live 10 to 25% longer, as the proposal guessed. Even M0's Gaussians are visible in about 7 of the 10 frames, though, so a 10-frame clip leaves little room for handing motion from one Gaussian to the next. For every model the worst frame is almost always the first or last one, which has no earlier or later Gaussians to help cover it.</p>
+<p>Pixels were also grouped by how much they change from one frame to the next. If shrinking removed blurry trails behind moving things, its gain would sit on the changing pixels. It does not; the gain is spread roughly in proportion to the number of pixels. On Bosphorus, for example, 73% of pixels barely change and they give 66% of the gain.</p>
+</div></details>
+
+<h3>5.3 Temporal interpolation</h3>
+<p>As noted in Section 3.5, this analysis was added after the main results.</p>
+<h4>5.3.1 Exploratory findings on real videos</h4>
+<p>At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. Its Gaussians can still be drawn at any time, so those frames were drawn from the 192 fully trained models and compared with the real ones. You can do the same below.</p>
 <div class="widget" id="w-player">
   <div class="wtitle">Try it: the fitted models, drawn in your browser</div>
   <div class="whelp">Each image is drawn live from the stored Gaussians of a fully trained model (seed 0). Drag the time slider: <span class="badge fit">fitted</span> times are frames the model was fitted to, and <span class="badge between">between</span> times were never seen. Click or drag on an image to move the zoom box.</div>
@@ -490,22 +504,20 @@
   </div>
   <div class="status" id="pl-status">Loading…</div>
 </div>
-
-<h4>More Gaussians memorise the fitted frames</h4>
 <figure data-short="Frames between vs. fitted frames">
   <img src="figures/unseen.png" alt="M0 frames between against fitted frames; M1 on the moving object in the frames between">
   <figcaption><b>Figure 8.</b> Left: how much worse M0 draws the frames between than the fitted frames. On the fast clips (Jockey's pan and the shaking dog), the gap grows with more Gaussians, up to 3.4 dB. Right: M1 against M0 on the moving object in the frames between, with the seed range.</figcaption>
 </figure>
-<p>On the two slow boat clips, the frames between are as good as the fitted ones. On the fast clips, extra Gaussians fit the fitted frames more closely without learning the motion. On Jockey, M0's frames between are worse at budget 24,000 (25.2 dB) than at 12,000 (26.1 dB). On the dog, the frames between gain only 0.5 dB from budget 3,000 to 24,000 (24.1 to 24.6 dB), while the fitted frames gain 3 dB.</p>
-<p>On the shaking dog, the curved models draw the frames between better: M1 and M3 are 0.2 to 0.5 dB ahead of M0, while on the fitted frames they are level. All 3 seeds are positive at three of the four budgets. M2, which does not curve, shows no such gain, and on the two straight boat clips the curved path makes the frames between worse. This was the first result that matched my starting expectation. I found it after looking at the data, though; it covers a small region, and at one budget the seeds disagree (−0.44 to +1.46 dB). The next three checks test it.</p>
+<p><b>More Gaussians memorise the fitted frames.</b> On the two slow boat clips, the frames between are as good as the fitted ones. On the fast clips, extra Gaussians fit the fitted frames more closely without learning the motion. On Jockey, M0's frames between are worse at budget 24,000 (25.2 dB) than at 12,000 (26.1 dB). On the dog, the frames between gain only 0.5 dB from budget 3,000 to 24,000 (24.1 to 24.6 dB), while the fitted frames gain 3 dB.</p>
+<p>On the shaking dog, the curved models draw the frames between better: M1 and M3 are 0.2 to 0.5 dB ahead of M0, while on the fitted frames they are level. All 3 seeds are positive at three of the four budgets. M2, which does not curve, shows no such gain, and on the two straight boat clips the curved path makes the frames between worse. This was the first result that matched the starting expectation. It was found after looking at the data, though; it covers a small region, and at one budget the seeds disagree (−0.44 to +1.46 dB). The next three checks test it.</p>
 <details class="more"><summary>Full tables</summary><div class="body">
 <div class="table-wrap" data-table="unseen_m0" data-caption="<b>Table A20.</b> M0 fully trained: PSNR on fitted frames and frames between, whole frame and object (dB, mean of 3 seeds)."></div>
 <div class="table-wrap" data-table="unseen_gain" data-caption="<b>Table A21.</b> Gain over M0 over the whole frame: fitted frames → frames between (dB, mean over budgets)."></div>
 <div class="table-wrap" data-table="unseen_obj" data-caption="<b>Table A22.</b> Gain over M0 on the moving object in the frames between (dB), mean [lowest, highest] over 3 seeds. Last column: M1 on the object in the fitted frames, for comparison."></div>
 </div></details>
 
-<h4>Do the dog's Gaussians follow the dog?</h4>
-<p>I followed points on the dog with optical flow through every frame, including the ones the models never saw, and compared that path with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with σ<sub>t</sub> ≥ 0.5). First I checked the method on the synthetic arc below, whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
+<h4>5.3.2 Trajectory diagnostics and interpolation stability</h4>
+<p>Points on the dog were followed with optical flow through every frame, including the ones the models never saw, and that path was compared with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with σ<sub>t</sub> ≥ 0.5). The method was first checked on the synthetic arc below, whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
 <div class="table-wrap" data-short="Bending direction on the dog"><table>
 <caption><b>Table 9.</b> M1's Gaussians on ShakeNDry (mean of 3 seeds): the share whose acceleration bends the same way as the real path. 50% is chance.</caption>
 <thead><tr><th class="num">Budget</th><th class="num">On the dog</th><th class="num">On the background</th></tr></thead>
@@ -527,9 +539,10 @@
 <tr><td class="num">24,000</td><td class="num">6.58 / 0.09</td><td class="num">7.00 / 0.10</td></tr>
 </tbody></table></div>
 </div></details>
+<p>The higher-degree paths of Section 5.1.3 are worse on the frames between, by up to 4 dB (Figure 6, right). On Jockey at budget 24,000, D7 loses about 5 dB from the fitted frames to the frames between, while M0 loses 3.4 dB and M1 2.9 dB. A degree-7 path swings about between the frames it was fitted to; in the player of Section 5.3.1, pick D7 and turn on "paths" to see it. The large drop on the frames between shows that the swinging is real.</p>
 
-<h4>A ball on an arc: the more the path bends, the more the curve helps</h4>
-<p>For a clean test, I made synthetic clips of a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips. I fitted M0 and M1 (budgets 6,000 and 24,000, 3 seeds, full training). Before running, I wrote down four predictions: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain bigger than the seed spread; and M1's Gaussians on the ball bending the right way well over half the time.</p>
+<h4>5.3.3 Controlled synthetic arcs</h4>
+<p>For a clean test, synthetic clips were made of a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips. M0 and M1 were fitted (budgets 6,000 and 24,000, 3 seeds, full training). Before running, four predictions were written down: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain bigger than the seed spread; and M1's Gaussians on the ball bending the right way well over half the time.</p>
 <div class="widget" id="w-arc">
   <div class="wtitle">Try it: bend the path</div>
   <div class="whelp">Choose how far the path turns. The third image is the true clip, computed exactly at any time. Thin lines show the paths of the Gaussians on the ball; the dashed line is the true path. The PSNR on the ball is computed live in your browser.</div>
@@ -564,8 +577,8 @@
 <p>All four predictions hold. On the straight line, M1 is slightly behind (it has 14% fewer Gaussians), and the seed ranges cross zero. The gain grows with the bend at both budgets. At a full turn even the worst seed gains 7.8 or 8.9 dB, far beyond the spread of about ±2 dB on the straight line. M1's Gaussians on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (at 90°, 1.50 to 1.54 against 1.57 pixels per frame²).</p>
 <p>On the fitted frames the gain stays near 1 dB whatever the bend, because the straight model passes the arc from one short Gaussian to the next and still fits every fitted frame. The curved path works through motion, but only between the fitted frames, which compression never looks at.</p>
 <details class="more"><summary>The first version of this test failed by design</summary><div class="body">
-<p>In the first version, the ball moved 30 pixels between fitted frames and its stripes were 9 pixels apart. Neither model could draw the frames between (about 10 dB on the ball, against 29 dB on the fitted frames). The ball was roughly in place but its colours were scrambled, and its Gaussians were 14 to 20 pixels off the path. The stripes moved more than half a period per step, which made the direction of motion ambiguous, so I discarded those 60 fits.</p>
-<p>The second version moves the ball 9 pixels between fitted frames, makes it smaller (radius 8) and widens the stripes (period 30). I added a precondition before the runs: on the straight line, M0's frames between must come within 3 dB of its fitted frames. A pilot met it easily (0.03 dB apart, with Gaussian paths within 0.02 pixels of the truth), while a full turn cost M0 7 to 12 dB on the frames between.</p>
+<p>In the first version, the ball moved 30 pixels between fitted frames and its stripes were 9 pixels apart. Neither model could draw the frames between (about 10 dB on the ball, against 29 dB on the fitted frames). The ball was roughly in place but its colours were scrambled, and its Gaussians were 14 to 20 pixels off the path. The stripes moved more than half a period per step, which made the direction of motion ambiguous, so those 60 fits were discarded.</p>
+<p>The second version moves the ball 9 pixels between fitted frames, makes it smaller (radius 8) and widens the stripes (period 30). A precondition was added before the runs: on the straight line, M0's frames between must come within 3 dB of its fitted frames. A pilot met it easily (0.03 dB apart, with Gaussian paths within 0.02 pixels of the truth), while a full turn cost M0 7 to 12 dB on the frames between.</p>
 <div class="table-wrap" data-table="arc" data-caption="<b>Table A24.</b> The ball, second version: M0's PSNR, then M1 − M0 as mean [lowest, highest] over 3 seeds (dB)."></div>
 <div class="table-wrap"><table>
 <caption><b>Table A25.</b> Paths of the Gaussians on the ball (mean of 3 seeds): distance from the true path in pixels, and for M1 the share that bends the right way. Only 3 to 25 Gaussians per model sit on the ball, so these numbers are rough.</caption>
@@ -579,10 +592,10 @@
 </tbody></table></div>
 </div></details>
 
-<h4>A confirmatory test on new real clips</h4>
-<p>Because the dog result was found after looking at the data, I fixed a rule before running anything else and tested it on three real clips I had not used: ShakeNDry from frame 30, where the dog is still shaking, and Jockey from frames 120 and 200, where the horse is galloping. I fitted M0 and M1 at strides 3 and 5 and budgets 6,000 and 24,000, with 3 seeds and full training.</p>
+<h4>5.3.4 Confirmation on new real clips</h4>
+<p>Because the dog result was found after looking at the data, a rule was fixed before running anything else and tested on three real clips not used before: ShakeNDry from frame 30, where the dog is still shaking, and Jockey from frames 120 and 200, where the horse is galloping. M0 and M1 were fitted at strides 3 and 5 and budgets 6,000 and 24,000, with 3 seeds and full training.</p>
 <div class="callout criteria"><span class="label">The rule, fixed before the runs</span>
-<p>Only the moving object in the frames between is scored. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. I also predicted that the gain would be larger at stride 5 than at stride 3.</p>
+<p>Only the moving object in the frames between is scored. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. It was also predicted that the gain would be larger at stride 5 than at stride 3.</p>
 </div>
 <div class="table-wrap" data-short="Confirmatory test" data-table="confirm_short" data-caption="<b>Table 11.</b> The confirmatory test: M1 − M0 on the moving object in the frames between (dB, mean of 3 seeds). ✓ means all 3 seeds are above zero. <b>9 of 12 cells pass.</b>"></div>
 <figure class="w-90" data-short="Confirmatory test with seed ranges">
@@ -590,7 +603,7 @@
   <figcaption><b>Figure 10.</b> The same 12 cells with their seed ranges (circles: the moving object). The squares show the whole frame, which is not part of the test.</figcaption>
 </figure>
 <p>Nine of the 12 cells pass, exactly on the line. On the moving object, M1 draws the frames between about 0.5 dB better (the cells range from −0.1 to +0.9 dB), and 11 of the 12 cell means are positive. If the curved path had no effect, a cell would pass by luck one time in eight, so 9 passes by luck is very unlikely.</p>
-<p>The whole frame does not get better (−1.04 to +0.48 dB): M1 draws the horse and the dog a little better between frames and the moving background a little worse. Under the proposal's rule this makes the gain local. The fitted frames show no gain either, as in Section 5.3. The stride prediction failed (+0.49 dB at stride 5 against +0.47 dB at stride 3); at stride 5 the motion may be too large for either model to follow.</p>
+<p>The whole frame does not get better (−1.04 to +0.48 dB): M1 draws the horse and the dog a little better between frames and the moving background a little worse. Under the proposal's rule this makes the gain local. The fitted frames show no gain either, as in Section 5.1.2. The stride prediction failed (+0.49 dB at stride 5 against +0.47 dB at stride 3); at stride 5 the motion may be too large for either model to follow.</p>
 <details class="more"><summary>Seed ranges and the other scores</summary><div class="body">
 <div class="table-wrap" data-table="confirm" data-caption="<b>Table A26.</b> The confirmatory test with seed ranges: mean [lowest, highest] over 3 seeds (dB)."></div>
 <div class="table-wrap" data-table="confirm_other" data-caption="<b>Table A27.</b> M1 − M0 on scores outside the rule."></div>
@@ -612,16 +625,16 @@
 <thead><tr><th>Finding</th><th>How sure</th><th>Section</th></tr></thead>
 <tbody>
 <tr class="group"><td colspan="3">Compression (Q1, Q2)</td></tr>
-<tr><td>After 3,000 steps, M2 and M3 beat M0 by 0.5 to 2.3 dB, and the curved path fails the test.</td><td>Reliable: 432 fits, 3 seeds</td><td>5.1</td></tr>
-<tr><td>Those gains do not come from motion: they appear on still photos, and the learned accelerations do not follow the real motion.</td><td>Reliable: 4 photos, 3 seeds</td><td>5.2</td></tr>
-<tr><td>3,000 steps is far from fully trained, and the early gains are faster learning.</td><td>Fairly reliable</td><td>5.3</td></tr>
-<tr><td><b>Fully trained, no ability has a steady gain, and all three fail the test.</b></td><td>Reliable: 192 fits, seeds agree</td><td>5.3</td></tr>
-<tr><td>The few remaining leads (M1 on Jockey, M2 on Bosphorus) are in the background.</td><td>Reliable: all 3 seeds agree</td><td>5.3</td></tr>
-<tr><td>A higher-degree path is worse: degree 2 is best, 3 a little worse, 7 much worse.</td><td>Fairly reliable; higher terms not tuned</td><td>5.4</td></tr>
+<tr><td>After 3,000 steps, M2 and M3 beat M0 by 0.5 to 2.3 dB, and the curved path fails the test.</td><td>Reliable: 432 fits, 3 seeds</td><td>5.1.1</td></tr>
+<tr><td>Those gains do not come from motion: they appear on still photos, and the learned accelerations do not follow the real motion.</td><td>Reliable: 4 photos, 3 seeds</td><td>5.2.2, 5.2.3</td></tr>
+<tr><td>3,000 steps is far from fully trained, and the early gains are faster learning.</td><td>Fairly reliable</td><td>5.1.2</td></tr>
+<tr><td><b>Fully trained, no ability has a steady gain, and all three fail the test.</b></td><td>Reliable: 192 fits, seeds agree</td><td>5.1.2</td></tr>
+<tr><td>The few remaining leads (M1 on Jockey, M2 on Bosphorus) are in the background.</td><td>Reliable: all 3 seeds agree</td><td>5.2.1</td></tr>
+<tr><td>A higher-degree path is worse: degree 2 is best, 3 a little worse, 7 much worse.</td><td>Fairly reliable; higher terms not tuned</td><td>5.1.3</td></tr>
 <tr class="group"><td colspan="3">Frames between (Q3)</td></tr>
-<tr><td>When the motion bends and can be learned, the curved path draws the frames between much better, and more so the more it bends (0 to +9 dB).</td><td>Reliable: 4 predictions written first</td><td>5.5</td></tr>
-<tr><td>On new real clips, the curved path draws the moving object about 0.5 dB better between frames, but not the whole frame.</td><td>Fairly reliable: rule fixed first, 9 of 12</td><td>5.5</td></tr>
-<tr><td>On the dog, the Gaussians do not visibly bend with the real motion.</td><td>Fairly reliable; flow has 3 to 6 px of error</td><td>5.5</td></tr>
+<tr><td>When the motion bends and can be learned, the curved path draws the frames between much better, and more so the more it bends (0 to +9 dB).</td><td>Reliable: 4 predictions written first</td><td>5.3.3</td></tr>
+<tr><td>On new real clips, the curved path draws the moving object about 0.5 dB better between frames, but not the whole frame.</td><td>Fairly reliable: rule fixed first, 9 of 12</td><td>5.3.4</td></tr>
+<tr><td>On the dog, the Gaussians do not visibly bend with the real motion.</td><td>Fairly reliable; flow has 3 to 6 px of error</td><td>5.3.2</td></tr>
 </tbody>
 </table>
 </div>
@@ -637,7 +650,7 @@
 <li>Settings were tuned on one Jockey clip and checked on one ShakeNDry clip. The acceleration ratio and s<sub>min</sub> were tuned at 3,000 steps and not again for full training, and the rate of the higher-degree terms was not tuned.</li>
 <li>The object outlines come from Mask R-CNN, not drawn by hand as planned, and I checked them by eye. The optical flow used to compare paths has 3 to 6 pixels of error.</li>
 <li>Bosphorus is both straight and slow, and the two cannot be separated on it.</li>
-<li>The dog result in Section 5.5 was found after looking at the data. I treat Q3 as supplementary, and I fixed a separate rule before the confirmatory runs.</li>
+<li>The dog result in Section 5.3.1 was found after looking at the data. I treat Q3 as supplementary, and I fixed a separate rule before the confirmatory runs.</li>
 </ul>
 <details class="more"><summary>Changes from the proposal</summary><div class="body">
 <ul>
@@ -671,19 +684,19 @@ python -m stg.export_site                                  # data of this page
 python -m stg.figures --crops                              # figures and tables of this page</code></pre>
 <h3>Record of experiments</h3>
 <div class="table-wrap"><table>
-<caption><b>Table A28.</b> The experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it. Section 5 follows the same order.</caption>
+<caption><b>Table A28.</b> The experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it. Section 5 groups the results by research question; the last column gives where each experiment is reported.</caption>
 <thead><tr><th>Experiment</th><th>What it answers</th><th class="num">Fits</th><th class="num">Training steps</th><th>Results</th></tr></thead>
 <tbody>
 <tr><td>Synthetic discs</td><td>Does fitting work on motion with a known path?</td><td class="num">48</td><td class="num">3,000</td><td>4.2</td></tr>
 <tr><td>Tuning</td><td>Best settings of each model</td><td class="num">448</td><td class="num">3,000</td><td>4.3</td></tr>
-<tr><td>Main experiment</td><td>Q1 at the planned training length</td><td class="num">432</td><td class="num">3,000</td><td>5.1</td></tr>
-<tr><td>Still photographs</td><td>Q2: does the gain need motion?</td><td class="num">96</td><td class="num">3,000</td><td>5.2</td></tr>
-<tr><td>More Gaussians; longer training</td><td>Is 3,000 steps enough?</td><td class="num">32</td><td class="num">3,000 to 30,000</td><td>5.3</td></tr>
-<tr><td>Re-tuning for full training</td><td>Learning rates at 30,000 steps</td><td class="num">32</td><td class="num">30,000</td><td>5.3</td></tr>
-<tr><td>Main experiment, fully trained</td><td>Q1 and Q2 with full training</td><td class="num">192</td><td class="num">30,000</td><td>5.3</td></tr>
-<tr><td>Degree 3 and 7</td><td>Does a more flexible path help?</td><td class="num">24</td><td class="num">30,000</td><td>5.4</td></tr>
-<tr><td>Synthetic arcs (two versions)</td><td>Q3 on motion with a known, adjustable bend</td><td class="num">120</td><td class="num">30,000</td><td>5.5</td></tr>
-<tr><td>Confirmatory test</td><td>Q3 on new real clips, with the rule fixed first</td><td class="num">72</td><td class="num">30,000</td><td>5.5</td></tr>
+<tr><td>Main experiment</td><td>Q1 at the planned training length</td><td class="num">432</td><td class="num">3,000</td><td>5.1.1</td></tr>
+<tr><td>Still photographs</td><td>Q2: does the gain need motion?</td><td class="num">96</td><td class="num">3,000</td><td>5.2.2</td></tr>
+<tr><td>More Gaussians; longer training</td><td>Is 3,000 steps enough?</td><td class="num">32</td><td class="num">3,000 to 30,000</td><td>5.1.2</td></tr>
+<tr><td>Re-tuning for full training</td><td>Learning rates at 30,000 steps</td><td class="num">32</td><td class="num">30,000</td><td>5.1.2</td></tr>
+<tr><td>Main experiment, fully trained</td><td>Q1 and Q2 with full training</td><td class="num">192</td><td class="num">30,000</td><td>5.1.2</td></tr>
+<tr><td>Degree 3 and 7</td><td>Does a more flexible path help?</td><td class="num">24</td><td class="num">30,000</td><td>5.1.3</td></tr>
+<tr><td>Synthetic arcs (two versions)</td><td>Q3 on motion with a known, adjustable bend</td><td class="num">120</td><td class="num">30,000</td><td>5.3.3</td></tr>
+<tr><td>Confirmatory test</td><td>Q3 on new real clips, with the rule fixed first</td><td class="num">72</td><td class="num">30,000</td><td>5.3.4</td></tr>
 <tr><td><b>Total</b></td><td></td><td class="num"><b>1,496</b></td><td></td><td>about 68 hours</td></tr>
 </tbody>
 </table></div>
@@ -741,6 +754,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261106d"></script>
+<script type="module" src="assets/js/main.js?v=20261106e"></script>
 </body>
 </html>
