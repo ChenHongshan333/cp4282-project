@@ -611,8 +611,9 @@ function setupToc() {
       if (sec !== current) {
         current = sec;
         links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + sec.id));
-        // only the main headings; a heading may give a shorter name for this list (data-nav)
-        heads = [...sec.querySelectorAll("h3")];
+        // only the main headings; a heading may give a shorter name for this list (data-nav).
+        // A box with data-nav (the answers of Section 6) is listed too, without a heading in the text.
+        heads = [...sec.querySelectorAll("h3, .callout[data-nav]")];
         otp.innerHTML = heads.map((h) => `<a href="#${h.id}">${h.dataset.nav ?? h.textContent}</a>`).join("");
         const items = contents(sec);
         its.innerHTML = items.map((c) => `<a class="card" href="#${c.id}"><span class="thumb${c.demo ? " demo" : ""}">${c.thumb}</span><span class="txt"><span class="kind${c.demo ? " demo" : ""}">${c.kind}</span><span class="name">${c.name}</span></span></a>`).join("");
@@ -667,6 +668,7 @@ function setupTerms() {
     open = term;
   };
   document.addEventListener("click", (e) => {
+    if (e.target.closest(".term-pop a[href^='#']")) return close();   // a link inside a card jumps away
     const term = e.target.closest(".term");
     if (term) { const same = term === open; close(); if (!same) show(term); return; }
     if (!pop.contains(e.target)) close();
@@ -679,6 +681,34 @@ function setupTerms() {
   addEventListener("resize", close);
 }
 
+// ===================================================================================== roadmap findings
+// Section 6 repeats the roadmap of Section 4.5 (Figure 9). Each box of the copy opens a card with its
+// finding, from #term-defs, through the same code as the term cards (setupTerms).
+const RM_CARDS = {
+  "Synthetic discs": "rm-discs", "Tuning": "rm-tune", "Main experiment, 3,000 steps": "rm-main3k",
+  "More Gaussians; longer training": "rm-longer", "Re-tuning for full training": "rm-retune",
+  "Main experiment, fully trained": "rm-full", "Still photographs": "rm-still", "Degree 3 and 7": "rm-degree",
+  "Frames between": "rm-between", "Synthetic arcs (two versions)": "rm-arcs", "Confirmatory test": "rm-confirm",
+};
+function roadmapFindings() {
+  const slot = $(".rm-findings"), src = $("figure.roadmap svg");
+  if (!slot || !src) return;
+  // the copy gets its own marker ids, so the two figures do not share ids
+  slot.innerHTML = src.outerHTML.replaceAll('id="rm-arrow', 'id="rm9-arrow').replaceAll("url(#rm-arrow", "url(#rm9-arrow");
+  const svg = $("svg", slot);
+  svg.setAttribute("aria-label", "Roadmap of the experiments; each box opens the finding of that step");
+  for (const t of svg.querySelectorAll("text.rm-name")) {
+    const key = RM_CARDS[t.textContent], box = t.previousElementSibling;
+    if (!key || box?.tagName !== "rect") continue;
+    const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    ["x", "y", "width", "height", "rx"].forEach((k) => hit.setAttribute(k, box.getAttribute(k)));
+    Object.entries({ class: "term rm-hit", "data-term": key, tabindex: 0, role: "button", "aria-expanded": "false", "aria-label": t.textContent })
+      .forEach(([k, v]) => hit.setAttribute(k, v));
+    svg.appendChild(hit);   // on top of the box and its text
+  }
+}
+
+roadmapFindings();
 setupToc();
 // ===================================================================================== roadmap
 // The lines of the roadmap (Section 4.5) where a research question enters get a purple background,
