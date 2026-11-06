@@ -1,7 +1,7 @@
 # 项目进度：Is Folding Worth the Storage?
 
 > 这份文档记录项目的流程、进度和每一步的结果。最后写报告和做网页都以它为准。
-> 每完成一步就更新一次。最近更新：2026-11-05（步骤 46：第 3 节新样式的字体和背景色）
+> 每完成一步就更新一次。最近更新：2026-11-06（步骤 47：第 4 节重排为 4.1 到 4.5，加实验路线图，图表重新编号）
 >
 > **怎么读：** 先看「总览」，几分钟就能知道整个项目的来龙去脉。想看某一步的命令、设置和完整数字，再去「详细记录」里找对应的步骤。
 
@@ -75,6 +75,7 @@
   - [步骤 44：第 3 节结构编辑，文风不变](#step-44)
   - [步骤 45：第 3 节的注释、问题提醒、规则和卡片样式](#step-45)
   - [步骤 46：第 3 节新样式的字体和背景色](#step-46)
+  - [步骤 47：第 4 节重排为 4.1 到 4.5，加实验路线图，图表重新编号](#step-47)
 - [4. 待决定的事](#section-4)
 - [5. 下一步：调整后的计划（2026-10-28 定）](#section-5)
   - [2c：更高次拐弯的小实验](#plan-2c)
@@ -147,7 +148,7 @@ M3 是两个都用。论文说这样画得更好，理由是真实视频里的�
 | ⑮ 狗身上的光斑（步骤 27） | 用光流跟踪狗身上的点，和练完的 M0、M1 光斑路线比较 | M1 狗身上光斑的拐弯方向和真实运动一致的只有 47% 到 57%，**和瞎猜差不多**；路线误差和光流本身的误差差不多大 | 狗身上的好处还没有直接证据 → 用路线已知的合成视频检查 |
 | ⑯ 合成视频，弯曲程度可控（步骤 28 到 30） | 一个球沿圆弧走，从直线到转一整圈共 5 档，M0、M1，2 个存储量，3 个种子，练完。第一版球跑太快、条纹太细，两种方法都画不出中间帧，作废；改成慢的版本，先试跑确认直线时学得会，再跑 60 个 | **越弯，M1 在没见过的帧上的好处越大**：直线 ≈ 0，一整圈约 +9 dB；拐弯方向 91% 到 100% 正确。训练帧上的好处一直只有约 1 dB | 拐弯的作用在原理上成立，但只在训练帧之间看得到。真实视频上要成为正式结论，需要 2g |
 | ⑰ 新片段上的正式检验（步骤 31、32） | 先写死标准，再在没用过的 3 段真实片段（狗 1 段、马 2 段）上跑 M0、M1，stride 3 和 5，2 个存储量，3 个种子，共 72 个 | 12 个格子通过 9 个，正好达到"有好处"的线：物体区域的中间帧平均好约 0.5 dB；但整个画面的中间帧没变好；stride 5 的好处没比 stride 3 大 | 补帧问题有了正式答案：好处真实但小、只在物体上 → 所有实验做完，写报告 |
-| ⑱ 结果图和展示网站（步骤 33 到 46） | 用 `runs/` 里已有的结果做全部图、表和网站（`docs/`），不跑新实验。网页在浏览器里直接画训练好的模型（可拖时间看中间帧、放大马腿和狗）。步骤 34 到 36 按你的意见改了排版、文字、表格和互动图，去掉了幻灯片模式，并按研究的逻辑重排了章节；步骤 37 开始逐节改写内容（第 1、2 节，步骤 41 到 46 改第 3 节）；步骤 39、40 改成仿课程笔记网站的三栏排版，左栏目录画成 Gaussian 的"鱼骨" | 网页画出来的画面和 Python 一致（差别在 118 dB 以上）；表里的数字和这份文档一致 | 第一版求完整；接下来按 20 分钟的演讲挑内容、写报告 |
+| ⑱ 结果图和展示网站（步骤 33 到 47） | 用 `runs/` 里已有的结果做全部图、表和网站（`docs/`），不跑新实验。网页在浏览器里直接画训练好的模型（可拖时间看中间帧、放大马腿和狗）。步骤 34 到 36 按你的意见改了排版、文字、表格和互动图，去掉了幻灯片模式，并按研究的逻辑重排了章节；步骤 37 开始逐节改写内容（第 1、2 节，步骤 41 到 46 改第 3 节，步骤 47 改第 4 节）；步骤 39、40 改成仿课程笔记网站的三栏排版，左栏目录画成 Gaussian 的"鱼骨" | 网页画出来的画面和 Python 一致（差别在 118 dB 以上）；表里的数字和这份文档一致 | 第一版求完整；接下来按 20 分钟的演讲挑内容、写报告 |
 
 <a id="overview-3"></a>
 
@@ -2295,6 +2296,31 @@ node docs/assets/js/check.mjs <文件夹>                          # 和网页�
 **代码改动：** `docs/index.html`（给问题折叠加 `rq`，给解读规则折叠加 `supp`）；`docs/assets/style.css`。版本号改为 `?v=20261105c`。
 
 **检查：** 浏览器仍然连不上，没在浏览器里看；HTML 只加了 class，结构不变。
+
+---
+
+<a id="step-47"></a>
+
+### 步骤 47：第 4 节重排为 4.1 到 4.5，加实验路线图，图表重新编号 ✅（2026-11-06）
+
+**你的要求：** 第 4 节只做结构编辑，内容不变：实现与验证 → 初始诊断及协议调整 → 调参 → 测量和报告的调整 → 实验路线图；语言和前三节一致。你的决定：路线图手绘成 SVG（方案 B，不用 Mermaid 库）；图表编号整体重排；D3、D7 的"计划内/后加"归属先不改，沿用原表注；全节改用被动语态（第 1 节和第 2 节正文都是被动，我之前说第 1、2 节用 "I" 是说错了；第 2 节只有两个折叠解释里各有一个 "I"，是否也改为被动还没定）。
+
+**改法：**
+
+| 位置 | 内容 |
+|---|---|
+| 节标题 | "How I ran the experiments" 改为 "How the experiments were run"（左栏目录同步） |
+| 4.1 Implementation and verification | 原第 1 段 + 原折叠框 "Implementation and checks" 的四条，改为正文，分三段：代码和训练方式；正确性检查（有限差分、快 kernel 对照、浏览器对照 Python）；kernel 做法、7 倍加速、40 到 60 秒、学习率衰减。数字全部保留 |
+| 4.2 Preliminary diagnostic and protocol adjustment | 原末尾的折叠框 "The first test on synthetic discs" 移到这里，作正文：设置 → 收益 → 降低速度学习率后 M1 收益消失 → 静止背景的光斑也在动 → 原计划只调 s_min 和加速度倍数，因此所有模型（含 M0）都加调速度学习率 |
+| 4.3 Hyperparameter selection | 验证片段（Jockey 第 60 帧起，不和测试片段重叠）、候选值、8 种情况、往范围外补测；"Every model is therefore compared at its own best setting" 改为"在试过的范围内找到的最好设置"；Table A2 和解释仍在折叠框 "Tuning results" 里 |
+| 4.4 Measurement and reporting changes | 原第 3 段拆成两段：mask；VMAF 和种子波动的定义 |
+| 4.5 Experimental roadmap | 新的 Figure 2：手绘 SVG。左边主线六个框（合成圆盘 → 调参 → 3,000 步主实验 → 3,000 步够不够 → 30,000 步重新调参 → 练满的主实验），右边分支：静止照片（从 3,000 步主实验分出）、3 次和 7 次（从练满的主实验分出）；下面一排是 Q3：中间帧（复用模型，不新拟合）→ 合成弧线 → 新片段检验。实线框 = proposal 计划内（按原表注：前三个），虚线框 = 看到结果后加的。正文保留"Q3 的中间帧复用 192 个练满的模型，没有新拟合" |
+| 附录 | 原 Table 4 原样移到附录，编为 Table A28（新小标题 "Record of experiments"），十行、fits、步数、结果章节、总计 1,496 和约 68 小时都在；结果栏原来的 "details below" 改成 4.2、4.3 |
+| 编号 | 正文原 Table 5 到 13 改为 Table 4 到 12；原 Figure 2 到 10 改为 Figure 3 到 11；所有引用（正文、表注、data-caption）用脚本同步。新的对应关系：Table 4 Gain after 3,000 steps，Table 5 Pre-registered test 3,000 steps，Table 6 Learned vs. real acceleration，Table 7 Gain when fully trained，Table 8 Pre-registered test fully trained，Table 9 Bending direction on the dog，Table 10 Arc gain on frames between，Table 11 Confirmatory test，Table 12 Summary of findings；Figure 2 Experiment roadmap，Figure 3 PSNR against storage，Figure 4 Gains on still photos，Figure 5 PSNR during training，Figure 6 Gain against storage，Figure 7 Gain against path degree，Figure 8 Frames between vs. fitted frames，Figure 9 Gain against the bend of the arc，Figure 10 Confirmatory test with seed ranges，Figure 11 Rendered crops |
+
+**代码改动：** `docs/index.html`；`docs/assets/style.css`（路线图的文字样式）。版本号改为 `?v=20261106a`。改之前的备份在临时目录（`index.before-s4.html`、`style.before-s4.css`）。
+
+**检查：** 浏览器（1536 像素宽）里看过：路线图没有框超出边界（第一次最右边的框被裁掉，缩窄了 Q3 那一排后正常）；全页图表编号按出现顺序是 Figure 1 到 11、Table 1 到 12，Table A28 在附录；右栏 In this section 显示 Figure 2 Experiment roadmap；没有报错。
 
 ---
 
