@@ -1,5 +1,10 @@
 .venv/
 __pycache__/
-data/
+/data/
 runs/
 logs/
+docs/data/*
+!docs/data/tables.json
+!docs/data/appendix_tables.json
+!docs/data/runs.json
+!docs/data/csv/

@@ -445,7 +445,7 @@ python -m stg.sweep --stage confirm --all --device cuda    # confirmatory test  
 python -m stg.export_site                                  # data of this page
 python -m stg.appendix_tables                              # appendix tables and CSV files
 python -m stg.figures --crops                              # figures and tables of this page</code></pre>
-<p class="dl">Data: <a href="data/csv/fits.csv" download>fits.csv</a> (every one of the 1,496 fits, per seed: its settings, PSNR, SSIM and VMAF on the fitted frames, PSNR on the object, the background and the frames between, and its timing). The tables of B to D and their CSV files are computed from it.</p>
+<p class="dl">Data: <a href="data/csv/fits.csv" download>fits.csv</a> (every one of the 1,496 fits, per seed: its settings, PSNR, SSIM and VMAF on the fitted frames, PSNR on the object, the background and the frames between, and its timing). The tables of B to D and their CSV files are computed from it. The same fits, with the PSNR of each fit during training, are in <a href="data/runs.json" download>runs.json</a> (2.1 MB), the file read by the scripts above.</p>
 <h4 id="app-motion">A.2 Data and motion measurements</h4>
 <div class="table-wrap tside" data-short="Motion of the test clips"><table>
 <caption><b>Table A2.</b> Motion of the test clips over the whole frame, camera motion included (pixels per frame, and per frame²).</caption>
