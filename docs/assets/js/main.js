@@ -594,7 +594,7 @@ function setupToc() {
       return { id: el.id, kind: "Interactive", name: t.charAt(0).toUpperCase() + t.slice(1), thumb: ICON_DEMO, demo: true };
     }
     const cap = el.querySelector(".tcap, figcaption, caption") ?? { textContent: el.dataset.caption ? el.dataset.caption.replace(/<[^>]+>/g, "") : "" };
-    const m = cap.textContent.match(/^(Figure|Table) (\d+)\./);
+    const m = cap.textContent.match(/^(Figure|Table) (A?\d+)\./);
     if (!m) return null;
     if (!el.id) el.id = `${m[1].toLowerCase()}-${m[2]}`;
     const img = el.querySelector("img");
@@ -611,8 +611,9 @@ function setupToc() {
       if (sec !== current) {
         current = sec;
         links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + sec.id));
-        heads = [...sec.querySelectorAll("h3, h4")];
-        otp.innerHTML = heads.map((h) => `<a href="#${h.id}"${h.tagName === "H4" ? ' class="sub"' : ""}>${h.textContent}</a>`).join("");
+        // only the main headings; a heading may give a shorter name for this list (data-nav)
+        heads = [...sec.querySelectorAll("h3")];
+        otp.innerHTML = heads.map((h) => `<a href="#${h.id}">${h.dataset.nav ?? h.textContent}</a>`).join("");
         const items = contents(sec);
         its.innerHTML = items.map((c) => `<a class="card" href="#${c.id}"><span class="thumb${c.demo ? " demo" : ""}">${c.thumb}</span><span class="txt"><span class="kind${c.demo ? " demo" : ""}">${c.kind}</span><span class="name">${c.name}</span></span></a>`).join("");
         otp.previousElementSibling.style.display = otp.style.display = heads.length ? "" : "none";
