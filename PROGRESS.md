@@ -2341,6 +2341,7 @@ node docs/assets/js/check.mjs <文件夹>                          # 和网页�
 | 6. 第 2 节折叠里的 "I" | "I evaluate each model by…" 改为 "each model is evaluated by…"；"I score these frames…" 改为 "These frames are scored…" |
 | 7. 第 1 节开头 "In Unit 16, …" 加上课程笔记链接 | "Unit 16" 链接到 https://weitsang.github.io/gaussian-splatting-notes/unit-16/ （你给的地址）；参考文献里的 "Unit 16: 2D Gaussians for Images and Videos" 也链到同一地址。Unit 14 没有给地址，没加 |
 | 8. 卡片的词在鼠标悬停时，背景变浅蓝，文字本身不变色 | `.term` 悬停和卡片打开时改为浅蓝背景（和问题框同色），文字保持黑色。版本号改为 `?v=20261106d` |
+| 9. 页面最顶上（顶栏上方）出现一行 "12 numbers per Gaussian" | `index.html` 第 14 行 `<body>` 后面多了这段文字（像是在编辑器里误粘贴的，不是脚本写的），已删掉 |
 
 **链接核对：** 每个链接都先打开核对过标题和作者：VeGaS、Mask R-CNN、GaussianImage、Adam 的 arXiv 页面直接确认；UVG、Farnebäck、SSIM 的 DOI 页面挡了自动访问，改用 Semantic Scholar 按 DOI 查到的题目、作者、年份确认；UVG 数据集主页（ultravideo.fi）确认；VMAF 博客原地址挡了自动访问，改用 Netflix 官方 VMAF 仓库 README 里给的博客链接（medium.com/netflix-techblog/…）。
 
