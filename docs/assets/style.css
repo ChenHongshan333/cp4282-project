@@ -192,6 +192,18 @@ table.data tr.group td { padding-top: 14px; border-bottom: 1px solid #eeede9; }
   .tside .tbox > .tcap { grid-column: 2; grid-row: 1; padding: 0 0 8px; }
   .tside .tside-text { grid-column: 2; grid-row: 2; margin: 0; }
 }
+/* gain scale (step 60): soft blue for gains over M0, soft orange for losses, white within ±0.3 dB; set by
+   main.js (gainScale) only in the columns a table names in data-gain-cols. Text stays dark. */
+:root { --gs-p2: #cfe0f5; --gs-p1: #e9f1fb; --gs-n1: #fcefe4; --gs-n2: #f8dcc6; }
+td.gs-p2, .gs-legend i.gs-p2 { background: var(--gs-p2); }
+td.gs-p1, .gs-legend i.gs-p1 { background: var(--gs-p1); }
+td.gs-n1, .gs-legend i.gs-n1 { background: var(--gs-n1); }
+td.gs-n2, .gs-legend i.gs-n2 { background: var(--gs-n2); }
+.gs-legend { display: block; margin-top: 6px; font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
+.gs-legend .gs-title { margin-right: 6px; }
+.gs-legend i { display: inline-block; font-style: normal; padding: 0 6px; margin: 2px 3px 2px 0; border: 1px solid var(--rule);
+  border-radius: 3px; white-space: nowrap; background: #fff; }
+.gs-legend .gs-note { display: block; color: var(--muted); }
 /* a cell that meets the criterion of Section 3.3: shaded and bold, so it does not rest on colour alone */
 td.meet { background: #e6f1ea; font-weight: 650; }
 td .pass { color: var(--good); font-weight: 600; }
