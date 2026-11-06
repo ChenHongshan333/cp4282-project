@@ -412,25 +412,10 @@
 <section class="chapter" id="limitations">
 <h2><span class="num">7</span>Limitations and AI use</h2>
 <h3>Limitations</h3>
-<ul>
-<li>I used 250 to 2,000 Gaussians per 10-frame clip, at most 0.015 per pixel, while VeGaS uses hundreds of thousands (about 0.65 per pixel). A probe with up to 64,000 Gaussians kept M3 ahead by 0.4 to 0.8 dB after 3,000 steps, but I never fully trained with many Gaussians, since one fit would take 1 to 2 hours. With many more Gaussians they might follow the motion more, and the answer could change.</li>
-<li>The clips are short (10 frames, plus one 30-frame clip) and small (480×270), from 4 UVG sequences. The conclusions hold for these clips, budgets and resolution only.</li>
-<li>Settings were tuned on one Jockey clip and checked on one ShakeNDry clip. The acceleration ratio and s<sub>min</sub> were tuned at 3,000 steps and not again for full training, and the rate of the higher-degree terms was not tuned.</li>
-<li>The object outlines come from Mask R-CNN, not drawn by hand as planned, and I checked them by eye. The optical flow used to compare paths has 3 to 6 pixels of error.</li>
-<li>Bosphorus is both straight and slow, and the two cannot be separated on it.</li>
-<li>The dog result in Section 5.3.1 was found after looking at the data. I treat Q3 as supplementary, and I fixed a separate rule before the confirmatory runs.</li>
-</ul>
-<details class="more"><summary>Changes from the proposal</summary><div class="body">
-<ul>
-<li>Added Bosphorus as a fourth clip after measuring the motion, because YachtRide's waves are not straight.</li>
-<li>Tuned the velocity learning rate of every model, the baseline included, after the synthetic test showed that M1's gain depended on it.</li>
-<li>Made the object outlines with Mask R-CNN instead of hand-drawn horse masks and flow masks; flow masks worked only on the still-camera clip.</li>
-<li>Added full training (30,000 steps) after finding that 3,000 steps was far too short. The 3,000-step results are reported as a comparison at equal training steps.</li>
-<li>Ran the degree extension on 2 clips and 2 budgets of 10 frames, not on the 30-frame clip.</li>
-<li>Added the synthetic arc and the confirmatory test to answer Q3.</li>
-<li>Did not run stride 2, HoneyBee, or a fully trained run with many Gaussians.</li>
-</ul>
-</div></details>
+<p><b>Scope of evaluation.</b> The models were compared with 250 to 2,000 Gaussians per 10-frame clip (at most 0.015 per pixel, against about 0.65 for VeGaS), on short, small (480×270) clips from 4 UVG sequences. A probe with up to 64,000 Gaussians ran only for 3,000 steps (Table A8), and no fully trained comparison was run at that capacity. The conclusions apply to the clips, budgets and resolution tested and do not extend directly to larger models, higher resolutions or other videos.</p>
+<p><b>Optimization coverage.</b> Settings were selected on one Jockey validation clip (Section 4.3) and checked on one ShakeNDry clip. For full training the velocity learning rate was re-tuned, while the acceleration ratio and <span class="math">s<sub>min</sub></span> kept their 3,000-step values; the higher-degree terms reuse M1's acceleration rate. Each model is compared at the best setting found in the tested range, which need not be its optimum, and the D3 and D7 results reflect their narrower tuning.</p>
+<p><b>Motion attribution and generalization.</b> The object outlines come from Mask R-CNN and were checked by eye. The optical flow has 3 to 6 pixels of error, so the path diagnostics cannot settle whether Gaussians on real clips follow the physical motion; their lack of direct support does not show that no motion was learned. Bosphorus is both straight and slow, and the two cannot be separated on it. The real-video gain on the frames between, found in an exploratory analysis and confirmed on three new clips under a rule fixed beforehand, is small and local; it does not show that the Gaussians recover accurate physical motion, or that the gain holds for a broad range of videos.</p>
+<p>The changes from the plan in the proposal are recorded in the <a href="#app-changes">Appendix</a>.</p>
 <h3>AI use</h3>
 <p>I used Claude (Anthropic) to discuss the experimental design, write and check code, run and analyse experiments, and draft the text and figures of this page. I made and checked the decisions on the research questions, the models, the clips, the budgets, the tests and the conclusions.</p>
 </section>
@@ -699,6 +684,25 @@ python -m stg.figures --crops                              # figures and tables 
 <tr><td><b>Total</b></td><td></td><td class="num"><b>1,496</b></td><td></td><td>about 68 hours</td></tr>
 </tbody>
 </table></div>
+
+<h3 id="app-changes">Changes from the proposal</h3>
+<p>How the experiments differ from the plan in the proposal. The experiments themselves, in the order they were run, are in Table A33.</p>
+<p><b>Changes to the method.</b></p>
+<ul>
+<li>Bosphorus was added as a fourth clip after measuring the motion, because YachtRide's waves are not straight (Section 3.2).</li>
+<li>The velocity learning rate was tuned for every model, the baseline included, after the synthetic test showed that M1's gain depended on it (Section 4.2).</li>
+<li>The object outlines were made with Mask R-CNN instead of hand-drawn horse masks and flow masks; flow masks worked only on the still-camera clip (Section 4.4).</li>
+</ul>
+<p><b>Added tests.</b></p>
+<ul>
+<li>Full training (30,000 steps) was added after 3,000 steps was found to be far too short. The 3,000-step results are reported as a comparison at equal training steps (Section 5.1).</li>
+<li>The synthetic arcs and the confirmatory test were added to answer Q3, after the main results (Section 3.5). The dog result that led to the confirmatory test was found after looking at the data; Q3 is treated as supplementary, and a separate rule was fixed before the confirmatory runs (Section 5.3.1).</li>
+</ul>
+<p><b>Reduced or not run.</b></p>
+<ul>
+<li>The degree extension was run on 2 clips and 2 budgets of 10 frames, not on the 30-frame clip.</li>
+<li>Stride 2, HoneyBee, and a fully trained run with many Gaussians (1 to 2 hours per fit) were not run. A probe with up to 64,000 Gaussians was run for 3,000 steps only, where M3 stayed ahead by 0.4 to 0.8 dB (Table A8).</li>
+</ul>
 
 <h3>Motion of the test clips</h3>
 <p>The optical flow measurement of Section 3.2. Acceleration increases by 3 to 7 times at stride 3.</p>
