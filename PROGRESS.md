@@ -1,7 +1,7 @@
 # 项目进度：Is Folding Worth the Storage?
 
 > 这份文档记录项目的流程、进度和每一步的结果。最后写报告和做网页都以它为准。
-> 每完成一步就更新一次。最近更新：2026-11-06（步骤 55：第 7 节 Limitations 改写为三段，Changes from the proposal 移到附录）
+> 每完成一步就更新一次。最近更新：2026-11-06（步骤 56：附录重组为 A 到 D 四组加 References，右栏按组列图表）
 >
 > **怎么读：** 先看「总览」，几分钟就能知道整个项目的来龙去脉。想看某一步的命令、设置和完整数字，再去「详细记录」里找对应的步骤。
 
@@ -84,6 +84,7 @@
   - [步骤 53：第 6 节三个答案的措辞和问答结构](#step-53)
   - [步骤 54：Table 5 换成带结论卡片的路线图](#step-54)
   - [步骤 55：第 7 节 Limitations 改写](#step-55)
+  - [步骤 56：附录重组为 A 到 D 四组](#step-56)
 - [4. 待决定的事](#section-4)
 - [5. 下一步：调整后的计划（2026-10-28 定）](#section-5)
   - [2c：更高次拐弯的小实验](#plan-2c)
@@ -156,7 +157,7 @@ M3 是两个都用。论文说这样画得更好，理由是真实视频里的�
 | ⑮ 狗身上的光斑（步骤 27） | 用光流跟踪狗身上的点，和练完的 M0、M1 光斑路线比较 | M1 狗身上光斑的拐弯方向和真实运动一致的只有 47% 到 57%，**和瞎猜差不多**；路线误差和光流本身的误差差不多大 | 狗身上的好处还没有直接证据 → 用路线已知的合成视频检查 |
 | ⑯ 合成视频，弯曲程度可控（步骤 28 到 30） | 一个球沿圆弧走，从直线到转一整圈共 5 档，M0、M1，2 个存储量，3 个种子，练完。第一版球跑太快、条纹太细，两种方法都画不出中间帧，作废；改成慢的版本，先试跑确认直线时学得会，再跑 60 个 | **越弯，M1 在没见过的帧上的好处越大**：直线 ≈ 0，一整圈约 +9 dB；拐弯方向 91% 到 100% 正确。训练帧上的好处一直只有约 1 dB | 拐弯的作用在原理上成立，但只在训练帧之间看得到。真实视频上要成为正式结论，需要 2g |
 | ⑰ 新片段上的正式检验（步骤 31、32） | 先写死标准，再在没用过的 3 段真实片段（狗 1 段、马 2 段）上跑 M0、M1，stride 3 和 5，2 个存储量，3 个种子，共 72 个 | 12 个格子通过 9 个，正好达到"有好处"的线：物体区域的中间帧平均好约 0.5 dB；但整个画面的中间帧没变好；stride 5 的好处没比 stride 3 大 | 补帧问题有了正式答案：好处真实但小、只在物体上 → 所有实验做完，写报告 |
-| ⑱ 结果图和展示网站（步骤 33 到 55） | 用 `runs/` 里已有的结果做全部图、表和网站（`docs/`），不跑新实验。网页在浏览器里直接画训练好的模型（可拖时间看中间帧、放大马腿和狗）。步骤 34 到 36 按你的意见改了排版、文字、表格和互动图，去掉了幻灯片模式，并按研究的逻辑重排了章节；步骤 37 开始逐节改写内容（第 1、2 节，步骤 41 到 46 改第 3 节，步骤 47 改第 4 节）；步骤 39、40 改成仿课程笔记网站的三栏排版，左栏目录画成 Gaussian 的"鱼骨" | 网页画出来的画面和 Python 一致（差别在 118 dB 以上）；表里的数字和这份文档一致 | 第一版求完整；接下来按 20 分钟的演讲挑内容、写报告 |
+| ⑱ 结果图和展示网站（步骤 33 到 56） | 用 `runs/` 里已有的结果做全部图、表和网站（`docs/`），不跑新实验。网页在浏览器里直接画训练好的模型（可拖时间看中间帧、放大马腿和狗）。步骤 34 到 36 按你的意见改了排版、文字、表格和互动图，去掉了幻灯片模式，并按研究的逻辑重排了章节；步骤 37 开始逐节改写内容（第 1、2 节，步骤 41 到 46 改第 3 节，步骤 47 改第 4 节）；步骤 39、40 改成仿课程笔记网站的三栏排版，左栏目录画成 Gaussian 的"鱼骨" | 网页画出来的画面和 Python 一致（差别在 118 dB 以上）；表里的数字和这份文档一致 | 第一版求完整；接下来按 20 分钟的演讲挑内容、写报告 |
 
 <a id="overview-3"></a>
 
@@ -2555,6 +2556,54 @@ D7 在中间帧的摆动和"去播放器看 D7 路径"移到附录 "Higher-degre
 **代码改动：** 只改 `docs/index.html`（第 7 节、附录）；CSS、JS 没改，版本号不变。改之前的备份在临时目录 `index.before-lim.html`。
 
 **检查：** 没在浏览器里看。脚本确认：AI use 段落原文未改；`#app-changes` 只有一个且链接指向它；原七条的信息都在附录里。
+
+---
+
+<a id="step-56"></a>
+
+### 步骤 56：附录重组为 A 到 D 四组加 References，右栏按组列图表 ✅（2026-11-06）
+
+**你的要求：** 把附录整理成稳定的资料结构（资料归类、入口和导航，不改写内容、不加实验）：A 实验设置和复现、B Q1、C Q2、D Q3（D 再分三部分），References 单独放在最后；重复展示的表先核对再合并；正文链接指到具体位置；右栏 On this page 只列四组和 References，In this section 默认展开、只列当前这一组的图表。你说直接改。
+
+**新的附录结构：**
+
+| 组 | 小标题（h4） | 内容（原位置） |
+|---|---|---|
+| A. Experimental setup and reproducibility（`#app-setup`） | Reproduction commands | 原 "Reproduce"；命令不变，注释里的旧小节号改为现在的：主实验 3,000 步 5.1.1、静止照片 5.2.2、练满 5.1.2、3 次和 7 次 5.1.2、中间帧 5.3.1、合成弧线 5.3.2、新片段检验 5.3.1，梯度检查补 4.1 |
+| | Data and motion measurements | 原 "Motion of the test clips"（光流表） |
+| | Hyperparameter selection | 新写一句入口：3,000 步的设置见 4.3 节的 Table A1（链接会自动展开 4.3 的折叠框）；练满时重新选了速度学习率，在 B 的训练长度检查之后。下面是原来的重新调参表和说明 |
+| | Record of experiments | 原表，不变 |
+| | Changes from the proposal（`#app-changes`） | 步骤 55 的内容，不变 |
+| B. Reconstruction efficiency (Q1)（`#app-recon`，旧锚点） | （组首）Figure A1 | 两种训练长度的 PSNR 对存储 |
+| | Results after 3,000 steps | 原 3,000 步的四张表（平均、每个预算的检验、两种 stride、SSIM/VMAF） |
+| | Results after full training | 原 "Fully trained, every cell" 的四张表 |
+| | Training convergence checks | 原 "The checks that led to full training"：多 Gaussian 试跑表、10,000 步检查和表、30,000 步收敛的一段（末尾加 "(Table A3)" 指向 A 里的重新调参表）、训练曲线互动图；组首加一句说明这些检查导致了练满的比较 |
+| | Higher-degree trajectories（`#app-degree`，旧锚点） | 原内容不变（训练帧和中间帧都在这里）；"去播放器看 D7" 的链接改为直接指向播放器 |
+| | Longer clip and computational cost | 原 30 帧片段表和成本表 |
+| C. Motion attribution (Q2)（`#app-attr`，旧锚点） | Spatial regions and static-image controls | 物体内外两张表、静止照片表 |
+| | Learned motion parameters | 加速度对比表、"不到 1% 不用加速度"和速度那段、速度表 |
+| | Lifetimes and additional diagnostics | 寿命表和说明、按像素变化分组那段 |
+| D. Temporal interpolation (Q3)（`#app-interp`，旧锚点） | Real-video confirmation | 规则框、"1/8 偶然通过"和 stride 5 那段、合并后的 12 格表、其他评分表 |
+| | Controlled synthetic motion | 四条预测、"All four predictions hold" 那段、弧线互动图、完整结果表、球上路径表；第一版失败和第二版设置、前提条件两段放进折叠框 "Development of the test…"（`#app-arc-dev`） |
+| | Exploratory real-video analysis | 原探索性发现全文、模型播放器、Figure A3、慢船那段、三张表；下面两个更小的标题（h5）："Paths of the dog's Gaussians"（光流检查、两张表；"synthetic arc below" 改为 "above" 并链接）、"Rendered crops"（Figure A4，原来单独在附录末尾） |
+| References（`#references`） | — | 单独一块，上面一条细线隔开；文献和链接不变 |
+
+附录开头加一句说明四组的分工。
+
+**合并的重复展示（先核对过数据）：**
+- 原 Table A22（新片段检验 12 格，只有均值和 ✓）：原 A23（均值加种子范围）的数据里本来就带同样的 ✓/✗，所以 A22 完全重复，删掉；它图注里的 "✓ means all 3 seeds are above zero" 和 "9 of 12 cells pass" 并进 A23 的图注。
+- 原 Table A30（弧线中间帧平均收益）：数字和原 A31（第二版完整结果）里 "Frames between" 两列的均值完全一样，删掉。
+
+**重新编号：** 附录表按出现顺序为 Table A1 到 A32（少了两张），图仍是 Figure A1 到 A4。旧 → 新：A34→A2，A10→A3，A33→A4，A2→A5，A3→A6，A4→A7，A5→A8，A11→A9，A12→A10，A13→A11，A14→A12，A8→A13，A9→A14，A21→A15，A6→A16，A7→A17，A15→A18，A16→A19，A17→A20，A18→A21，A19→A22，A20→A23，A23→A24，A24→A25，A31→A26，A32→A27，A25→A28，A26→A29，A27→A30，A28→A31，A29→A32。正文里的引用（3.2 节、4.5 节、第 7 节、附录内部）用脚本一次换完。
+
+**正文链接改为指到具体位置：** 5.1.1 → 3,000 步结果；5.1.2 训练曲线 → 收敛检查；5.2.1、5.2.2 → 区域和静止照片；5.2.3 → 学到的运动参数；5.3.1 探索 → 探索性分析；完整规则 → Real-video confirmation；光流误差 → 狗的路径；弧线预测 → Controlled synthetic motion；第一版和前提条件 → 折叠框（点了会自动展开）；Figure 9 "Re-tuning" 卡片 → Hyperparameter selection。旧锚点 `app-recon`、`app-attr`、`app-degree`、`app-interp`、`app-changes` 都保留。
+
+**代码改动：** `docs/index.html`（附录、正文链接、4.3 的折叠框加 id `tuning-results`）；`docs/assets/js/main.js`：(1) `setupToc` 的 In this section 在附录里只列当前所在的组（`.app-group`），其他章节不变；(2) 新函数 `openFoldsFor`：点链接或打开带 # 的地址时，如果目标在折叠框里，先展开；`docs/assets/style.css`（h5、References 上面的细线、新锚点的跳转留白）。版本号 `?v=20261106u`。改之前的备份在临时目录（`index.before-app.html`、`main.before-app.js`、`style.before-app.css`），重组脚本是 `appendix.py`。
+
+**检查：**
+- 脚本对比旧附录的每段文字、每行表格、每条列表、图、互动图：只少了被替换的两句 "Detailed results for…"、上面三处改了链接的段落，以及两张重复表（数据在 A24、A26 里）。没有重复的 id。
+- 浏览器里看过：On this page 在附录里显示 A、B、C、D 和 References 五项；In this section 读到 A 时是 Table A2 到 A4，B 是 Figure A1、Table A5 到 A17 和训练曲线互动图，C 是 Table A18 到 A23，D 是 Table A24 到 A32、Figure A3、A4 和两个互动图，References 为空；全页没有失效的 # 链接；打开 `#app-arc-dev` 时折叠框自动展开；三个互动图都加载了（训练曲线画出来了，播放器和弧线显示了状态行），所有数据表都有内容。
+- 复现命令的注释对齐修了一次（4.1 那一列错了一格）。
 
 ---
 

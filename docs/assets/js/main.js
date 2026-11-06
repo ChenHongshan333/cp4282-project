@@ -570,7 +570,7 @@ function setupToc() {
   const otp = $("#otp"), its = $("#its"), itsTitle = $(".side-title-2");
   const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   sections.forEach((sec) => sec.querySelectorAll("h3, h4").forEach((h) => { if (!h.id) h.id = `${sec.id}-${slug(h.textContent)}`; }));
-  let current = null, heads = [], nodes = [], hover = -1, frame = 0;
+  let current = null, scope = null, heads = [], nodes = [], hover = -1, frame = 0;
 
   // place the section names down the whole column, a frame each
   const layout = () => {
@@ -615,12 +615,20 @@ function setupToc() {
         // A box with data-nav (the answers of Section 6) is listed too, without a heading in the text.
         heads = [...sec.querySelectorAll("h3, .callout[data-nav]")];
         otp.innerHTML = heads.map((h) => `<a href="#${h.id}">${h.dataset.nav ?? h.textContent}</a>`).join("");
-        const items = contents(sec);
-        its.innerHTML = items.map((c) => `<a class="card" href="#${c.id}"><span class="thumb${c.demo ? " demo" : ""}">${c.thumb}</span><span class="txt"><span class="kind${c.demo ? " demo" : ""}">${c.kind}</span><span class="name">${c.name}</span></span></a>`).join("");
         otp.previousElementSibling.style.display = otp.style.display = heads.length ? "" : "none";
+        otp.parentElement.scrollTop = 0;   // a new section starts at the top of the right column
+      }
+      // "In this section" lists the section's figures, tables and demos; in the appendix, only those of
+      // the group (.app-group) being read
+      const groups = [...sec.querySelectorAll(":scope > .app-group")];
+      let sc = sec;
+      if (groups.length) { sc = groups[0]; for (const g of groups) if (g.getBoundingClientRect().top <= line) sc = g; }
+      if (sc !== scope) {
+        scope = sc;
+        const items = contents(sc);
+        its.innerHTML = items.map((c) => `<a class="card" href="#${c.id}"><span class="thumb${c.demo ? " demo" : ""}">${c.thumb}</span><span class="txt"><span class="kind${c.demo ? " demo" : ""}">${c.kind}</span><span class="name">${c.name}</span></span></a>`).join("");
         itsTitle.style.display = its.style.display = items.length ? "" : "none";
         itsTitle.style.marginTop = heads.length ? "" : "5px";
-        otp.parentElement.scrollTop = 0;   // a new section starts at the top of the right column
       }
       let head = null;
       for (const h of heads) if (h.getBoundingClientRect().top <= line) head = h;
@@ -707,6 +715,20 @@ function roadmapFindings() {
     svg.appendChild(hit);   // on top of the box and its text
   }
 }
+
+// A link to something inside a folded box (details) opens the box first, so the target can be seen.
+function openFoldsFor(id) {
+  const el = id && document.getElementById(id);
+  let d = el?.closest("details"), opened = false;
+  while (d) { if (!d.open) { d.open = true; opened = true; } d = d.parentElement?.closest("details"); }
+  return opened ? el : null;
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.('a[href^="#"]');
+  if (a) openFoldsFor(decodeURIComponent(a.getAttribute("href").slice(1)));
+});
+addEventListener("hashchange", () => openFoldsFor(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView());
+openFoldsFor(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 
 roadmapFindings();
 setupToc();
