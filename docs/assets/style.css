@@ -344,3 +344,10 @@ figure.roadmap .rm-lane { font-size: 12px; font-weight: 600; letter-spacing: 0.0
 .term-pop::after { content: ""; position: absolute; left: var(--arrow, 50%); width: 10px; height: 10px; background: #fff; border: 1px solid var(--rule); transform: translateX(-50%) rotate(45deg); }
 .term-pop.above::after { bottom: -6px; border-top: 0; border-left: 0; }
 .term-pop.below::after { top: -6px; border-bottom: 0; border-right: 0; }
+figure.roadmap .rm-side { fill: var(--muted); }
+figure.roadmap .rm-name.rm-side { fill: var(--ink-2); font-weight: 600; }
+figure.roadmap .rm-lane-main { fill: var(--accent); }
+/* the three places where a research question enters the roadmap: on the purple of the pass criterion */
+figure.roadmap .rm-hl { fill: var(--ink); }
+figure.roadmap .rm-qtag { font-weight: 700; }
+figure.roadmap .rm-hl-bg { fill: #f1eff8; }

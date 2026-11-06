@@ -680,7 +680,21 @@ function setupTerms() {
 }
 
 setupToc();
+// ===================================================================================== roadmap
+// The lines of the roadmap (Section 4.5) where a research question enters get a purple background,
+// sized to the text once the fonts are in.
+function highlightRoadmap() {
+  for (const t of $$("figure.roadmap text.rm-hl")) {
+    const b = t.getBBox();
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    Object.entries({ x: b.x - 5, y: b.y - 2, width: b.width + 10, height: b.height + 4, rx: 3, class: "rm-hl-bg" })
+      .forEach(([k, v]) => r.setAttribute(k, v));
+    t.before(r);
+  }
+}
+
 setupTerms();
+document.fonts.ready.then(highlightRoadmap);
 $$(".w-volume").forEach(volumeWidget);
 fillTables();
 trainingWidget();

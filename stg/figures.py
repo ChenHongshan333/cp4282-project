@@ -27,6 +27,7 @@ LABEL = {"M0": "M0 straight (baseline)", "M1": "M1 curved", "M2": "M2 shrinking"
 COLOUR = {"M0": "#52514e", "M1": "#2a78d6", "M2": "#eb6834", "M3": "#1baf7a"}
 SEQ_COLOUR = {"Jockey": "#2a78d6", "ShakeNDry": "#eb6834"}
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
+PASS, FAIL = "#1a7f4b", "#b3261e"     # the green and red of the page (style.css --good, --bad)
 THRESHOLD = 0.3
 MINUS = "−"
 
@@ -357,7 +358,7 @@ def fig_rd(runs: Runs, out: Path, plt):
 
 def fig_gain_budget(runs: Runs, out: Path, plt):
     """Gain over M0 against storage: 3000 iterations (dashed) against fully trained (solid)."""
-    fig, axes = plt.subplots(1, 4, figsize=(9.6, 2.9), sharey=True)
+    fig, axes = plt.subplots(1, 4, figsize=(9.6, 3.4), sharey=True)
     test, long = runs.where(stage="test", stride=3, frames=10, start=0), runs.where(stage="long_test")
     for ax, seq in zip(axes, SEQUENCES):
         ax.axhspan(-THRESHOLD, THRESHOLD, color="#f1f0ec", zorder=0)
@@ -374,8 +375,8 @@ def fig_gain_budget(runs: Runs, out: Path, plt):
     handles = [Line2D([], [], color=COLOUR[m], marker="o", label=LABEL[m]) for m in MODELS[1:]]
     handles += [Line2D([], [], color=MUTED, ls="--", marker="o", mfc="white", label="3,000 steps"),
                 Line2D([], [], color=MUTED, marker="o", label="fully trained (bars: min–max over 3 seeds)")]
-    fig.legend(handles=handles, loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.06))
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.legend(handles=handles, loc="lower center", ncol=5, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     save(fig, out, "gain_budget")
     plt.close(fig)
 
@@ -392,7 +393,7 @@ def trace_mean(records):
 def fig_training(runs: Runs, out: Path, plt):
     """PSNR against training step and training time, fully trained runs, and the gain over M0 by step."""
     long = runs.where(stage="long_test")
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.0))
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.4))
     cell = long.where(sequence="Jockey", budget=6000)
     for m in MODELS:
         steps, psnr, secs = trace_mean([r for r in cell.records if r["model"] == m])
@@ -411,7 +412,7 @@ def fig_training(runs: Runs, out: Path, plt):
     from matplotlib.lines import Line2D
     handles = [Line2D([], [], color=COLOUR[m], label=LABEL[m]) for m in MODELS]
     handles.append(Line2D([], [], color=MUTED, marker="D", ls="none", mec="white", ms=6, label="separate 3,000-step runs"))
-    axes[0].legend(handles=handles, loc="lower right")
+    fig.legend(handles=handles, loc="lower center", ncol=5, bbox_to_anchor=(0.5, 0.0))
     # gain over M0 at each step, mean over the 4 sequences, 4 budgets and 3 seeds
     ax = axes[2]
     ax.axhspan(-THRESHOLD, THRESHOLD, color="#f1f0ec", zorder=0)
@@ -430,7 +431,7 @@ def fig_training(runs: Runs, out: Path, plt):
     ax.set_xlabel("training step (thousands)")
     ax.set_ylabel("PSNR gain over M0 (dB)")
     ax.set_title("all 4 clips × 4 budgets × 3 seeds", loc="left")
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
     save(fig, out, "training")
     plt.close(fig)
 
@@ -541,15 +542,24 @@ def fig_confirm(runs: Runs, out: Path, plt):
     for ax, (value, title) in zip(axes, (("unseen_in", "moving object"), ("unseen", "whole frame"))):
         ax.axhline(0, color=INK, lw=0.9)
         gains = [conf.where(sequence=seq, start=start, stride=stride, budget=b).gain("M1", value) for seq, start, stride, b in cells]
-        errorline(ax, range(len(cells)), gains, marker="o", ms=5, ls="none", color="#2a78d6")
+        for x, g in enumerate(gains):
+            if value == "unseen_in":        # the scored region: does the cell pass (all 3 seeds above zero)?
+                colour = PASS if g[1] > 0 else FAIL
+                face = colour if g[1] > 0 else "white"
+            else:                           # the whole frame is not part of the test
+                colour, face = MUTED, MUTED
+            ax.errorbar([x], [g[0]], yerr=[[g[0] - g[1]], [g[2] - g[0]]], marker="o", ms=5.5, ls="none", capsize=2.5,
+                        elinewidth=1, color=colour, mfc=face, mew=1.4)
         for i in (1, 2):
             ax.axvline(4 * i - 0.5, color=GRID, lw=1)
         ax.grid(axis="x", visible=False)
         ax.set_title(f"{title}: M1 − M0 on the frames between (dB)", loc="left")
         if value == "unseen_in":
             n = sum(g[1] > 0 for g in gains)
-            ax.text(0.995, 0.97, f"{n} of {len(cells)} cells: all 3 seeds above zero", transform=ax.transAxes,
-                    ha="right", va="top", fontsize=8, color=INK)
+            from matplotlib.lines import Line2D
+            ax.legend(handles=[Line2D([], [], color=PASS, marker="o", ls="none", label=f"all 3 seeds above zero ({n} of {len(cells)} cells)"),
+                               Line2D([], [], color=FAIL, marker="o", mfc="white", mew=1.4, ls="none", label="not all 3 seeds above zero")],
+                      loc="upper right", ncol=2)
     axes[1].set_xticks(range(len(cells)))
     axes[1].set_xticklabels([f"stride {stride}\n{b // 1000}k" for _, _, stride, b in cells], fontsize=7)
     for i, (_, _, name) in enumerate(clips):
@@ -559,43 +569,89 @@ def fig_confirm(runs: Runs, out: Path, plt):
     plt.close(fig)
 
 
-def fig_arc_paths(out: Path, plt):
-    """The true paths of the ball in the arc clips (``stg.data.arc_centres``, style ``arcs``), all at
-    the same pixel scale: the fitted frames of stride 3 as dots, the skipped frames as open dots."""
-    from stg.data import ARC_ANGLES, ARC_FRAMES, ARC_STYLES, arc_centres
+def fig_arc_motion(out: Path, plt):
+    """The five arc clips played frame by frame, side by side and in step (``arc_motion.gif``), with a
+    still of frame 0 for the report (``arc_paths.png/.pdf``). The ball and its stripes are the pixels
+    that ``stg.data.arc_clip`` draws (style ``arcs``); for display they are put over a light background
+    instead of the clip's own. The grey line is the true path of the centre, the blue dots the fitted
+    frames of stride 3 (0, 3, ..., 27)."""
+    import io
+    from PIL import Image
+    from stg.data import ARC_ANGLES, ARC_FRAMES, ARC_STYLES, arc_centres, arc_clip
     style = ARC_STYLES["arcs"]
-    fig, axes = plt.subplots(1, len(ARC_ANGLES), figsize=(8.4, 1.9))
-    paths = {a: arc_centres(a, np.linspace(0, ARC_FRAMES, 400), speed=style["speed"]) for a in ARC_ANGLES}
-    pad = style["radius"] + 4
+    times = np.arange(ARC_FRAMES + 1)
+    light = np.array([0.984, 0.980, 0.973])
+    balls, paths = {}, {}
+    for angle in ARC_ANGLES:
+        frames, masks = arc_clip(f"arcs{angle}", 0, len(times), 1)
+        # the clip's background: at each pixel, the first frame in which the ball is not there
+        first_free = np.argmax(~masks, axis=0)
+        background = np.take_along_axis(frames, first_free[None, ..., None].repeat(3, -1), axis=0)[0]
+        centres = arc_centres(angle, times, speed=style["speed"])
+        yy, xx = np.mgrid[0:frames.shape[1], 0:frames.shape[2]] + 0.5
+        shown = []
+        for t, (cx, cy) in enumerate(centres):
+            # the same soft edge as arc_clip: recover the ball's colour, then lay it over the light background
+            alpha = np.clip(style["radius"] + 1.0 - np.hypot(xx - cx, yy - cy), 0, 1)[..., None]
+            ball = np.where(alpha > 0, (frames[t] - (1 - alpha) * background) / np.maximum(alpha, 1e-6), 0)
+            shown.append(np.clip((1 - alpha) * light + alpha * ball, 0, 1))
+        balls[angle] = shown
+        paths[angle] = arc_centres(angle, np.linspace(0, ARC_FRAMES, 400), speed=style["speed"])
+    pad = style["radius"] + 5
     half_x = max(np.ptp(p[:, 0]) for p in paths.values()) / 2 + pad
     half_y = max(np.ptp(p[:, 1]) for p in paths.values()) / 2 + pad + 6
-    for ax, angle in zip(axes, ARC_ANGLES):
-        path = paths[angle]
-        cx, cy = (path.max(0) + path.min(0)) / 2
-        fitted = arc_centres(angle, np.arange(0, ARC_FRAMES + 1, 3), speed=style["speed"])
-        between = arc_centres(angle, np.array([t for t in range(ARC_FRAMES + 1) if t % 3]), speed=style["speed"])
-        ax.add_patch(plt.Circle(tuple(fitted[0]), style["radius"], fill=False, ls=":", lw=0.8, color=MUTED))
-        ax.plot(path[:, 0], path[:, 1], color=INK, lw=1.2, zorder=1)
-        ax.plot(between[:, 0], between[:, 1], "o", ms=2.6, mfc="white", mec="#eb6834", mew=0.8, zorder=2)
-        ax.plot(fitted[:, 0], fitted[:, 1], "o", ms=4.2, color="#2a78d6", zorder=3)
-        ax.annotate("", xy=path[-1], xytext=path[-30], arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.4, mutation_scale=14), zorder=4)
-        ax.text(*fitted[0] + np.array([0, style["radius"] + 3]), "frame 0", ha="center", va="top", fontsize=7, color=MUTED)
-        ax.set_xlim(cx - half_x, cx + half_x)
-        ax.set_ylim(cy + half_y, cy - half_y)          # image coordinates: y grows downwards
-        ax.set_aspect("equal")
-        ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
-        for side in ax.spines.values():
-            side.set_visible(True); side.set_color(GRID)
-        ax.set_title(f"turn {angle}°", loc="center")
-    from matplotlib.lines import Line2D
-    fig.legend(handles=[Line2D([], [], color=INK, lw=1.2, label="true path of the ball's centre"),
-                        Line2D([], [], color="#2a78d6", marker="o", ls="none", label="fitted frames (0, 3, …, 27)"),
-                        Line2D([], [], color="#eb6834", marker="o", mfc="white", ls="none", label="frames between (never fitted)"),
-                        Line2D([], [], color=MUTED, ls=":", label="size of the ball at frame 0")],
-               loc="lower center", bbox_to_anchor=(0.5, -0.08), ncol=4)
-    fig.tight_layout()
-    save(fig, out, "arc_paths")
-    plt.close(fig)
+
+    def draw(t):
+        fig, axes = plt.subplots(1, len(ARC_ANGLES), figsize=(8.4, 2.4))
+        for ax, angle in zip(axes, ARC_ANGLES):
+            path = paths[angle]
+            cx, cy = (path.max(0) + path.min(0)) / 2
+            ax.imshow(balls[angle][t], interpolation="bilinear")
+            ax.plot(path[:, 0], path[:, 1], color="#b9b7b0", lw=1.0, zorder=2)
+            fitted = arc_centres(angle, times[::3], speed=style["speed"])
+            ax.plot(fitted[:, 0], fitted[:, 1], "o", ms=2.6, color="#2a78d6", zorder=3)
+            if t % 3 == 0:                  # the ball is at a fitted frame: ring its dot
+                here = arc_centres(angle, np.array([t]), speed=style["speed"])[0]
+                ax.plot(*here, "o", ms=7, mfc="none", mec="#2a78d6", mew=1.3, zorder=4)
+            ax.set_xlim(cx - half_x, cx + half_x)
+            ax.set_ylim(cy + half_y, cy - half_y)
+            ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+            for side in ax.spines.values():
+                side.set_visible(True); side.set_color(GRID)
+            ax.set_title(f"turn {angle}°", loc="center")
+        fig.tight_layout(rect=(0, 0.24, 1, 1))
+        # a timeline under the panels: a tick per frame, the fitted ones tall and blue, and a pointer at t
+        tl = fig.add_axes((0.06, 0.07, 0.6, 0.1))
+        for k in times:
+            fit = k % 3 == 0
+            tl.plot([k, k], [0, 1 if fit else 0.45], color="#2a78d6" if fit else "#c9c7c0", lw=1.6 if fit else 1)
+        tl.plot([t], [-0.35], marker="^", ms=6, color=INK, clip_on=False)
+        tl.set_xlim(-0.6, ARC_FRAMES + 0.6)
+        tl.set_ylim(-0.6, 1.1)
+        tl.axis("off")
+        tl.text(-1.4, 0.3, "frame", ha="right", va="center", fontsize=8, color=MUTED)
+        tl.text(0, -0.75, "0", ha="center", va="top", fontsize=7.5, color=MUTED)
+        tl.text(ARC_FRAMES, -0.75, str(ARC_FRAMES), ha="center", va="top", fontsize=7.5, color=MUTED)
+        fig.text(0.70, 0.13, "blue: fitted frames (0, 3, …, 27)", fontsize=8, color="#2a78d6", va="center")
+        fig.text(0.70, 0.05, "grey line: true path of the centre", fontsize=8, color=MUTED, va="center")
+        return fig
+
+    pictures = []
+    for t in times:
+        fig = draw(t)
+        if t == 0:
+            save(fig, out, "arc_paths")
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=110, facecolor="white", bbox_inches=None)
+        plt.close(fig)
+        buf.seek(0)
+        pictures.append(Image.open(buf).convert("RGB"))
+    palette = pictures[0].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
+    gif = [p.quantize(palette=palette, dither=Image.Dither.NONE) for p in pictures]
+    durations = [180] * len(gif)
+    durations[-1] = 900                       # a pause at the end of the path before it starts again
+    gif[0].save(out / "arc_motion.gif", save_all=True, append_images=gif[1:], duration=durations, loop=0, optimize=True)
+    print("arc_motion.gif", flush=True)
 
 
 # --- crops of rendered frames --------------------------------------------------------------------
@@ -687,7 +743,7 @@ def main(argv=None):
     plt = style()
     for fig in (fig_rd, fig_gain_budget, fig_training, fig_still, fig_degree, fig_arc, fig_unseen, fig_confirm):
         fig(runs, a.out, plt)
-    fig_arc_paths(a.out, plt)
+    fig_arc_motion(a.out, plt)
     if a.crops:
         fig_motion(a.out, plt)
         fig_crops(a.out, plt)
