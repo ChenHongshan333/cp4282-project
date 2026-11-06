@@ -635,7 +635,51 @@ function setupToc() {
   update();
 }
 
+// ===================================================================================== term cards
+// A term in the text (.term, data-term) opens a short note from #term-defs just above it, or below it
+// when there is no room. A second click, a click elsewhere or Escape closes it.
+function setupTerms() {
+  const defs = $("#term-defs");
+  if (!defs) return;
+  const pop = document.createElement("div");
+  pop.className = "term-pop";
+  pop.setAttribute("role", "dialog");
+  pop.hidden = true;
+  document.body.appendChild(pop);
+  let open = null;
+  const close = () => { if (open) open.setAttribute("aria-expanded", "false"); open = null; pop.hidden = true; };
+  const show = (term) => {
+    const def = $(`[data-def="${term.dataset.term}"]`, defs);
+    if (!def) return;
+    pop.innerHTML = def.innerHTML;
+    pop.hidden = false;
+    const r = term.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    // stay inside the column of the text, clear of the side columns
+    const col = term.closest("section.chapter")?.getBoundingClientRect() ?? { left: 12, right: innerWidth - 12 };
+    const left = Math.max(col.left, Math.min(col.right - w, r.left + r.width / 2 - w / 2));
+    const above = r.top - h - 12 > 56;   // keep clear of the top bar
+    pop.className = "term-pop " + (above ? "above" : "below");
+    pop.style.left = `${left + scrollX}px`;
+    pop.style.top = `${(above ? r.top - h - 10 : r.bottom + 10) + scrollY}px`;
+    pop.style.setProperty("--arrow", `${r.left + r.width / 2 - left}px`);
+    term.setAttribute("aria-expanded", "true");
+    open = term;
+  };
+  document.addEventListener("click", (e) => {
+    const term = e.target.closest(".term");
+    if (term) { const same = term === open; close(); if (!same) show(term); return; }
+    if (!pop.contains(e.target)) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") return close();
+    const term = e.target.closest?.(".term");
+    if (term && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); const same = term === open; close(); if (!same) show(term); }
+  });
+  addEventListener("resize", close);
+}
+
 setupToc();
+setupTerms();
 $$(".w-volume").forEach(volumeWidget);
 fillTables();
 trainingWidget();

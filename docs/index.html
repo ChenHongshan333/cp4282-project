@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261106a">
+<link rel="stylesheet" href="assets/style.css?v=20261106d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>12 numbers per Gaussian
@@ -68,7 +68,7 @@
 <h2><span class="num">1</span>Background</h2>
 
 <h3>1.1 Video Representation via Space-Time Gaussians (Unit 16)</h3>
-<p>In Unit 16, a short video sequence is represented as a summation of continuous, colored 3D Gaussians spanning both spatial and temporal domains. Each <b>space-time Gaussian</b> - defined over spatial coordinates <span class="math">(x, y)</span> and time <span class="math">t</span> - is characterized by its center position, spatial footprint, color, and temporal duration.</p>
+<p>In <a href="https://weitsang.github.io/gaussian-splatting-notes/unit-16/">Unit 16</a>, a short video sequence is represented as a summation of continuous, colored 3D Gaussians spanning both spatial and temporal domains. Each <b>space-time Gaussian</b> - defined over spatial coordinates <span class="math">(x, y)</span> and time <span class="math">t</span> - is characterized by its center position, spatial footprint, color, and temporal duration.</p>
 <p>A space-time Gaussian exhibits transient visibility: its amplitude peaks at time <span class="math">t<sub>0</sub></span> and decays smoothly before and after. Throughout its lifespan, the Gaussian undergoes linear translation at a constant velocity <span class="math">v</span> while maintaining a fixed spatial covariance. To render a video frame at time <span class="math">t</span>, each Gaussian is evaluated at that timestamp to yield a 2D spatial slice, defined by its instantaneous position and attenuated opacity. The final frame is synthesized by blending these 2D slices. This process is illustrated for a single Gaussian in the figure below. Fitting a video model thus entails optimizing the parameters of all Gaussians via gradient descent to minimize the discrepancy between the synthesized frames and the ground truth.</p>
 
 <div class="widget w-volume" id="w-volume-m0">
@@ -114,11 +114,11 @@
 </figure>
 
 <h3>1.3 VeGaS: Folded-Gaussians Representation</h3>
-<p>To address the limitations of linear motion models, VeGaS (Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed <b>Folded-Gaussians</b>, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in PSNR) compared to prior video representations, with a primary application toward photorealistic video editing.</p>
+<p>To address the limitations of linear motion models, <span class="term" data-term="vegas" tabindex="0" role="button" aria-expanded="false">VeGaS</span> (Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed <b>Folded-Gaussians</b>, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in <span class="term" data-term="psnr" tabindex="0" role="button" aria-expanded="false">PSNR</span>) compared to prior video representations, with a primary application toward photorealistic video editing.</p>
 
 <h3>1.4 Critical Analysis and Motivation</h3>
 <p>While VeGaS demonstrates the benefits of polynomial motion trajectories - reporting a reconstruction PSNR of 38.53 dB for a 7th-degree trajectory versus 38.15 dB for a linear baseline (1st-degree) - this performance gain is conflated with an increased storage footprint. A 7th-degree Gaussian mandates additional parameters per primitive, and the reported 7th-degree model utilizes a larger overall Gaussian count (0.62M vs. 0.57M). Consequently, the observed PSNR improvements may stem primarily from increased model capacity rather than trajectory non-linearity alone. Furthermore, the contribution of dynamic scaling (shrinking) remains unisolated in ablation studies, and total model storage sizes were omitted from the analysis.</p>
-<p>Under a strict Iso-Storage condition (equal total parameter budget), introducing folded trajectories presents a fundamental trade-off. Parameterizing non-linear trajectories reduces the total allocation of Gaussians available to represent the scene. Moreover, this parameter overhead is uniformly applied, burdening static or linearly drifting background regions (e.g., camera pans) with unnecessary higher-degree parameters. This project systematically investigates this trade-off to evaluate whether allocating parameter budgets toward non-linear trajectory representation outperforms simply expanding the primitive count of linear Gaussians.</p>
+<p>Under a strict Iso-Storage condition (equal total parameter budget), introducing folded trajectories presents a fundamental trade-off. Parameterizing non-linear trajectories reduces the total allocation of Gaussians available to represent the scene. Moreover, this parameter overhead is uniformly applied, burdening static or linearly drifting background regions (e.g., camera pans) with unnecessary higher-degree parameters. This project systematically investigates this trade-off to evaluate whether allocating parameter budgets toward non-linear trajectory representation outperforms simply expanding the primitive count of linear Gaussians (see the <a href="assets/CP4282_project_proposal_hongshan.pdf">project proposal</a>).</p>
 </section>
 
 <!-- ================================================================ 2 QUESTIONS -->
@@ -127,14 +127,14 @@
 <h3>2.1 Primary Focus: Representation Efficiency under Capacity Constraints</h3>
 <div class="callout finding">
 <p><b>Q1.</b> Under a fixed storage budget, does Gaussian folding provide a net benefit in reconstruction quality over linear space-time baselines?</p>
-<details class="why"><summary>Context &amp; Metric</summary><p>Treating fitted Gaussians as a compact scene representation, I evaluate each model by its reconstruction PSNR on training frames under an identical total parameter/storage footprint. This explicitly tests whether parameterizing dynamic trajectories (curved paths, dynamic temporal scaling, or both) outweighs the loss of spatial resolution caused by reducing the total primitive count.</p></details>
+<details class="why"><summary>Context &amp; Metric</summary><p>Treating fitted Gaussians as a compact scene representation, each model is evaluated by its reconstruction PSNR on training frames under an identical total parameter/storage footprint. This explicitly tests whether parameterizing dynamic trajectories (curved paths, dynamic temporal scaling, or both) outweighs the loss of spatial resolution caused by reducing the total primitive count.</p></details>
 <p><b>Q2.</b> If trajectory folding yields performance gains, are these improvements driven specifically by superior motion modeling?</p>
 <details class="why"><summary>Hypothesis</summary><p>If gains stem from faithful physical trajectory modeling rather than generic capacity allocation, the PSNR advantage should scale with scene motion magnitude (higher velocity and curvature) and concentrate overwhelmingly within dynamic foreground regions rather than static/linearly drifting backgrounds.</p></details>
 </div>
 <h3>2.2 Supplementary Analysis: Temporal Interpolation Capability</h3>
 <div class="callout">
 <p><b>Q3.</b> Does non-linear trajectory modeling improve reconstruction accuracy on unseen intermediate frames (video frame interpolation)?</p>
-<details class="why"><summary>Context &amp; Rationale</summary><p>When trained on temporally sub-sampled frames (e.g., at a stride of 3: frames <span class="math">0, 3, 6, …</span>), a linear baseline may approximate complex curves on the training frames with a sequence of short-lived Gaussians. If so, it should draw the unobserved intermediate timestamps (<span class="math">1, 2, 4, 5, …</span>) poorly, while a model that has captured the motion should not. I score these frames with the same models and the same storage as in Q1, so a gain here is direct evidence on whether folded models capture the underlying motion dynamics (informing Q2).</p></details>
+<details class="why"><summary>Context &amp; Rationale</summary><p>When trained on temporally sub-sampled frames (e.g., at a stride of 3: frames <span class="math">0, 3, 6, …</span>), a linear baseline may approximate complex curves on the training frames with a sequence of short-lived Gaussians. If so, it should draw the unobserved intermediate timestamps (<span class="math">1, 2, 4, 5, …</span>) poorly, while a model that has captured the motion should not. These frames are scored with the same models and the same storage as in Q1, so a gain here is direct evidence on whether folded models capture the underlying motion dynamics (informing Q2).</p></details>
 </div>
 </section>
 
@@ -148,7 +148,7 @@
 <p>The VeGaS architecture combines curved trajectories and shrinking within a single model, making it impossible to isolate their individual effects. To address this, the design factorizes the representation into two orthogonal components: the trajectory of the centre (straight or quadratic) and shrinking (disabled or enabled). This yields four model variants (Table 2).</p>
 <div class="table-wrap" data-short="The four models">
 <table class="mid-num">
-<caption><b>Table 2.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> denotes the slice weight at time <span class="math">t</span>, and <span class="math">L</span> is the Cholesky factor governing spatial shape.</caption>
+<caption><b>Table 2.</b> The four models. Here <span class="math">τ = t − t<sub>0</sub></span>, <span class="math">w(t)</span> denotes the slice weight at time <span class="math">t</span>, and <span class="math">L</span> is the <span class="term" data-term="cholesky" tabindex="0" role="button" aria-expanded="false">Cholesky factor</span> governing spatial shape.</caption>
 <thead><tr><th>Model</th><th>Centre position at time t</th><th>Shape (covariance) at time t</th><th class="num">Storage per Gaussian (scalars)</th></tr></thead>
 <tbody>
 <tr><td><span class="chip" style="background:var(--m0)"></span>M0 straight (Unit 16 baseline)</td><td>μ + vτ</td><td>L Lᵀ</td><td class="num">12</td></tr>
@@ -188,11 +188,11 @@
   </div>
 </div>
 
-<p><b>Controlled factors across all variants.</b> The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.</p>
+<p><b>Controlled factors across all variants.</b> The renderer, loss objective (mean squared error across fitted frames, optimized jointly), <span class="term" data-term="adam" tabindex="0" role="button" aria-expanded="false">Adam</span> optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.</p>
 <p><b>Higher-degree extensions.</b> As a supplementary extension, polynomial paths of higher degrees are evaluated. A path of degree <span class="math">d</span> requires <span class="math">12 + 2(d − 1)</span> scalars per Gaussian: degree 3 (D3) costs 16 scalars and degree 7 (D7, the VeGaS default) costs 24. Comparing degrees 1, 2, 3 and 7 (M0, M1, D3, D7) under an equal storage budget tests whether the performance gains reported in the VeGaS ablation persist once storage overhead is controlled. These models lie outside the primary 2×2 design.</p>
 
 <h3>3.2 Data and motion characterization</h3>
-<p>All test clips are drawn from the UVG dataset (Mercat et al., 2020) at 1080p and 120 frames per second, downsampled to 480×270 resolution as in Unit 16.</p>
+<p>All test clips are drawn from the <span class="term" data-term="uvg" tabindex="0" role="button" aria-expanded="false">UVG dataset</span> (Mercat et al., 2020) at 1080p and 120 frames per second, downsampled to 480×270 resolution as in Unit 16.</p>
 <p>Each clip spans 10 frames. At stride 1 these are consecutive frames; at stride 3, every third frame is retained (0, 3, 6, …, 27). Stride 3 widens the interval between observed frames, so the displacement between neighbouring sampled frames, and its change from one pair to the next, grow, while frame count and visual content are preserved. Each sequence is evaluated at both stride 1 and stride 3.</p>
 <p>To determine whether performance gains follow motion characteristics, sequences with curved trajectories were selected alongside a control sequence exhibiting straight motion. Sequence roles were assigned following visual inspection.</p>
 <div class="cards">
@@ -213,7 +213,7 @@
 </tbody>
 </table>
 </div>
-<p>The proposal specified confirming these roles prior to the main runs by quantifying motion via optical flow (Farnebäck), with any sequence failing to match its intended role being replaced. Speed is the mean displacement per frame across the image plane; acceleration is the frame-to-frame change of displacement, measured along feature trajectories; and bend is acceleration divided by speed, so a higher bend indicates a greater departure from steady, straight motion. The measurement showed that YachtRide's motion is not straight, so Bosphorus was added as the straight-motion control before the main experiment. The measured values are given in Table A1 (Appendix).</p>
+<p>The proposal specified confirming these roles prior to the main runs by quantifying motion via <span class="term" data-term="flow" tabindex="0" role="button" aria-expanded="false">optical flow</span> (Farnebäck), with any sequence failing to match its intended role being replaced. Speed is the mean displacement per frame across the image plane; acceleration is the frame-to-frame change of displacement, measured along feature trajectories; and bend is acceleration divided by speed, so a higher bend indicates a greater departure from steady, straight motion. The measurement showed that YachtRide's motion is not straight, so Bosphorus was added as the straight-motion control before the main experiment. The measured values are given in Table A1 (Appendix).</p>
 <p>Additionally, a 30-frame clip of Jockey at stride 1 is included with tripled storage budgets to test a longer clip.</p>
 
 <h3>3.3 Reconstruction under a fixed storage budget</h3>
@@ -232,7 +232,7 @@
 </table>
 </div>
 <p>The four evaluation budgets provide M0 with 250 to 2,000 Gaussians, the counts used in the Unit 16 example. Because M1 holds fewer Gaussians than M0 at every budget, M1 against M0 measures the net gain of the curved trajectory after its storage cost.</p>
-<p>Primary evaluation relies on PSNR of fitted frames plotted against storage budgets. SSIM is recorded to verify whether PSNR improvements reflect structural fidelity rather than colour smoothing.</p>
+<p>Primary evaluation relies on PSNR of fitted frames plotted against storage budgets. <span class="term" data-term="ssim" tabindex="0" role="button" aria-expanded="false">SSIM</span> is recorded to verify whether PSNR improvements reflect structural fidelity rather than colour smoothing.</p>
 <div class="rule">
 <p><b>Pass criterion.</b> The curved trajectory (M1) passes if and only if M1 outperforms M0 by more than 0.3 dB, and by more than the range between seeds, on at least 3 of the 4 storage budgets on both Jockey and ShakeNDry at stride 3, the two clips chosen in the proposal for their curved motion. Otherwise, it fails. Shrinking is judged by the same decision rule, comparing M2 against M0.</p>
 </div>
@@ -274,8 +274,8 @@
 <h2><span class="num">4</span>How the experiments were run</h2>
 
 <h3>4.1 Implementation and verification</h3>
-<p>The code adds the slicing step of the models and its gradients on top of the course program <code>gaussian_image_video.py</code>, which is used unchanged. Each model is fitted with Adam on all frames of the clip at once. No Gaussians are added or removed during training, so each model keeps its budget exactly. All fits ran on a laptop RTX 4060.</p>
-<p>A finite-difference check confirmed the gradients: 1×10<sup>−8</sup> for the slicing step and 1 to 2×10<sup>−4</sup> for a whole clip (limit 0.02). The faster kernel used here matches the course kernel to 1×10<sup>−6</sup> in pixels and 2×10<sup>−6</sup> in gradients. This page draws the fitted models in your browser; its renderer was checked against the Python one on 14 frames, and the two images agree to 118 dB or better.</p>
+<p>The code adds the slicing step of the models and its gradients on top of the course program <a href="https://github.com/ChenHongshan333/cp4282-project/blob/master/gaussian_image_video.py"><code>gaussian_image_video.py</code></a>, which is used unchanged. Each model is fitted with Adam on all frames of the clip at once. No Gaussians are added or removed during training, so each model keeps its budget exactly. All fits ran on a laptop RTX 4060.</p>
+<p>A <span class="term" data-term="fd" tabindex="0" role="button" aria-expanded="false">finite-difference check</span> confirmed the gradients: 1×10<sup>−8</sup> for the slicing step and 1 to 2×10<sup>−4</sup> for a whole clip (limit 0.02). The faster kernel used here matches the course kernel to 1×10<sup>−6</sup> in pixels and 2×10<sup>−6</sup> in gradients. This page draws the fitted models in your browser; its renderer was checked against the Python one on 14 frames, and the two images agree to 118 dB or better.</p>
 <p>The course kernel gives one GPU thread to each Gaussian. The faster kernel gives one thread to each row of a Gaussian and draws all 10 frames in one launch. Fitting became 7 times faster (69 s to 9 s for 300 steps) with the same PSNR, and a 3,000-step fit takes 40 to 60 s. The learning rates fall to a quarter over a run, so a 30,000-step run lowers them more slowly than a 3,000-step run.</p>
 
 <h3>4.2 Preliminary diagnostic and protocol adjustment</h3>
@@ -298,8 +298,8 @@
 </div></details>
 
 <h3>4.4 Measurement and reporting changes</h3>
-<p>Optical flow found the moving object reliably only on ShakeNDry, where the camera is still, so instead of the planned masks a Mask R-CNN model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame.</p>
-<p>VMAF from Netflix was also added (via ffmpeg, upscaled to 1080p as recommended); at this low resolution it is only a side reference. For the test of Section 3.3, the spread between seeds is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared.</p>
+<p>Optical flow found the moving object reliably only on ShakeNDry, where the camera is still, so instead of the planned masks a <span class="term" data-term="maskrcnn" tabindex="0" role="button" aria-expanded="false">Mask R-CNN</span> model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame.</p>
+<p><span class="term" data-term="vmaf" tabindex="0" role="button" aria-expanded="false">VMAF</span> from Netflix was also added (via ffmpeg, upscaled to 1080p as recommended); at this low resolution it is only a side reference. For the test of Section 3.3, the spread between seeds is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared.</p>
 
 <h3>4.5 Experimental roadmap</h3>
 <p>Figure 2 shows the experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it, and Section 5 follows the same order. The frames between of Q3 needed no new fits: they were drawn from the 192 fully trained models of the main experiment. The full record of fits and training steps is in Table A28 (Appendix).</p>
@@ -711,22 +711,36 @@ python -m stg.figures --crops                              # figures and tables 
 </figure>
 <h3>References</h3>
 <ul style="font-size:16px">
-<li>CP4282 course notes, Unit 16: 2D Gaussians for Images and Videos; Unit 14: Compaction of 3DGS.</li>
+<li>CP4282 course notes, <a href="https://weitsang.github.io/gaussian-splatting-notes/unit-16/">Unit 16: 2D Gaussians for Images and Videos</a>; Unit 14: Compaction of 3DGS.</li>
 <li>W. Smolak-Dyżewska, D. Malarz, K. Howil, J. Kaczmarczyk, M. Mazur, P. Spurek. <a href="https://arxiv.org/abs/2411.11024">VeGaS: Video Gaussian Splatting</a>. arXiv:2411.11024, 2024.</li>
-<li>X. Zhang et al. GaussianImage: 1000 FPS Image Representation and Compression by 2D Gaussian Splatting. ECCV 2024.</li>
-<li>A. Mercat, M. Viitanen, J. Vanne. UVG dataset: 50/120fps 4K sequences for video codec analysis and development. ACM MMSys 2020. (Videos under CC BY-NC 3.0.)</li>
-<li>G. Farnebäck. Two-frame motion estimation based on polynomial expansion. SCIA 2003.</li>
-<li>K. He, G. Gkioxari, P. Dollár, R. Girshick. Mask R-CNN. ICCV 2017.</li>
-<li>Z. Li, A. Aaron, I. Katsavounidis, A. Moorthy, M. Manohara. Toward a practical perceptual video quality metric (VMAF). Netflix Tech Blog, 2016.</li>
+<li>X. Zhang et al. <a href="https://arxiv.org/abs/2403.08551">GaussianImage: 1000 FPS Image Representation and Compression by 2D Gaussian Splatting</a>. ECCV 2024.</li>
+<li>A. Mercat, M. Viitanen, J. Vanne. <a href="https://doi.org/10.1145/3339825.3394937">UVG dataset: 50/120fps 4K sequences for video codec analysis and development</a>. ACM MMSys 2020. (Videos under CC BY-NC 3.0.)</li>
+<li>G. Farnebäck. <a href="https://doi.org/10.1007/3-540-45103-X_50">Two-frame motion estimation based on polynomial expansion</a>. SCIA 2003.</li>
+<li>K. He, G. Gkioxari, P. Dollár, R. Girshick. <a href="https://arxiv.org/abs/1703.06870">Mask R-CNN</a>. ICCV 2017.</li>
+<li>Z. Li, A. Aaron, I. Katsavounidis, A. Moorthy, M. Manohara. <a href="https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652">Toward a practical perceptual video quality metric</a> (VMAF). Netflix Tech Blog, 2016.</li>
+<li>D. P. Kingma, J. Ba. <a href="https://arxiv.org/abs/1412.6980">Adam: A method for stochastic optimization</a>. ICLR 2015.</li>
+<li>Z. Wang, A. Bovik, H. Sheikh, E. P. Simoncelli. <a href="https://doi.org/10.1109/TIP.2003.819861">Image quality assessment: from error visibility to structural similarity</a>. IEEE Transactions on Image Processing, 2004.</li>
 </ul>
 </section>
 
+<div id="term-defs" hidden>
+<div data-def="vegas"><b>VeGaS: Video Gaussian Splatting</b> (Smolak-Dyżewska et al., 2024). A video representation built from Folded-Gaussians: the centre of each 2D slice follows a polynomial in time, and the slice shrinks as it fades. <a href="https://arxiv.org/abs/2411.11024" target="_blank" rel="noopener">Paper (arXiv) →</a></div>
+<div data-def="psnr"><b>PSNR</b> (peak signal-to-noise ratio) compares a reconstruction with the original as 10·log<sub>10</sub>(MAX² / MSE), where MAX is the largest pixel value and MSE the mean squared error. Higher is better; a gain of 3 dB halves the mean squared error.</div>
+<div data-def="cholesky"><b>Cholesky factor.</b> A lower-triangular matrix <i>L</i> with a positive diagonal such that <i>L L</i>ᵀ equals the covariance. Storing <i>L</i> (3 numbers for a 2D Gaussian) keeps the covariance symmetric and positive definite during optimization.</div>
+<div data-def="adam"><b>Adam</b> (Kingma and Ba, 2015) is a gradient-based optimizer that scales the step of each parameter using running averages of its gradient and of the squared gradient. <a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener">Paper (arXiv) →</a></div>
+<div data-def="uvg"><b>UVG dataset</b> (Mercat et al., 2020). Sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group, made for video codec analysis and development. <a href="https://ultravideo.fi/dataset.html" target="_blank" rel="noopener">Dataset page →</a> · <a href="https://doi.org/10.1145/3339825.3394937" target="_blank" rel="noopener">Paper →</a></div>
+<div data-def="flow"><b>Optical flow</b> estimates how far each pixel moves from one frame to the next. Farnebäck's method approximates the neighbourhood of each pixel in both frames by a quadratic polynomial and reads the displacement from how the polynomial shifts. <a href="https://doi.org/10.1007/3-540-45103-X_50" target="_blank" rel="noopener">Paper (Farnebäck, 2003) →</a></div>
+<div data-def="ssim"><b>SSIM</b> (structural similarity; Wang et al., 2004) compares the local brightness, contrast and structure of two images. A value of 1 means the images are identical. <a href="https://doi.org/10.1109/TIP.2003.819861" target="_blank" rel="noopener">Paper →</a></div>
+<div data-def="fd"><b>Finite-difference check.</b> The hand-written gradient is compared with the change in the loss when a single parameter is nudged by a small amount. A small difference shows that the gradient is coded correctly.</div>
+<div data-def="maskrcnn"><b>Mask R-CNN</b> (He et al., 2017) detects objects in an image and outlines each one with a pixel mask. The version used here comes from torchvision and is trained on the COCO data set. <a href="https://arxiv.org/abs/1703.06870" target="_blank" rel="noopener">Paper (arXiv) →</a></div>
+<div data-def="vmaf"><b>VMAF</b> (Video Multimethod Assessment Fusion) is a video quality metric from Netflix. It combines several elementary quality measures with a machine-learned model trained on human ratings of video quality. <a href="https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652" target="_blank" rel="noopener">Netflix Tech Blog →</a></div>
+</div>
 </main>
 
 <footer>
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261106a"></script>
+<script type="module" src="assets/js/main.js?v=20261106d"></script>
 </body>
 </html>
