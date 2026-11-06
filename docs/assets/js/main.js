@@ -73,17 +73,15 @@ async function fillTables() {
   if (location.hash) $(location.hash)?.scrollIntoView();
 }
 
-// A soft background scale for gains over M0 (step 60), only in the columns a table names in data-gain-cols
+// A soft background scale for gains over M0 (steps 60-61), only in the columns a table names in data-gain-cols
 // (0-based cell indices of its data rows). Five fixed bins in dB, the same for every table; it encodes the size
 // and direction of a gain, not the test of Section 3.3. Group rows and missing values ("—") stay plain.
+// The legend is written once in the page (#colour-scale, before Appendix A); this function only colours cells.
 const GAIN_BINS = (x) => (x <= -1 ? "gs-n2" : x < -0.3 ? "gs-n1" : x <= 0.3 ? "" : x < 1 ? "gs-p1" : "gs-p2");
 const gainValue = (text) => {
   const t = text.trim().replace(/−/g, "-");
   return /^[+-]?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : NaN;
 };
-const GAIN_LEGEND = `<span class="gs-legend"><span class="gs-title">Background: gain over M0 (dB)</span>
-  <i class="gs-n2">≤ −1</i><i class="gs-n1">−1 to −0.3</i><i class="gs-0">−0.3 to +0.3</i><i class="gs-p1">+0.3 to +1</i><i class="gs-p2">≥ +1</i>
-  <span class="gs-note">Blue: higher PSNR than M0; orange: lower. A visual scale of the size of the change, not the test of Section 3.3.</span></span>`;
 function gainScale() {
   for (const wrap of $$("[data-gain-cols]")) {
     const cols = wrap.dataset.gainCols.split(",").map(Number);
@@ -95,7 +93,6 @@ function gainScale() {
         if (bin) cell.classList.add("gs", bin);
       }
     }
-    $(".tcap", wrap)?.insertAdjacentHTML("beforeend", GAIN_LEGEND);
   }
 }
 

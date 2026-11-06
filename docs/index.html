@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261107h">
+<link rel="stylesheet" href="assets/style.css?v=20261107i">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -425,6 +425,10 @@
 <h2>Appendix</h2>
 <p>The appendix has four groups: A covers the setup and reproducibility of the experiments, and B to D hold the full material for Q1 to Q3 (Sections 5.1 to 5.3). The references follow.</p>
 
+<div class="gs-scale" id="colour-scale">
+<span class="gs-head">ΔPSNR vs M0 (dB) <span class="term gs-info" data-term="gscale" tabindex="0" role="button" aria-expanded="false" aria-label="About the colour scale">?</span></span>
+<span class="gs-band" aria-hidden="true"><span class="gs-bar"><i class="gs-n2"></i><i class="gs-n1"></i><i class="gs-0"></i><i class="gs-p1"></i><i class="gs-p2"></i></span><span class="gs-ticks"><b style="left:20%">−1</b><b style="left:40%">−0.3</b><b style="left:60%">+0.3</b><b style="left:80%">+1</b></span></span>
+</div>
 <div class="app-group" id="app-group-a">
 <h3 id="app-setup" data-nav="A. Setup and reproducibility">A. Experimental setup and reproducibility</h3>
 <p>How the results can be reproduced, how the motion of the clips was measured, how the settings were chosen, and which experiments were run (Sections 3 and 4).</p>
@@ -460,7 +464,7 @@ python -m stg.figures --crops                              # figures and tables 
 </div>
 <h4 id="app-tuning">A.3 Hyperparameter selection</h4>
 <p>The settings for the 3,000-step experiments were chosen on the validation clip as described in Section 4.3, with the results in <a href="#tuning-results">Table A1</a>. For full training, the velocity learning rate was chosen again on the same clip, after the checks of training length in <a href="#app-convergence">Appendix B</a>.</p>
-<div class="table-wrap" data-short="Learning rate re-tuned"><table class="data">
+<div class="table-wrap" data-short="Learning rate re-tuned" data-gain-cols="5"><table class="data">
 <caption><b>Table A3.</b> The velocity learning rate re-tuned for 30,000 steps on the validation clip (Jockey from frame 60, stride 3, seed 0): PSNR at each rate, the chosen rate, and the gap to M0 at the chosen rates.</caption>
 <thead><tr><th rowspan="2" class="num">Budget</th><th colspan="3" class="num">PSNR at velocity rate (dB)</th><th rowspan="2" class="num">Chosen rate</th><th rowspan="2" class="num">Gap to M0 (dB)</th></tr><tr><th class="num">0.05</th><th class="num">0.1</th><th class="num">0.2</th></tr></thead>
 <tbody>
@@ -518,7 +522,7 @@ python -m stg.figures --crops                              # figures and tables 
 
 <div class="app-group" id="app-group-b">
 <h3 id="app-recon" data-nav="B. Reconstruction efficiency (Q1)">B. Reconstruction efficiency (Q1)</h3>
-<p>Full results for Section 5.1, after 3,000 steps and fully trained, with the checks of training length, the higher-degree paths, the longer clip and the cost.</p>
+<p>Full results for Section 5.1, after 3,000 steps and fully trained, with the checks of training length, the higher-degree paths, the longer clip and the cost. <a class="gs-link" href="#colour-scale">Colour scale</a></p>
 <figure data-short="PSNR against storage">
   <img src="figures/rd.png" alt="PSNR against storage for the four models, after 3,000 steps (top) and fully trained (bottom)">
   <figcaption><b>Figure A1.</b> PSNR on the fitted frames against storage, at stride 3 (mean of 3 seeds). After 3,000 steps (top row), M3 and M2 lie above the baseline on every clip. Fully trained (bottom row, Section 5.1.2), the four lines nearly meet.</figcaption>
@@ -534,11 +538,11 @@ python -m stg.figures --crops                              # figures and tables 
 <h4 id="app-recon-full">B.2 Results after full training</h4>
 <p>The same test when fully trained, then the gain in every clip and budget with its seed range.</p>
 <div class="table-wrap" data-short="Test per budget, fully trained" data-atable="full_test" data-caption="<b>Table A8.</b> The test of Section 3.3 when fully trained, at stride 3, as in Table A5, with the seed spread of these fits. Shaded bold cells meet the criterion."></div>
-<div class="table-wrap" data-short="Every cell, fully trained" data-atable="full_cells" data-caption="<b>Table A9.</b> Gain over M0 when fully trained (stride 3), by clip and budget: mean, lowest and highest over 3 seeds (dB). The gains after 3,000 steps at each budget are in gains_3000_steps.csv."></div>
+<div class="table-wrap" data-short="Every cell, fully trained" data-gain-cols="2,5,8" data-atable="full_cells" data-caption="<b>Table A9.</b> Gain over M0 when fully trained (stride 3), by clip and budget: mean, lowest and highest over 3 seeds (dB). The gains after 3,000 steps at each budget are in gains_3000_steps.csv."></div>
 <p class="dl">Data: <a href="data/csv/gains_full_training.csv" download>gains_full_training.csv</a> (every clip, budget and model when fully trained, with the seed range, the test, and the gains on the frames between).</p>
 <h4 id="app-convergence">B.3 Training convergence checks</h4>
 <p>These checks found that 3,000 steps is far from full training, and led to the fully trained comparison of Section 5.1.2.</p>
-<div class="table-wrap" data-short="More Gaussians"><table>
+<div class="table-wrap" data-short="More Gaussians" data-gain-cols="3,4"><table>
 <caption><b>Table A10.</b> More Gaussians, 3,000 steps, Jockey stride 3, seed 0. M3's lead over M0 at step 500 and at step 3,000.</caption>
 <thead><tr><th class="num">Gaussians (M0)</th><th class="num">M0 PSNR</th><th class="num">M3 PSNR</th><th class="num">M3 − M0, step 500</th><th class="num">M3 − M0, step 3,000</th></tr></thead>
 <tbody>
@@ -569,7 +573,7 @@ python -m stg.figures --crops                              # figures and tables 
   <figcaption><b>Figure A2.</b> Gain over M0 against the degree of the path, with the seed range. The higher the degree, the worse the result, and the drop is larger on the frames between (right), which no model was fitted to.</figcaption>
 </figure>
 <p>On the frames between, the higher-degree paths are worse by up to 4 dB: a degree-7 path swings about between the frames it was fitted to. Figure A2 (right) shows the larger drop on the frames between. On Jockey at budget 24,000, D7 loses about 5 dB from the fitted frames to the frames between, while M0 loses 3.4 dB and M1 2.9 dB. The large drop on the frames between shows that the swinging is real.</p>
-<div class="table-wrap" data-short="Gain by degree" data-atable="poly" data-caption="<b>Table A12.</b> Gain over M0 by degree of the path, fully trained, stride 3: mean, lowest and highest over 3 seeds (dB)."></div>
+<div class="table-wrap" data-short="Gain by degree" data-gain-cols="3,6,9" data-atable="poly" data-caption="<b>Table A12.</b> Gain over M0 by degree of the path, fully trained, stride 3: mean, lowest and highest over 3 seeds (dB)."></div>
 <ul>
 <li>Two causes are mixed here: fewer Gaussians, and paths that swing. Comparing at equal storage includes both on purpose.</li>
 <li>Tuning the learning rate of the higher terms might help D7 a little, but learning rates changed results by about 0.1 dB elsewhere, and D7 is 1 to 2 dB behind.</li>
@@ -577,18 +581,18 @@ python -m stg.figures --crops                              # figures and tables 
 </ul>
 <p class="dl">Data: <a href="data/csv/degree.csv" download>degree.csv</a> (the gains of M1, D3 and D7 on the fitted frames, the frames between and the object).</p>
 <h4 id="app-cost">B.5 Longer clip and computational cost</h4>
-<div class="table-wrap" data-short="The 30-frame Jockey clip" data-atable="long_clip" data-caption="<b>Table A13.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; Gaussians live longer on a longer clip and their paths bend more."></div>
+<div class="table-wrap" data-short="The 30-frame Jockey clip" data-gain-cols="2,3,4" data-atable="long_clip" data-caption="<b>Table A13.</b> The 30-frame Jockey clip (stride 1, budgets tripled), 3,000 steps. The gains are larger than on 10 frames; Gaussians live longer on a longer clip and their paths bend more."></div>
 <div class="table-wrap" data-short="Cost" data-atable="cost" data-caption="<b>Table A14.</b> Cost at budget 24,000 (10 frames). Storage is equal by design, and every model uses about 150 MB of GPU memory."></div>
 </div>
 
 <div class="app-group" id="app-group-c">
 <h3 id="app-attr" data-nav="C. Motion attribution (Q2)">C. Motion attribution (Q2)</h3>
-<p>Diagnostics for Section 5.2. C.1 holds the main comparisons, where the gains lie and whether they need motion; C.2 and C.3 give the detailed records of what the Gaussians learn and how long they live.</p>
+<p>Diagnostics for Section 5.2. C.1 holds the main comparisons, where the gains lie and whether they need motion; C.2 and C.3 give the detailed records of what the Gaussians learn and how long they live. <a class="gs-link" href="#colour-scale">Colour scale</a></p>
 <h4 id="app-regions">C.1 Spatial regions and static-image controls</h4>
 <p>Where the gains lie in the frame, after 3,000 steps and fully trained, and the control with still photographs.</p>
-<div class="table-wrap" data-short="Object vs. background, 3,000 steps" data-atable="t3k_inout" data-caption="<b>Table A15.</b> Gain over M0 after 3,000 steps inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds."></div>
-<div class="table-wrap" data-short="Object vs. background, fully trained" data-atable="full_inout" data-caption="<b>Table A16.</b> Fully trained gain over M0 (stride 3) inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds."></div>
-<div class="table-wrap" data-short="Still photographs" data-atable="still" data-caption="<b>Table A17.</b> Still photographs, 3,000 steps: gain over M0, mean, lowest and highest over 3 seeds (dB). Last column: M2's gain on the same clip in motion (stride 1)."></div>
+<div class="table-wrap" data-short="Object vs. background, 3,000 steps" data-gain-cols="1,2,3,4,5,6" data-atable="t3k_inout" data-caption="<b>Table A15.</b> Gain over M0 after 3,000 steps inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds."></div>
+<div class="table-wrap" data-short="Object vs. background, fully trained" data-gain-cols="1,2,3,4,5,6" data-atable="full_inout" data-caption="<b>Table A16.</b> Fully trained gain over M0 (stride 3) inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds."></div>
+<div class="table-wrap" data-short="Still photographs" data-gain-cols="2,5,8,11" data-atable="still" data-caption="<b>Table A17.</b> Still photographs, 3,000 steps: gain over M0, mean, lowest and highest over 3 seeds (dB). Last column: M2's gain on the same clip in motion (stride 1)."></div>
 <p class="dl">Data: <a href="data/csv/still_photographs.csv" download>still_photographs.csv</a> (the M0 PSNR and the gains of M1 to M3 on each photograph and budget).</p>
 <h4 id="app-learned">C.2 Learned motion parameters</h4>
 <div class="table-wrap" data-short="Learned vs. real acceleration"><table>
@@ -635,7 +639,7 @@ python -m stg.figures --crops                              # figures and tables 
 
 <div class="app-group" id="app-group-d">
 <h3 id="app-interp" data-nav="D. Temporal interpolation (Q3)">D. Temporal interpolation (Q3)</h3>
-<p>Material for Section 5.3. The confirmatory test on real clips and the synthetic arcs come first; the exploratory analysis of the real clips, which led to the confirmatory test, follows.</p>
+<p>Material for Section 5.3. The confirmatory test on real clips and the synthetic arcs come first; the exploratory analysis of the real clips, which led to the confirmatory test, follows. <a class="gs-link" href="#colour-scale">Colour scale</a></p>
 <h4 id="app-confirm">D.1 Real-video confirmation</h4>
 <div class="callout criteria"><span class="label">The rule, fixed before the runs</span>
 <p>Only the moving object in the frames between is scored. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. It was also predicted that the gain would be larger at stride 5 than at stride 3.</p>
@@ -648,7 +652,7 @@ python -m stg.figures --crops                              # figures and tables 
 <h4 id="app-arcs">D.2 Controlled synthetic motion</h4>
 <p>Before running, four predictions were written down: no gain on the straight line; a gain that grows with the bend; at the largest bend, a gain bigger than the seed spread; and M1's Gaussians on the ball bending the right way well over half the time.</p>
 <p>All four predictions hold. On the straight line, M1 is slightly behind (it has 14% fewer Gaussians), and the seed ranges cross zero. The gain grows with the bend at both budgets. At a full turn even the worst seed gains 7.8 or 8.9 dB, far beyond the spread of about ±2 dB on the straight line. M1's Gaussians on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (at 90°, 1.50 to 1.54 against 1.57 pixels per frame²).</p>
-<div class="table-wrap" data-short="The ball, second version" data-atable="arc" data-caption="<b>Table A23.</b> The ball, second version, scored on the ball: M0's PSNR, and M1 − M0 as mean, lowest and highest over 3 seeds (dB)."></div>
+<div class="table-wrap" data-short="The ball, second version" data-gain-cols="2,6" data-atable="arc" data-caption="<b>Table A23.</b> The ball, second version, scored on the ball: M0's PSNR, and M1 − M0 as mean, lowest and highest over 3 seeds (dB)."></div>
 <div class="table-wrap" data-short="Paths on the ball"><table class="data">
 <caption><b>Table A24.</b> Paths of the Gaussians on the ball (mean of 3 seeds): distance from the true path, and for M1 the share that bends the right way. Only 3 to 25 Gaussians per model sit on the ball, so these numbers are rough.</caption>
 <thead><tr><th class="num">Budget</th><th class="num">M0 distance (px)</th><th class="num">M1 distance (px)</th><th class="num">M1 bends the right way</th></tr></thead>
@@ -683,8 +687,8 @@ python -m stg.figures --crops                              # figures and tables 
 </figure>
 <p>On the two slow boat clips, the frames between are as good as the fitted ones. On the fast clips, extra Gaussians fit the fitted frames more closely without learning the motion. On Jockey, M0's frames between are worse at budget 24,000 (25.2 dB) than at 12,000 (26.1 dB). On the dog, the frames between gain only 0.5 dB from budget 3,000 to 24,000 (24.1 to 24.6 dB), while the fitted frames gain 3 dB.</p>
 <div class="table-wrap" data-short="M0: fitted frames and frames between" data-atable="unseen_m0" data-caption="<b>Table A25.</b> M0 fully trained: PSNR on the fitted frames and the frames between, over the whole frame and on the object (dB, mean of 3 seeds)."></div>
-<div class="table-wrap" data-short="Whole frame: fitted and between" data-atable="unseen_gain" data-caption="<b>Table A26.</b> Gain over M0 over the whole frame, on the fitted frames and on the frames between (dB, mean over the budgets and 3 seeds)."></div>
-<div class="table-wrap" data-short="Object in the frames between" data-atable="unseen_obj" data-caption="<b>Table A27.</b> Gain over M0 on the moving object in the frames between: mean, lowest and highest over 3 seeds (dB). Last column: M1 on the object in the fitted frames, for comparison."></div>
+<div class="table-wrap" data-short="Whole frame: fitted and between" data-gain-cols="1,2,3,4,5,6" data-atable="unseen_gain" data-caption="<b>Table A26.</b> Gain over M0 over the whole frame, on the fitted frames and on the frames between (dB, mean over the budgets and 3 seeds)."></div>
+<div class="table-wrap" data-short="Object in the frames between" data-gain-cols="1,4,7,10" data-atable="unseen_obj" data-caption="<b>Table A27.</b> Gain over M0 on the moving object in the frames between: mean, lowest and highest over 3 seeds (dB). Last column: M1 on the object in the fitted frames, for comparison."></div>
 <h5 id="app-dogpaths">Paths of the dog's Gaussians</h5>
 <p>Points on the dog were followed with optical flow through every frame, including the ones the models never saw, and that path was compared with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with σ<sub>t</sub> ≥ 0.5). The method was first checked on the synthetic arc (<a href="#app-arcs">above</a>), whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.</p>
 <div class="tpair" style="--min: 414px">
@@ -743,6 +747,7 @@ python -m stg.figures --crops                              # figures and tables 
 <div data-def="fd"><b>Finite-difference check.</b> The hand-written gradient is compared with the change in the loss when a single parameter is nudged by a small amount. A small difference shows that the gradient is coded correctly.</div>
 <div data-def="maskrcnn"><b>Mask R-CNN</b> (He et al., 2017) detects objects in an image and outlines each one with a pixel mask. The version used here comes from torchvision and is trained on the COCO data set. <a href="https://arxiv.org/abs/1703.06870" target="_blank" rel="noopener">Paper (arXiv) →</a></div>
 <div data-def="vmaf"><b>VMAF</b> (Video Multimethod Assessment Fusion) is a video quality metric from Netflix. It combines several elementary quality measures with a machine-learned model trained on human ratings of video quality. <a href="https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652" target="_blank" rel="noopener">Netflix Tech Blog →</a></div>
+<div data-def="gscale"><b>Colour scale.</b> The background of a ΔPSNR cell shows the size and direction of the change from M0 in fixed steps, the same in every table: blue where the PSNR is higher than M0's, orange where it is lower, white within ±0.3 dB. It is not the test of Section 3.3; the cells that meet that test are marked separately, shaded green and bold, in Tables A5, A8 and A21.</div>
 <div data-def="rm-discs"><b>Synthetic discs.</b> All three abilities beat M0 on moving discs, but M1's gain fell from +1.27 to −0.02 dB when the velocity learning rate was lowered, and Gaussians on the still background moved anyway. The velocity learning rate was therefore tuned for every model.<span class="rm-ev">Preliminary diagnostic: 4 models, 4 budgets, 3 seeds.</span><span class="rm-go"><a href="#method-4-2-preliminary-diagnostic-and-protocol-adjustment">Section 4.2 →</a></span></div>
 <div data-def="rm-tune"><b>Tuning.</b> Each model, the baseline included, uses the best setting found in the tested range on a separate validation clip. The best and worst settings of a model differ by 0.3 to 0.6 dB.<span class="rm-ev">Validation clip, 8 cases per model.</span><span class="rm-go"><a href="#method-4-3-hyperparameter-selection">Section 4.3 →</a></span></div>
 <div data-def="rm-main3k"><b>Main experiment, 3,000 steps.</b> M2 and M3 beat M0 by 0.5 to 2.3 dB on every clip and pass the test of Section 3.3; the curved path (M1) fails. Most of M1's gain lies in the background, and its learned accelerations do not consistently follow the real motion.<span class="rm-ev">Reliable: 432 fits, 3 seeds.</span><span class="rm-go">Sections <a href="#results-5-1-1-results-at-the-planned-training-length">5.1.1</a>, <a href="#results-5-2-1-dependence-on-motion-and-spatial-region">5.2.1</a> and <a href="#results-5-2-3-learned-gaussian-motion-and-interpretation">5.2.3</a> →</span></div>
@@ -761,6 +766,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261107h"></script>
+<script type="module" src="assets/js/main.js?v=20261107i"></script>
 </body>
 </html>
