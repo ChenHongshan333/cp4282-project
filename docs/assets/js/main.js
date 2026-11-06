@@ -299,7 +299,7 @@ function roadmapFindings() {
 
 // A link to something inside a folded box (details) opens the box first, so the target can be seen.
 function openFoldsFor(id) {
-  const el = id && document.getElementById(id);
+  const el = id ? document.getElementById(id) : null;   // no hash: nothing to open (an empty id must not reach .closest)
   let d = el?.closest("details"), opened = false;
   while (d) { if (!d.open) { d.open = true; opened = true; } d = d.parentElement?.closest("details"); }
   return opened ? el : null;
