@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,650;1,8..60,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261107j">
+<link rel="stylesheet" href="assets/style.css?v=20261107k">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%232a78d6'/%3E%3Cstop offset='1' stop-color='%232a78d6' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='16' cy='16' rx='14' ry='9' fill='url(%23g)' transform='rotate(-30 16 16)'/%3E%3C/svg%3E">
 </head>
 <body>
@@ -196,10 +196,10 @@
 <p>Each clip spans 10 frames. At stride 1 these are consecutive frames; at stride 3, every third frame is retained (0, 3, 6, …, 27). Stride 3 widens the interval between observed frames, so the displacement between neighbouring sampled frames, and its change from one pair to the next, grow, while frame count and visual content are preserved. Each sequence is evaluated at both stride 1 and stride 3.</p>
 <p>To determine whether performance gains follow motion characteristics, sequences with curved trajectories were selected alongside a control sequence exhibiting straight motion. Sequence roles were assigned following visual inspection.</p>
 <div class="cards">
-  <div class="card"><img src="data/frames/Jockey_k0/0012.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans alongside a galloping horse whose legs swing.</span></div>
-  <div class="card"><img src="data/frames/ShakeNDry_k0/0012.webp" alt="ShakeNDry frame" loading="lazy"><b>ShakeNDry</b><span>A stationary camera captures a dog shaking off water.</span></div>
-  <div class="card"><img src="data/frames/YachtRide_k0/0012.webp" alt="YachtRide frame" loading="lazy"><b>YachtRide</b><span>The camera follows a boat on open water.</span></div>
-  <div class="card"><img src="data/frames/Bosphorus_k0/0012.webp" alt="Bosphorus frame" loading="lazy"><b>Bosphorus</b><span>The camera follows a small boat on calm water.</span></div>
+  <div class="card"><img src="figures/clip_jockey.webp" alt="Jockey frame" loading="lazy"><b>Jockey</b><span>The camera pans alongside a galloping horse whose legs swing.</span></div>
+  <div class="card"><img src="figures/clip_shakendry.webp" alt="ShakeNDry frame" loading="lazy"><b>ShakeNDry</b><span>A stationary camera captures a dog shaking off water.</span></div>
+  <div class="card"><img src="figures/clip_yachtride.webp" alt="YachtRide frame" loading="lazy"><b>YachtRide</b><span>The camera follows a boat on open water.</span></div>
+  <div class="card"><img src="figures/clip_bosphorus.webp" alt="Bosphorus frame" loading="lazy"><b>Bosphorus</b><span>The camera follows a small boat on calm water.</span></div>
 </div>
 <div class="table-wrap">
 <table>
@@ -766,6 +766,6 @@ python -m stg.figures --crops                              # figures and tables 
   Chen Hongshan · CP4282, National University of Singapore · 2026. Video frames from the UVG data set (CC BY-NC 3.0).
 </footer>
 
-<script type="module" src="assets/js/main.js?v=20261107j"></script>
+<script type="module" src="assets/js/main.js?v=20261107k"></script>
 </body>
 </html>
