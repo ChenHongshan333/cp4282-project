@@ -17,7 +17,7 @@ In [Unit 16](https://weitsang.github.io/gaussian-splatting-notes/unit-16/), a sh
 
 A space-time Gaussian exhibits transient visibility: its amplitude peaks at time $t_0$ and decays smoothly before and after. Throughout its lifespan, the Gaussian undergoes linear translation at a constant velocity $v$ while maintaining a fixed spatial covariance. To render a video frame at time $t$, each Gaussian is evaluated at that timestamp to yield a 2D spatial slice, defined by its instantaneous position and attenuated opacity. The final frame is synthesized by blending these 2D slices. Fitting a video model thus entails optimizing the parameters of all Gaussians via gradient descent to minimize the discrepancy between the synthesized frames and the ground truth.
 
-The project website illustrates this process for a single Gaussian with an interactive figure. The video is drawn as a block of frames in $x$, $y$ and time. The Gaussian occupies a region of this block, the path of its centre runs through it, and the current frame is a plane that cuts the Gaussian into a 2D slice. A side panel shows that slice and how bright the slice is in each frame; the speed of the Gaussian and how long it stays visible can be varied.
+Geometrically, the video can be seen as a block of frames stacked along the time axis, with $x$ and $y$ across each frame. A space-time Gaussian occupies an elongated region of this block, and the path of its centre runs through that region over time. Each frame is a plane at a fixed time $t$ that cuts the region; the cut is the 2D slice drawn in that frame, an ellipse centred on the path at time $t$. The slice is brightest at $t_0$ and fades in the frames before and after, more slowly for a larger duration $\sigma_t$, so a long-lived Gaussian contributes to more frames. The velocity $v$ tilts the path through the block: the faster the Gaussian, the further its slice moves from one frame to the next, always along a straight line.
 
 Under this formulation, storing a video requires persisting the parameters of every constituent Gaussian. In Unit 16, each Gaussian is parameterized by 12 values (Table 1), incurring a fixed storage overhead of 12 parameters regardless of its temporal span. Consequently, the total storage capacity scales directly with the number of Gaussians.
 
@@ -37,7 +37,7 @@ Real-world videos frequently exhibit complex non-linear motions that cannot be a
 
 ### 1.3 VeGaS: Folded-Gaussians Representation
 
-To address the limitations of linear motion models, VeGaS[^vegas] (Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed **Folded-Gaussians**, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in PSNR[^psnr]) compared to prior video representations, with a primary application toward photorealistic video editing.
+To address the limitations of linear motion models, VeGaS (Video Gaussian Splatting; Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed **Folded-Gaussians**, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in PSNR) compared to prior video representations, with a primary application toward photorealistic video editing. PSNR (peak signal-to-noise ratio), also the main score of this project, compares a reconstruction with the original as $10 \log_{10}(\mathrm{MAX}^2 / \mathrm{MSE})$, where MAX is the largest pixel value and MSE the mean squared error. Higher is better; a gain of 3 dB halves the mean squared error.
 
 ### 1.4 Critical Analysis and Motivation
 
@@ -77,9 +77,9 @@ This section describes the experimental design: the evaluated models, the test s
 
 ### 3.1 Model variants and controlled factors
 
-The VeGaS architecture combines curved trajectories and shrinking within a single model, making it impossible to isolate their individual effects. To address this, the design factorizes the representation into two orthogonal components: the trajectory of the centre (straight or quadratic) and shrinking (disabled or enabled). This yields four model variants (Table 2).
+The VeGaS architecture combines curved trajectories and shrinking within a single model, making it impossible to isolate their individual effects. To address this, the design factorizes the representation into two orthogonal components: the trajectory of the centre (straight or quadratic) and shrinking (disabled or enabled). This yields four model variants (Table 2). In every model the spatial shape is stored as a Cholesky factor $L$: a lower-triangular matrix with a positive diagonal such that $LL^\top$ equals the covariance. Storing $L$ (3 numbers for a 2D Gaussian) keeps the covariance symmetric and positive definite during optimization.
 
-**Table 2.** The four models. Here $\tau = t - t_0$, $w(t)$ denotes the slice weight at time $t$, and $L$ is the Cholesky factor[^cholesky] governing spatial shape.
+**Table 2.** The four models. Here $\tau = t - t_0$, $w(t)$ denotes the slice weight at time $t$, and $L$ is the Cholesky factor governing spatial shape.
 
 | Model | Centre position at time $t$ | Shape (covariance) at time $t$ | Storage per Gaussian (scalars) |
 |---|---|---|:---:|
@@ -92,15 +92,15 @@ For the curved trajectory, a quadratic path is selected as the minimal non-linea
 
 Comparing M1 against M0 evaluates the curved trajectory, and comparing M2 against M0 evaluates shrinking; these are the two main comparisons. M3 shows the combined effect; no separate pass criterion for M3 was fixed in the proposal.
 
-The interactive figure of Section 1.1 is repeated on the project website for the four models: M1 bends the path of the centre, M2 shrinks the slice as it fades, and M3 does both. For M2 and M3 the side panel also shows the size of the slice in each frame, and the bend and the smallest size when fading ($s_{\min}$) can be varied.
+In the picture of Section 1.1, the four models differ as follows. In M1 the path of the centre through the block of frames is a parabola instead of a straight line, so the slice can change direction as it moves; the acceleration $a$ sets how strongly the path bends. In M2 the path stays straight, but the slice shrinks as it fades: its covariance is scaled by its weight $w(t)$, never below the floor $s_{\min}$, so the slice has its full size at $t_0$ and becomes smaller in the frames where it fades in and out. M3 does both.
 
-**Controlled factors across all variants.** The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam[^adam] optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.
+**Controlled factors across all variants.** The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. Adam (Kingma and Ba, 2015) is a gradient-based optimizer that scales the step of each parameter using running averages of its gradient and of the squared gradient. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.
 
 **Higher-degree extensions.** As a supplementary extension, polynomial paths of higher degrees are evaluated. A path of degree $d$ requires $12 + 2(d - 1)$ scalars per Gaussian: degree 3 (D3) costs 16 scalars and degree 7 (D7, the VeGaS default) costs 24. Comparing degrees 1, 2, 3 and 7 (M0, M1, D3, D7) under an equal storage budget tests whether the performance gains reported in the VeGaS ablation persist once storage overhead is controlled. These models lie outside the primary 2×2 design.
 
 ### 3.2 Data and motion characterization
 
-All test clips are drawn from the UVG dataset[^uvg] (Mercat et al., 2020) at 1080p and 120 frames per second, downsampled to 480×270 resolution as in Unit 16.
+All test clips are drawn from the UVG dataset (Mercat et al., 2020), sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group for video codec analysis and development. The clips are taken at 1080p and 120 frames per second and downsampled to 480×270 resolution as in Unit 16.
 
 Each clip spans 10 frames. At stride 1 these are consecutive frames; at stride 3, every third frame is retained (0, 3, 6, …, 27). Stride 3 widens the interval between observed frames, so the displacement between neighbouring sampled frames, and its change from one pair to the next, grow, while frame count and visual content are preserved. Each sequence is evaluated at both stride 1 and stride 3.
 
@@ -119,7 +119,7 @@ The four test sequences and their roles:
 | YachtRide | Planned as the straight control; the waves bend its motion, so it is retained for the boat motion |
 | Bosphorus | Straight-motion control, added after measurement; its motion is also slow, so straight motion and low speed cannot be decoupled |
 
-The proposal specified confirming these roles prior to the main runs by quantifying motion via optical flow[^flow] (Farnebäck), with any sequence failing to match its intended role being replaced. Speed is the mean displacement per frame across the image plane; acceleration is the frame-to-frame change of displacement, measured along feature trajectories; and bend is acceleration divided by speed, so a higher bend indicates a greater departure from steady, straight motion. The measurement showed that YachtRide's motion is not straight, so Bosphorus was added as the straight-motion control before the main experiment. The measured values are given in Table A2 (Appendix A.2).
+The proposal specified confirming these roles prior to the main runs by quantifying motion via optical flow (Farnebäck, 2003), with any sequence failing to match its intended role being replaced. Optical flow estimates how far each pixel moves from one frame to the next; Farnebäck's method approximates the neighbourhood of each pixel in both frames by a quadratic polynomial and reads the displacement from how the polynomial shifts. Speed is the mean displacement per frame across the image plane; acceleration is the frame-to-frame change of displacement, measured along feature trajectories; and bend is acceleration divided by speed, so a higher bend indicates a greater departure from steady, straight motion. The measurement showed that YachtRide's motion is not straight, so Bosphorus was added as the straight-motion control before the main experiment. The measured values are given in Table A2 (Appendix A.2).
 
 Additionally, a 30-frame clip of Jockey at stride 1 is included with tripled storage budgets to test a longer clip.
 
@@ -140,7 +140,7 @@ To enforce an equal storage budget across variants, total capacity is defined by
 
 The four evaluation budgets provide M0 with 250 to 2,000 Gaussians, the counts used in the Unit 16 example. Because M1 holds fewer Gaussians than M0 at every budget, M1 against M0 measures the net gain of the curved trajectory after its storage cost.
 
-Primary evaluation relies on PSNR of fitted frames plotted against storage budgets. SSIM[^ssim] is recorded to verify whether PSNR improvements reflect structural fidelity rather than colour smoothing.
+Primary evaluation relies on PSNR of fitted frames plotted against storage budgets. SSIM (structural similarity; Wang et al., 2004) is recorded to verify whether PSNR improvements reflect structural fidelity rather than colour smoothing. SSIM compares the local brightness, contrast and structure of two images; a value of 1 means the images are identical.
 
 > **Pass criterion.** The curved trajectory (M1) passes if and only if M1 outperforms M0 by more than 0.3 dB, and by more than the range between seeds, on at least 3 of the 4 storage budgets on both Jockey and ShakeNDry at stride 3, the two clips chosen in the proposal for their curved motion. Otherwise, it fails. Shrinking is judged by the same decision rule, comparing M2 against M0.
 
@@ -192,7 +192,7 @@ The design of Section 3 was carried out with the implementation, checks and prot
 
 The code adds the slicing step of the models and its gradients on top of the course program [`gaussian_image_video.py`](https://github.com/ChenHongshan333/cp4282-project/blob/master/gaussian_image_video.py), which is used unchanged. Each model is fitted with Adam on all frames of the clip at once. No Gaussians are added or removed during training, so each model keeps its budget exactly. All fits ran on a laptop RTX 4060.
 
-A finite-difference check[^fd] confirmed the gradients: $1 \times 10^{-8}$ for the slicing step and $1$ to $2 \times 10^{-4}$ for a whole clip (limit 0.02). The faster kernel used here matches the course kernel to $1 \times 10^{-6}$ in pixels and $2 \times 10^{-6}$ in gradients. A browser renderer of the fitted models (`docs/assets/js/gauss.js`) was checked against the Python one on 14 frames, and the two images agree to 118 dB or better.
+A finite-difference check compares the hand-written gradient with the change in the loss when a single parameter is nudged by a small amount; a small difference shows that the gradient is coded correctly. This check confirmed the gradients: $1 \times 10^{-8}$ for the slicing step and $1$ to $2 \times 10^{-4}$ for a whole clip (limit 0.02). The faster kernel used here matches the course kernel to $1 \times 10^{-6}$ in pixels and $2 \times 10^{-6}$ in gradients. A browser renderer of the fitted models (`docs/assets/js/gauss.js`) was checked against the Python one on 14 frames, and the two images agree to 118 dB or better.
 
 The course kernel gives one GPU thread to each Gaussian. The faster kernel gives one thread to each row of a Gaussian and draws all 10 frames in one launch. Fitting became 7 times faster (69 s to 9 s for 300 steps) with the same PSNR, and a 3,000-step fit takes 40 to 60 s. The learning rates fall to a quarter over a run, so a 30,000-step run lowers them more slowly than a 3,000-step run.
 
@@ -219,29 +219,17 @@ The settings matter little: the best and worst setting of a model differ by 0.3 
 
 ### 4.4 Measurement and reporting changes
 
-Optical flow found the moving object reliably only on ShakeNDry, where the camera is still, so instead of the planned masks a Mask R-CNN[^maskrcnn] model (torchvision, trained on COCO) outlines the horse and rider, the dog and the boats in every frame.
+Optical flow found the moving object reliably only on ShakeNDry, where the camera is still, so instead of the planned masks a Mask R-CNN model (He et al., 2017) outlines the horse and rider, the dog and the boats in every frame. Mask R-CNN detects objects in an image and outlines each one with a pixel mask; the version used here comes from torchvision and is trained on the COCO data set.
 
-VMAF[^vmaf] from Netflix was also added (via ffmpeg, upscaled to 1080p as recommended); at this low resolution it is only a side reference. For the test of Section 3.3, the spread between seeds is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared.
+VMAF (Video Multimethod Assessment Fusion; Li et al., 2016) was also added (via ffmpeg, upscaled to 1080p as recommended); at this low resolution it is only a side reference. VMAF is a video quality metric from Netflix that combines several elementary quality measures with a machine-learned model trained on human ratings of video quality. For the test of Section 3.3, the spread between seeds is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared.
 
 ### 4.5 Experimental roadmap
 
 Figure 2 shows the experiments in the order they were run. The first three were planned in the proposal; each later one answers a question raised by the results before it. The main line runs from the synthetic test to the fully trained main experiment; the still photographs and the higher-degree paths branch off it, and the three steps of Q3 follow the fully trained main experiment. Section 5 groups the results by research question; the Results column of Table A4 gives where each experiment is reported. The frames between of Q3 needed no new fits: they were drawn from the 192 fully trained models of the main experiment. The full record of fits and training steps is in Table A4 (Appendix A.4).
 
-**Figure 2.** The experiments in the order they were run (the roadmap diagram of the project website, given here as a table).
+![Roadmap of the experiments: the main line from the synthetic discs to the fully trained main experiment, the still photographs and degree 3 and 7 as branches, and the three steps of Q3](report_assets/figure2_roadmap.png)
 
-| Step | Line | Question | Planned in the proposal |
-|---|---|---|---|
-| 1. Synthetic discs | Main line | Does fitting work on motion with a known path? | Yes |
-| 2. Tuning | Main line | Best settings of each model | Yes |
-| 3. Main experiment, 3,000 steps | Main line | Q1 at the planned training length | Yes |
-| Still photographs | Branch from step 3 | Q2: does the gain need motion? | No, added to answer a question raised by earlier results |
-| 4. More Gaussians; longer training | Main line | Is 3,000 steps enough? | No, added |
-| 5. Re-tuning for full training | Main line | Learning rates at 30,000 steps | No, added |
-| 6. Main experiment, fully trained | Main line | Q1 and Q2 with full training | No, added |
-| Degree 3 and 7 | Branch from step 6 | Does a more flexible path help? | Planned as a supplementary extension (Section 3.1); run in a smaller form (Appendix B.4) |
-| Q3 (a): Frames between | Follows step 6 | No new fits: drawn from the fully trained models | No, added |
-| Q3 (b): Synthetic arcs (two versions) | Follows Q3 (a) | Q3 on motion with a known, adjustable bend | No, added |
-| Q3 (c): Confirmatory test | Follows Q3 (b) | Q3 on new real clips, with the rule fixed first | No, added |
+**Figure 2.** The experiments in the order they were run. The main line (blue lane) runs from top to bottom; grey boxes on the right are diagnostics and extensions that branch off the step they follow, and the grey lane below holds the three steps of Q3, which follow the fully trained main experiment. Each box gives the step and the question it answers. A solid border marks a step planned in the proposal, and a dashed border a step added to answer a question raised by earlier results. Degree 3 and 7 is drawn solid: the proposal planned it as a supplementary extension (Section 3.1), and it was run in a smaller form (Appendix B.4).
 
 ---
 
@@ -271,7 +259,7 @@ A probe with more Gaussians showed two warning signs. Every model was still impr
 
 After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below, and all three abilities fail the test (Table 4). The seeds agree closely (usually within 0.1 to 0.2 dB), so the small differences that remain are real. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.
 
-**Table 4.** The test fixed in the proposal (Section 3.3), after 3,000 steps and fully trained: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips.
+**Table 4.** The test fixed in the proposal (Section 3.3), after 3,000 steps and fully trained: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips. The budget-by-budget values and judgements are in Tables A5 and A8; the judgements use the unrounded values.
 
 | Model | 3,000 steps: Jockey | 3,000 steps: ShakeNDry | 3,000 steps: Verdict | Fully trained: Jockey | Fully trained: ShakeNDry | Fully trained: Verdict |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -329,7 +317,7 @@ Synthetic clips show a striped ball moving at a fixed speed over a still backgro
 
 ![The five synthetic clips at frame 0, with the true path of the ball's centre and the fitted frames](docs/figures/arc_paths.png)
 
-**Figure 7.** The five synthetic clips at frame 0 (all panels at the same pixel scale; the project website plays them frame by frame, frames 0 to 27, as `docs/figures/arc_motion.gif`). The ball and its stripes are drawn by the code that generates the clips; for display, they are shown over a light background instead of the clips' own. The grey line is the true path of the ball's centre, and the blue dots mark the ball's position at the fitted frames (0, 3, …, 27). The timeline below the panels marks the fitted frames in blue; the frames in between are never fitted. The ball (radius 8 pixels) moves 3 pixels per frame, so 9 pixels between fitted frames.
+**Figure 7.** The five synthetic clips at frame 0, all panels at the same pixel scale. The ball is drawn by the code that generates the clips; for display, it is shown over a light background instead of the clips' own. The grey line is the true path of the ball's centre over frames 0 to 27, the blue dots mark the ball's position at the fitted frames (0, 3, …, 27), and the blue ring marks its centre in the frame shown. The timeline below the panels marks the fitted frames in blue and the frames between, which are never fitted, in grey; the triangle marks the frame shown. The ball (radius 8 pixels) moves 3 pixels per frame, so 9 pixels between fitted frames.
 
 ![Gain of M1 over M0 on the ball against the bend of the path](docs/figures/arc.png)
 
@@ -361,21 +349,27 @@ The three research questions are answered as follows.
 
 Figure 9 returns to the roadmap of Figure 2 and gives the finding of each step, the strength of its evidence and where it is reported.
 
-**Figure 9.** The roadmap of Figure 2, with the finding of each step.
+![Roadmap of the experiments with a short finding and the kind and strength of the evidence in each box](report_assets/figure9_findings.png)
 
-| Step | Finding | Evidence | Reported in |
-|---|---|---|---|
-| Synthetic discs | All three abilities beat M0 on moving discs, but M1's gain fell from +1.27 to −0.02 dB when the velocity learning rate was lowered, and Gaussians on the still background moved anyway. The velocity learning rate was therefore tuned for every model. | Preliminary diagnostic: 4 models, 4 budgets, 3 seeds. | Section 4.2 |
-| Tuning | Each model, the baseline included, uses the best setting found in the tested range on a separate validation clip. The best and worst settings of a model differ by 0.3 to 0.6 dB. | Validation clip, 8 cases per model. | Section 4.3 |
-| Main experiment, 3,000 steps | M2 and M3 beat M0 by 0.5 to 2.3 dB on every clip and pass the test of Section 3.3; the curved path (M1) fails. Most of M1's gain lies in the background, and its learned accelerations do not consistently follow the real motion. | Reliable: 432 fits, 3 seeds. | Sections 5.1.1, 5.2.1 and 5.2.3 |
-| Still photographs | Shrinking gains about as much on still photographs (0.6 to 1.9 dB) as on the moving clips, and the curved path also gains about the same with and without motion. The early gains appear without motion. | Reliable: 4 photos, 3 seeds. | Section 5.2.2 |
-| More Gaussians; longer training | Every model was still improving at step 3,000, and no ability kept half of its lead at 10,000 steps. By the rule fixed beforehand, the early gains count as faster learning, and 3,000 steps is far from fully trained. | Fairly reliable. | Section 5.1.2 |
-| Re-tuning for full training | Every model settles after 18,000 to 24,000 steps. At 30,000 steps the learning rate moves the result by about 0.1 dB with no pattern, far less than the gaps between models, and the chosen rates carry over to another clip. | Validation clip, seed 0; checked on ShakeNDry. | Appendix A.3 |
-| Main experiment, fully trained | The baseline catches up: most cells are within ±0.3 dB, M3 leads almost nowhere, and all three abilities fail the test. The few remaining leads (M1 on Jockey, M2 on Bosphorus) are mostly in the background. | Reliable: 192 fits, seeds agree. | Sections 5.1.2 and 5.2.1 |
-| Degree 3 and 7 | Under the settings tested, a more flexible path does not help: D3 is worse than M1 in 7 of 8 cells, and D7 is worse everywhere, by 1.1 to 2.3 dB on the fitted frames. | Fairly reliable; the higher terms were not tuned. | Section 5.1.2 |
-| Frames between | An exploratory look at the fully trained models found M1 and M3 drawing the dog 0.2 to 0.5 dB better between frames, while level on the fitted frames. This was found after looking at the data, on a small region. The dog's Gaussians do not visibly bend with the real motion. | Exploratory; the path check is limited by 3 to 6 px of flow error. | Section 5.3.1 |
-| Synthetic arcs | With a known, bending path, M1's gain on the frames between grows with the bend, from about 0 on a straight line to about 9 dB for a full turn, and its Gaussians bend with the known motion. On the fitted frames the gain stays near 1 dB. | Reliable: 4 predictions written first. | Section 5.3.2 |
-| Confirmatory test | On new real clips, M1 draws the moving object about 0.5 dB better between frames, and 9 of 12 cells have all 3 seeds above zero, meeting the threshold fixed in advance. The whole frame does not improve consistently, and the larger gain predicted at stride 5 did not appear. | Fairly reliable: rule fixed first, 9 of 12. | Section 5.3.1 |
+**Figure 9.** The roadmap of Figure 2, with the main finding of each step. The italic label in each box gives the kind and strength of the evidence; borders and lanes are as in Figure 2.
+
+The evidence behind each step, and where it is reported:
+
+| Step | Evidence | Reported in |
+|---|---|---|
+| Synthetic discs | Preliminary diagnostic: 4 models, 4 budgets, 3 seeds. | Section 4.2 |
+| Tuning | Validation clip, 8 cases per model. | Section 4.3 |
+| Main experiment, 3,000 steps | Reliable: 432 fits, 3 seeds. | Sections 5.1.1, 5.2.1 and 5.2.3 |
+| Still photographs | Reliable: 4 photos, 3 seeds. | Section 5.2.2 |
+| More Gaussians; longer training | Fairly reliable. | Section 5.1.2 |
+| Re-tuning for full training | Validation clip, seed 0; checked on ShakeNDry. | Appendix A.3 |
+| Main experiment, fully trained | Reliable: 192 fits, seeds agree. | Sections 5.1.2 and 5.2.1 |
+| Degree 3 and 7 | Fairly reliable; the higher terms were not tuned. | Section 5.1.2 |
+| Frames between | Exploratory; the path check is limited by 3 to 6 px of flow error. | Section 5.3.1 |
+| Synthetic arcs | Reliable: 4 predictions written first. | Section 5.3.2 |
+| Confirmatory test | Fairly reliable: rule fixed first, 9 of 12. | Section 5.3.1 |
+
+Three points in the boxes are qualified in the sections cited. The gains of the main experiment at 3,000 steps fade with full training (Section 5.1.2), and the still photographs were fitted for 3,000 steps only (Section 5.2.2). The real-video gain on the frames between was first found after looking at the data, on a small region; the dog's Gaussians do not visibly bend with the real motion, and the larger gain predicted at stride 5 did not appear in the confirmatory test (Section 5.3.1). The degree 3 and 7 results reflect a narrower tuning than the main models (Section 7).
 
 ---
 
@@ -511,16 +505,41 @@ This group gives the full results for Section 5.1, after 3,000 steps and fully t
 
 The test of Section 3.3 at each budget comes first (Table A5), then the gains on all four clips at both strides (Table A6), and the SSIM and VMAF gains (Table A7).
 
-**Table A5.** The test of Section 3.3 after 3,000 steps, at stride 3: the gain over M0 at each budget (mean of 3 seeds). A ✓ marks a budget that meets the criterion: more than 0.3 dB and more than the seed spread. A model passes with 3 or more budgets on both clips.
+**Table A5.** The test of Section 3.3 after 3,000 steps, at stride 3, one row per clip, model and budget. ΔPSNR is the gain over M0 on the fitted frames (mean of 3 seeds). The seed spread is the difference between the highest and lowest PSNR over the 3 seeds, taking the larger of M0 and the model compared (Section 4.4). A budget meets the criterion when ΔPSNR is more than 0.3 dB and more than the seed spread. The judgement uses the unrounded values in the CSV file; where two decimals would place a value on the wrong side of a threshold, three decimals are shown.
 
-| Clip | Model | 3,000 | 6,000 | 12,000 | 24,000 | Budgets meeting the criterion |
-|---|---|---:|---:|---:|---:|---:|
-| Jockey | M1 curved | +0.06 | +1.09 ✓ | +0.73 ✓ | +0.47 ✓ | 3 of 4 |
-| Jockey | M2 shrinking | +0.77 ✓ | +0.88 ✓ | +0.65 ✓ | +0.47 ✓ | 4 of 4 |
-| Jockey | M3 both | +1.23 ✓ | +1.62 ✓ | +1.06 ✓ | +0.64 ✓ | 4 of 4 |
-| ShakeNDry | M1 curved | +0.16 | +0.13 | +0.10 | +0.08 | 0 of 4 |
-| ShakeNDry | M2 shrinking | +0.51 ✓ | +0.44 ✓ | +0.57 ✓ | +0.57 ✓ | 4 of 4 |
-| ShakeNDry | M3 both | +0.56 ✓ | +0.47 ✓ | +0.58 ✓ | +0.63 ✓ | 4 of 4 |
+| Clip | Model | Budget | ΔPSNR (dB) | Seed spread (dB) | Meets criterion |
+|---|---|---:|---:|---:|---|
+| Jockey | M1 curved | 3,000 | +0.06 | 0.39 | No |
+| Jockey | M1 curved | 6,000 | +1.09 | 0.35 | Yes |
+| Jockey | M1 curved | 12,000 | +0.73 | 0.44 | Yes |
+| Jockey | M1 curved | 24,000 | +0.47 | 0.37 | Yes |
+| Jockey | M2 shrinking | 3,000 | +0.77 | 0.21 | Yes |
+| Jockey | M2 shrinking | 6,000 | +0.88 | 0.34 | Yes |
+| Jockey | M2 shrinking | 12,000 | +0.65 | 0.22 | Yes |
+| Jockey | M2 shrinking | 24,000 | +0.47 | 0.16 | Yes |
+| Jockey | M3 both | 3,000 | +1.23 | 0.52 | Yes |
+| Jockey | M3 both | 6,000 | +1.62 | 0.34 | Yes |
+| Jockey | M3 both | 12,000 | +1.06 | 0.21 | Yes |
+| Jockey | M3 both | 24,000 | +0.64 | 0.12 | Yes |
+| ShakeNDry | M1 curved | 3,000 | +0.16 | 0.13 | No |
+| ShakeNDry | M1 curved | 6,000 | +0.13 | 0.10 | No |
+| ShakeNDry | M1 curved | 12,000 | +0.10 | 0.08 | No |
+| ShakeNDry | M1 curved | 24,000 | +0.08 | 0.09 | No |
+| ShakeNDry | M2 shrinking | 3,000 | +0.51 | 0.13 | Yes |
+| ShakeNDry | M2 shrinking | 6,000 | +0.44 | 0.12 | Yes |
+| ShakeNDry | M2 shrinking | 12,000 | +0.57 | 0.08 | Yes |
+| ShakeNDry | M2 shrinking | 24,000 | +0.57 | 0.09 | Yes |
+| ShakeNDry | M3 both | 3,000 | +0.56 | 0.13 | Yes |
+| ShakeNDry | M3 both | 6,000 | +0.47 | 0.10 | Yes |
+| ShakeNDry | M3 both | 12,000 | +0.58 | 0.08 | Yes |
+| ShakeNDry | M3 both | 24,000 | +0.63 | 0.09 | Yes |
+
+The number of budgets meeting the criterion for each clip and model is given below. A model passes with 3 or more of the 4 budgets on both clips; the verdicts are in Table 4.
+
+| Clip | M1 curved | M2 shrinking | M3 both |
+|---|---:|---:|---:|
+| Jockey | 3 of 4 | 4 of 4 | 4 of 4 |
+| ShakeNDry | 0 of 4 | 4 of 4 | 4 of 4 |
 
 **Table A6.** Gain over M0 after 3,000 steps by clip and stride (dB), mean over the 4 budgets and 3 seeds.
 
@@ -535,18 +554,34 @@ The test of Section 3.3 at each budget comes first (Table A5), then the gains on
 | Bosphorus | 1 | +0.24 | +0.88 | +1.02 |
 | Bosphorus | 3 | +0.23 | +0.77 | +1.00 |
 
-**Table A7.** SSIM and VMAF gains over M0 after 3,000 steps, mean over the 4 budgets and 3 seeds. They rank the models in the same order as PSNR (M3, M2, M1, M0), so the PSNR gain shows up in structure as well.
+**Table A7.** SSIM and VMAF gains over M0 after 3,000 steps, mean over the 4 budgets and 3 seeds. SSIM is on a scale of 0 to 1 and VMAF on a scale of 0 to 100. They rank the models in the same order as PSNR (M3, M2, M1, M0), so the PSNR gain shows up in structure as well.
 
-| Clip | Stride | SSIM: M1 | SSIM: M2 | SSIM: M3 | VMAF: M1 | VMAF: M2 | VMAF: M3 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Jockey | 1 | +0.01 | +0.04 | +0.05 | +1.1 | +6.2 | +6.4 |
-| Jockey | 3 | +0.02 | +0.02 | +0.04 | +3.3 | +2.3 | +5.9 |
-| ShakeNDry | 1 | +0.01 | +0.03 | +0.04 | +0.3 | +0.6 | +1.0 |
-| ShakeNDry | 3 | +0.01 | +0.03 | +0.03 | +0.3 | +0.7 | +0.8 |
-| YachtRide | 1 | +0.01 | +0.03 | +0.04 | +1.0 | +4.3 | +4.9 |
-| YachtRide | 3 | +0.01 | +0.03 | +0.03 | +1.1 | +2.7 | +3.4 |
-| Bosphorus | 1 | +0.01 | +0.03 | +0.04 | +0.3 | +1.7 | +2.3 |
-| Bosphorus | 3 | +0.01 | +0.03 | +0.04 | +0.6 | +2.0 | +3.2 |
+| Clip | Stride | Model | SSIM gain | VMAF gain |
+|---|---:|---|---:|---:|
+| Jockey | 1 | M1 curved | +0.01 | +1.1 |
+| Jockey | 1 | M2 shrinking | +0.04 | +6.2 |
+| Jockey | 1 | M3 both | +0.05 | +6.4 |
+| Jockey | 3 | M1 curved | +0.02 | +3.3 |
+| Jockey | 3 | M2 shrinking | +0.02 | +2.3 |
+| Jockey | 3 | M3 both | +0.04 | +5.9 |
+| ShakeNDry | 1 | M1 curved | +0.01 | +0.3 |
+| ShakeNDry | 1 | M2 shrinking | +0.03 | +0.6 |
+| ShakeNDry | 1 | M3 both | +0.04 | +1.0 |
+| ShakeNDry | 3 | M1 curved | +0.01 | +0.3 |
+| ShakeNDry | 3 | M2 shrinking | +0.03 | +0.7 |
+| ShakeNDry | 3 | M3 both | +0.03 | +0.8 |
+| YachtRide | 1 | M1 curved | +0.01 | +1.0 |
+| YachtRide | 1 | M2 shrinking | +0.03 | +4.3 |
+| YachtRide | 1 | M3 both | +0.04 | +4.9 |
+| YachtRide | 3 | M1 curved | +0.01 | +1.1 |
+| YachtRide | 3 | M2 shrinking | +0.03 | +2.7 |
+| YachtRide | 3 | M3 both | +0.03 | +3.4 |
+| Bosphorus | 1 | M1 curved | +0.01 | +0.3 |
+| Bosphorus | 1 | M2 shrinking | +0.03 | +1.7 |
+| Bosphorus | 1 | M3 both | +0.04 | +2.3 |
+| Bosphorus | 3 | M1 curved | +0.01 | +0.6 |
+| Bosphorus | 3 | M2 shrinking | +0.03 | +2.0 |
+| Bosphorus | 3 | M3 both | +0.04 | +3.2 |
 
 Data: [`gains_3000_steps.csv`](docs/data/csv/gains_3000_steps.csv) (every clip, stride, budget and model after 3,000 steps: the mean, lowest and highest gain over the seeds, the seed spread, the test, and the object, background, SSIM and VMAF gains).
 
@@ -554,37 +589,94 @@ Data: [`gains_3000_steps.csv`](docs/data/csv/gains_3000_steps.csv) (every clip, 
 
 The same test when fully trained (Table A8), then the gain in every clip and budget with its seed range (Table A9).
 
-**Table A8.** The test of Section 3.3 when fully trained, at stride 3, as in Table A5, with the seed spread of these fits. A ✓ marks a budget that meets the criterion.
+**Table A8.** The test of Section 3.3 when fully trained, at stride 3, laid out as Table A5, with the seed spread of these fits. The judgement uses the unrounded values in the CSV file; where two decimals would place a value on the wrong side of a threshold, three decimals are shown. At budget 24,000 on Jockey, M1's gain is 0.30147 dB: it appears as +0.30 in Tables A9 and A12 and meets the 0.3 dB margin.
 
-| Clip | Model | 3,000 | 6,000 | 12,000 | 24,000 | Budgets meeting the criterion |
-|---|---|---:|---:|---:|---:|---:|
-| Jockey | M1 curved | +0.65 ✓ | +0.37 ✓ | +0.49 ✓ | +0.30 ✓ | 4 of 4 |
-| Jockey | M2 shrinking | −0.05 | −0.15 | −0.27 | −0.63 | 0 of 4 |
-| Jockey | M3 both | +0.47 ✓ | +0.02 | −0.00 | −0.48 | 1 of 4 |
-| ShakeNDry | M1 curved | −0.11 | −0.17 | −0.18 | −0.30 | 0 of 4 |
-| ShakeNDry | M2 shrinking | +0.08 | +0.10 | +0.11 | +0.08 | 0 of 4 |
-| ShakeNDry | M3 both | −0.08 | −0.13 | −0.18 | −0.28 | 0 of 4 |
+| Clip | Model | Budget | ΔPSNR (dB) | Seed spread (dB) | Meets criterion |
+|---|---|---:|---:|---:|---|
+| Jockey | M1 curved | 3,000 | +0.65 | 0.23 | Yes |
+| Jockey | M1 curved | 6,000 | +0.37 | 0.16 | Yes |
+| Jockey | M1 curved | 12,000 | +0.49 | 0.10 | Yes |
+| Jockey | M1 curved | 24,000 | +0.301 | 0.124 | Yes |
+| Jockey | M2 shrinking | 3,000 | −0.05 | 0.48 | No |
+| Jockey | M2 shrinking | 6,000 | −0.15 | 0.14 | No |
+| Jockey | M2 shrinking | 12,000 | −0.27 | 0.04 | No |
+| Jockey | M2 shrinking | 24,000 | −0.63 | 0.12 | No |
+| Jockey | M3 both | 3,000 | +0.47 | 0.23 | Yes |
+| Jockey | M3 both | 6,000 | +0.02 | 0.29 | No |
+| Jockey | M3 both | 12,000 | −0.00 | 0.11 | No |
+| Jockey | M3 both | 24,000 | −0.48 | 0.12 | No |
+| ShakeNDry | M1 curved | 3,000 | −0.11 | 0.07 | No |
+| ShakeNDry | M1 curved | 6,000 | −0.17 | 0.08 | No |
+| ShakeNDry | M1 curved | 12,000 | −0.18 | 0.08 | No |
+| ShakeNDry | M1 curved | 24,000 | −0.30 | 0.04 | No |
+| ShakeNDry | M2 shrinking | 3,000 | +0.08 | 0.03 | No |
+| ShakeNDry | M2 shrinking | 6,000 | +0.10 | 0.08 | No |
+| ShakeNDry | M2 shrinking | 12,000 | +0.11 | 0.08 | No |
+| ShakeNDry | M2 shrinking | 24,000 | +0.08 | 0.08 | No |
+| ShakeNDry | M3 both | 3,000 | −0.08 | 0.04 | No |
+| ShakeNDry | M3 both | 6,000 | −0.13 | 0.08 | No |
+| ShakeNDry | M3 both | 12,000 | −0.18 | 0.08 | No |
+| ShakeNDry | M3 both | 24,000 | −0.28 | 0.02 | No |
 
-**Table A9.** Gain over M0 when fully trained (stride 3), by clip and budget: mean, lowest and highest over 3 seeds (dB). The gains after 3,000 steps at each budget are in `gains_3000_steps.csv`.
+Budgets meeting the criterion, of 4 (verdicts in Table 4):
 
-| Clip | Budget | M0 PSNR (dB) | M1: mean | M1: lowest | M1: highest | M2: mean | M2: lowest | M2: highest | M3: mean | M3: lowest | M3: highest |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Jockey | 3,000 | 23.43 | +0.65 | +0.62 | +0.71 | −0.05 | −0.16 | +0.15 | +0.47 | +0.38 | +0.55 |
-| Jockey | 6,000 | 25.27 | +0.37 | +0.30 | +0.50 | −0.15 | −0.29 | −0.05 | +0.02 | −0.15 | +0.18 |
-| Jockey | 12,000 | 26.96 | +0.49 | +0.43 | +0.56 | −0.27 | −0.28 | −0.26 | −0.00 | −0.03 | +0.04 |
-| Jockey | 24,000 | 28.66 | +0.30 | +0.26 | +0.39 | −0.63 | −0.66 | −0.59 | −0.48 | −0.53 | −0.43 |
-| ShakeNDry | 3,000 | 23.87 | −0.11 | −0.17 | −0.09 | +0.08 | +0.07 | +0.09 | −0.08 | −0.10 | −0.06 |
-| ShakeNDry | 6,000 | 24.84 | −0.17 | −0.21 | −0.12 | +0.10 | +0.03 | +0.15 | −0.13 | −0.16 | −0.10 |
-| ShakeNDry | 12,000 | 26.09 | −0.18 | −0.21 | −0.15 | +0.11 | +0.09 | +0.14 | −0.18 | −0.20 | −0.15 |
-| ShakeNDry | 24,000 | 27.68 | −0.30 | −0.31 | −0.29 | +0.08 | +0.03 | +0.10 | −0.28 | −0.28 | −0.27 |
-| YachtRide | 3,000 | 24.44 | −0.41 | −0.75 | −0.18 | +0.01 | −0.03 | +0.09 | −0.26 | −0.46 | −0.09 |
-| YachtRide | 6,000 | 26.18 | −0.38 | −0.43 | −0.31 | −0.06 | −0.15 | +0.08 | −0.29 | −0.39 | −0.24 |
-| YachtRide | 12,000 | 27.74 | −0.24 | −0.27 | −0.20 | −0.09 | −0.14 | −0.03 | −0.33 | −0.42 | −0.28 |
-| YachtRide | 24,000 | 29.38 | −0.05 | −0.11 | +0.06 | −0.11 | −0.19 | −0.06 | −0.26 | −0.31 | −0.20 |
-| Bosphorus | 3,000 | 26.90 | −0.14 | −0.24 | −0.02 | +0.15 | −0.07 | +0.34 | +0.02 | −0.22 | +0.26 |
-| Bosphorus | 6,000 | 28.25 | −0.27 | −0.34 | −0.23 | +0.24 | +0.10 | +0.36 | −0.05 | −0.26 | +0.12 |
-| Bosphorus | 12,000 | 29.94 | −0.17 | −0.24 | −0.13 | +0.35 | +0.28 | +0.39 | −0.04 | −0.09 | +0.05 |
-| Bosphorus | 24,000 | 32.08 | −0.25 | −0.29 | −0.18 | +0.29 | +0.24 | +0.36 | −0.16 | −0.22 | −0.05 |
+| Clip | M1 curved | M2 shrinking | M3 both |
+|---|---:|---:|---:|
+| Jockey | 4 of 4 | 0 of 4 | 1 of 4 |
+| ShakeNDry | 0 of 4 | 0 of 4 | 0 of 4 |
+
+**Table A9.** Gain over M0 when fully trained (stride 3), by clip, budget and model: mean, lowest and highest over 3 seeds (dB, paired by seed). M0 PSNR is the baseline's PSNR on the fitted frames (mean of 3 seeds) and is the same for the three model rows of a budget. The gains after 3,000 steps at each budget are in `gains_3000_steps.csv`.
+
+| Clip | Budget | M0 PSNR (dB) | Model | Mean | Lowest | Highest |
+|---|---:|---:|---|---:|---:|---:|
+| Jockey | 3,000 | 23.43 | M1 curved | +0.65 | +0.62 | +0.71 |
+| Jockey | 3,000 | 23.43 | M2 shrinking | −0.05 | −0.16 | +0.15 |
+| Jockey | 3,000 | 23.43 | M3 both | +0.47 | +0.38 | +0.55 |
+| Jockey | 6,000 | 25.27 | M1 curved | +0.37 | +0.30 | +0.50 |
+| Jockey | 6,000 | 25.27 | M2 shrinking | −0.15 | −0.29 | −0.05 |
+| Jockey | 6,000 | 25.27 | M3 both | +0.02 | −0.15 | +0.18 |
+| Jockey | 12,000 | 26.96 | M1 curved | +0.49 | +0.43 | +0.56 |
+| Jockey | 12,000 | 26.96 | M2 shrinking | −0.27 | −0.28 | −0.26 |
+| Jockey | 12,000 | 26.96 | M3 both | −0.00 | −0.03 | +0.04 |
+| Jockey | 24,000 | 28.66 | M1 curved | +0.30 | +0.26 | +0.39 |
+| Jockey | 24,000 | 28.66 | M2 shrinking | −0.63 | −0.66 | −0.59 |
+| Jockey | 24,000 | 28.66 | M3 both | −0.48 | −0.53 | −0.43 |
+| ShakeNDry | 3,000 | 23.87 | M1 curved | −0.11 | −0.17 | −0.09 |
+| ShakeNDry | 3,000 | 23.87 | M2 shrinking | +0.08 | +0.07 | +0.09 |
+| ShakeNDry | 3,000 | 23.87 | M3 both | −0.08 | −0.10 | −0.06 |
+| ShakeNDry | 6,000 | 24.84 | M1 curved | −0.17 | −0.21 | −0.12 |
+| ShakeNDry | 6,000 | 24.84 | M2 shrinking | +0.10 | +0.03 | +0.15 |
+| ShakeNDry | 6,000 | 24.84 | M3 both | −0.13 | −0.16 | −0.10 |
+| ShakeNDry | 12,000 | 26.09 | M1 curved | −0.18 | −0.21 | −0.15 |
+| ShakeNDry | 12,000 | 26.09 | M2 shrinking | +0.11 | +0.09 | +0.14 |
+| ShakeNDry | 12,000 | 26.09 | M3 both | −0.18 | −0.20 | −0.15 |
+| ShakeNDry | 24,000 | 27.68 | M1 curved | −0.30 | −0.31 | −0.29 |
+| ShakeNDry | 24,000 | 27.68 | M2 shrinking | +0.08 | +0.03 | +0.10 |
+| ShakeNDry | 24,000 | 27.68 | M3 both | −0.28 | −0.28 | −0.27 |
+| YachtRide | 3,000 | 24.44 | M1 curved | −0.41 | −0.75 | −0.18 |
+| YachtRide | 3,000 | 24.44 | M2 shrinking | +0.01 | −0.03 | +0.09 |
+| YachtRide | 3,000 | 24.44 | M3 both | −0.26 | −0.46 | −0.09 |
+| YachtRide | 6,000 | 26.18 | M1 curved | −0.38 | −0.43 | −0.31 |
+| YachtRide | 6,000 | 26.18 | M2 shrinking | −0.06 | −0.15 | +0.08 |
+| YachtRide | 6,000 | 26.18 | M3 both | −0.29 | −0.39 | −0.24 |
+| YachtRide | 12,000 | 27.74 | M1 curved | −0.24 | −0.27 | −0.20 |
+| YachtRide | 12,000 | 27.74 | M2 shrinking | −0.09 | −0.14 | −0.03 |
+| YachtRide | 12,000 | 27.74 | M3 both | −0.33 | −0.42 | −0.28 |
+| YachtRide | 24,000 | 29.38 | M1 curved | −0.05 | −0.11 | +0.06 |
+| YachtRide | 24,000 | 29.38 | M2 shrinking | −0.11 | −0.19 | −0.06 |
+| YachtRide | 24,000 | 29.38 | M3 both | −0.26 | −0.31 | −0.20 |
+| Bosphorus | 3,000 | 26.90 | M1 curved | −0.14 | −0.24 | −0.02 |
+| Bosphorus | 3,000 | 26.90 | M2 shrinking | +0.15 | −0.07 | +0.34 |
+| Bosphorus | 3,000 | 26.90 | M3 both | +0.02 | −0.22 | +0.26 |
+| Bosphorus | 6,000 | 28.25 | M1 curved | −0.27 | −0.34 | −0.23 |
+| Bosphorus | 6,000 | 28.25 | M2 shrinking | +0.24 | +0.10 | +0.36 |
+| Bosphorus | 6,000 | 28.25 | M3 both | −0.05 | −0.26 | +0.12 |
+| Bosphorus | 12,000 | 29.94 | M1 curved | −0.17 | −0.24 | −0.13 |
+| Bosphorus | 12,000 | 29.94 | M2 shrinking | +0.35 | +0.28 | +0.39 |
+| Bosphorus | 12,000 | 29.94 | M3 both | −0.04 | −0.09 | +0.05 |
+| Bosphorus | 24,000 | 32.08 | M1 curved | −0.25 | −0.29 | −0.18 |
+| Bosphorus | 24,000 | 32.08 | M2 shrinking | +0.29 | +0.24 | +0.36 |
+| Bosphorus | 24,000 | 32.08 | M3 both | −0.16 | −0.22 | −0.05 |
 
 Data: [`gains_full_training.csv`](docs/data/csv/gains_full_training.csv) (every clip, budget and model when fully trained, with the seed range, the test, and the gains on the frames between).
 
@@ -627,22 +719,58 @@ Each degree above 2 costs 2 more numbers per Gaussian, so at budget 24,000 a deg
 
 On the frames between, the higher-degree paths are worse by up to 4 dB: a degree-7 path swings about between the frames it was fitted to. Figure A2 (right) shows the larger drop on the frames between. On Jockey at budget 24,000, D7 loses about 5 dB from the fitted frames to the frames between, while M0 loses 3.4 dB and M1 2.9 dB. The large drop on the frames between shows that the swinging is real.
 
-**Table A12.** Gain over M0 by degree of the path, fully trained, stride 3: mean, lowest and highest over 3 seeds (dB).
+**Table A12.** Gain over M0 by degree of the path, fully trained, stride 3: mean, lowest and highest over 3 seeds (dB, paired by seed), in three parts by what is scored. M0 PSNR is the baseline's PSNR on the same frames and region (mean of 3 seeds).
 
-| Scored on | Clip | Budget | M0 PSNR (dB) | M1: mean | M1: lowest | M1: highest | D3: mean | D3: lowest | D3: highest | D7: mean | D7: lowest | D7: highest |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Fitted frames | Jockey | 6,000 | 25.27 | +0.37 | +0.30 | +0.50 | +0.17 | +0.07 | +0.24 | −1.69 | −1.83 | −1.54 |
-| Fitted frames | Jockey | 24,000 | 28.66 | +0.30 | +0.26 | +0.39 | −0.50 | −0.52 | −0.49 | −2.32 | −2.36 | −2.27 |
-| Fitted frames | ShakeNDry | 6,000 | 24.84 | −0.17 | −0.21 | −0.12 | −0.34 | −0.35 | −0.32 | −1.10 | −1.12 | −1.08 |
-| Fitted frames | ShakeNDry | 24,000 | 27.68 | −0.30 | −0.31 | −0.29 | −0.59 | −0.60 | −0.57 | −2.09 | −2.12 | −2.04 |
-| Frames between | Jockey | 6,000 | 24.99 | +0.49 | +0.32 | +0.73 | +0.24 | +0.18 | +0.31 | −2.92 | −3.49 | −2.38 |
-| Frames between | Jockey | 24,000 | 25.23 | +0.87 | +0.20 | +1.35 | −0.44 | −0.81 | −0.12 | −4.06 | −4.18 | −3.85 |
-| Frames between | ShakeNDry | 6,000 | 24.68 | −0.12 | −0.22 | −0.02 | −0.28 | −0.33 | −0.19 | −1.46 | −1.52 | −1.32 |
-| Frames between | ShakeNDry | 24,000 | 27.11 | −0.12 | −0.15 | −0.09 | −0.46 | −0.48 | −0.44 | −2.63 | −2.78 | −2.50 |
-| Frames between, object | Jockey | 6,000 | 21.32 | +0.23 | +0.02 | +0.63 | −0.19 | −0.37 | −0.01 | −2.29 | −2.99 | −1.39 |
-| Frames between, object | Jockey | 24,000 | 22.97 | +0.52 | +0.19 | +0.96 | −0.08 | −0.37 | +0.10 | −2.66 | −3.03 | −2.23 |
-| Frames between, object | ShakeNDry | 6,000 | 24.12 | +0.35 | −0.44 | +1.46 | +0.37 | −0.03 | +1.12 | −0.91 | −1.63 | +0.12 |
-| Frames between, object | ShakeNDry | 24,000 | 24.63 | +0.50 | +0.34 | +0.61 | +0.21 | −0.02 | +0.37 | −0.99 | −1.30 | −0.71 |
+*Table A12 (a). Scored on the fitted frames, whole frame.*
+
+| Clip | Budget | M0 PSNR (dB) | Model | Mean | Lowest | Highest |
+|---|---:|---:|---|---:|---:|---:|
+| Jockey | 6,000 | 25.27 | M1 | +0.37 | +0.30 | +0.50 |
+| Jockey | 6,000 | 25.27 | D3 | +0.17 | +0.07 | +0.24 |
+| Jockey | 6,000 | 25.27 | D7 | −1.69 | −1.83 | −1.54 |
+| Jockey | 24,000 | 28.66 | M1 | +0.30 | +0.26 | +0.39 |
+| Jockey | 24,000 | 28.66 | D3 | −0.50 | −0.52 | −0.49 |
+| Jockey | 24,000 | 28.66 | D7 | −2.32 | −2.36 | −2.27 |
+| ShakeNDry | 6,000 | 24.84 | M1 | −0.17 | −0.21 | −0.12 |
+| ShakeNDry | 6,000 | 24.84 | D3 | −0.34 | −0.35 | −0.32 |
+| ShakeNDry | 6,000 | 24.84 | D7 | −1.10 | −1.12 | −1.08 |
+| ShakeNDry | 24,000 | 27.68 | M1 | −0.30 | −0.31 | −0.29 |
+| ShakeNDry | 24,000 | 27.68 | D3 | −0.59 | −0.60 | −0.57 |
+| ShakeNDry | 24,000 | 27.68 | D7 | −2.09 | −2.12 | −2.04 |
+
+*Table A12 (b). Scored on the frames between, whole frame.*
+
+| Clip | Budget | M0 PSNR (dB) | Model | Mean | Lowest | Highest |
+|---|---:|---:|---|---:|---:|---:|
+| Jockey | 6,000 | 24.99 | M1 | +0.49 | +0.32 | +0.73 |
+| Jockey | 6,000 | 24.99 | D3 | +0.24 | +0.18 | +0.31 |
+| Jockey | 6,000 | 24.99 | D7 | −2.92 | −3.49 | −2.38 |
+| Jockey | 24,000 | 25.23 | M1 | +0.87 | +0.20 | +1.35 |
+| Jockey | 24,000 | 25.23 | D3 | −0.44 | −0.81 | −0.12 |
+| Jockey | 24,000 | 25.23 | D7 | −4.06 | −4.18 | −3.85 |
+| ShakeNDry | 6,000 | 24.68 | M1 | −0.12 | −0.22 | −0.02 |
+| ShakeNDry | 6,000 | 24.68 | D3 | −0.28 | −0.33 | −0.19 |
+| ShakeNDry | 6,000 | 24.68 | D7 | −1.46 | −1.52 | −1.32 |
+| ShakeNDry | 24,000 | 27.11 | M1 | −0.12 | −0.15 | −0.09 |
+| ShakeNDry | 24,000 | 27.11 | D3 | −0.46 | −0.48 | −0.44 |
+| ShakeNDry | 24,000 | 27.11 | D7 | −2.63 | −2.78 | −2.50 |
+
+*Table A12 (c). Scored on the frames between, on the moving object.*
+
+| Clip | Budget | M0 PSNR (dB) | Model | Mean | Lowest | Highest |
+|---|---:|---:|---|---:|---:|---:|
+| Jockey | 6,000 | 21.32 | M1 | +0.23 | +0.02 | +0.63 |
+| Jockey | 6,000 | 21.32 | D3 | −0.19 | −0.37 | −0.01 |
+| Jockey | 6,000 | 21.32 | D7 | −2.29 | −2.99 | −1.39 |
+| Jockey | 24,000 | 22.97 | M1 | +0.52 | +0.19 | +0.96 |
+| Jockey | 24,000 | 22.97 | D3 | −0.08 | −0.37 | +0.10 |
+| Jockey | 24,000 | 22.97 | D7 | −2.66 | −3.03 | −2.23 |
+| ShakeNDry | 6,000 | 24.12 | M1 | +0.35 | −0.44 | +1.46 |
+| ShakeNDry | 6,000 | 24.12 | D3 | +0.37 | −0.03 | +1.12 |
+| ShakeNDry | 6,000 | 24.12 | D7 | −0.91 | −1.63 | +0.12 |
+| ShakeNDry | 24,000 | 24.63 | M1 | +0.50 | +0.34 | +0.61 |
+| ShakeNDry | 24,000 | 24.63 | D3 | +0.21 | −0.02 | +0.37 |
+| ShakeNDry | 24,000 | 24.63 | D7 | −0.99 | −1.30 | −0.71 |
 
 Three caveats apply to these results:
 
@@ -680,40 +808,95 @@ This group gives the diagnostics for Section 5.2. C.1 holds the main comparisons
 
 Where the gains lie in the frame, after 3,000 steps (Table A15) and fully trained (Table A16), and the control with still photographs (Table A17).
 
-**Table A15.** Gain over M0 after 3,000 steps inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds.
+**Table A15.** Gain over M0 after 3,000 steps inside the object outline (object) and outside it (background), in dB, mean over the 4 budgets and 3 seeds.
 
-| Clip | Stride | M1: object | M1: background | M2: object | M2: background | M3: object | M3: background |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Jockey | 1 | +0.11 | +0.39 | +0.79 | +1.42 | +0.77 | +1.56 |
-| Jockey | 3 | +0.15 | +0.66 | +0.39 | +0.74 | +0.57 | +1.23 |
-| ShakeNDry | 1 | +0.24 | +0.07 | +0.57 | +0.51 | +0.66 | +0.54 |
-| ShakeNDry | 3 | +0.28 | +0.10 | +0.41 | +0.53 | +0.58 | +0.56 |
-| YachtRide | 1 | +0.26 | +0.20 | +1.28 | +0.77 | +1.28 | +0.86 |
-| YachtRide | 3 | +0.32 | +0.25 | +0.91 | +0.59 | +1.16 | +0.69 |
-| Bosphorus | 1 | +0.15 | +0.25 | +0.87 | +0.88 | +0.97 | +1.03 |
-| Bosphorus | 3 | +0.29 | +0.22 | +0.93 | +0.74 | +1.12 | +0.97 |
+| Clip | Stride | Model | Object | Background |
+|---|---:|---|---:|---:|
+| Jockey | 1 | M1 curved | +0.11 | +0.39 |
+| Jockey | 1 | M2 shrinking | +0.79 | +1.42 |
+| Jockey | 1 | M3 both | +0.77 | +1.56 |
+| Jockey | 3 | M1 curved | +0.15 | +0.66 |
+| Jockey | 3 | M2 shrinking | +0.39 | +0.74 |
+| Jockey | 3 | M3 both | +0.57 | +1.23 |
+| ShakeNDry | 1 | M1 curved | +0.24 | +0.07 |
+| ShakeNDry | 1 | M2 shrinking | +0.57 | +0.51 |
+| ShakeNDry | 1 | M3 both | +0.66 | +0.54 |
+| ShakeNDry | 3 | M1 curved | +0.28 | +0.10 |
+| ShakeNDry | 3 | M2 shrinking | +0.41 | +0.53 |
+| ShakeNDry | 3 | M3 both | +0.58 | +0.56 |
+| YachtRide | 1 | M1 curved | +0.26 | +0.20 |
+| YachtRide | 1 | M2 shrinking | +1.28 | +0.77 |
+| YachtRide | 1 | M3 both | +1.28 | +0.86 |
+| YachtRide | 3 | M1 curved | +0.32 | +0.25 |
+| YachtRide | 3 | M2 shrinking | +0.91 | +0.59 |
+| YachtRide | 3 | M3 both | +1.16 | +0.69 |
+| Bosphorus | 1 | M1 curved | +0.15 | +0.25 |
+| Bosphorus | 1 | M2 shrinking | +0.87 | +0.88 |
+| Bosphorus | 1 | M3 both | +0.97 | +1.03 |
+| Bosphorus | 3 | M1 curved | +0.29 | +0.22 |
+| Bosphorus | 3 | M2 shrinking | +0.93 | +0.74 |
+| Bosphorus | 3 | M3 both | +1.12 | +0.97 |
 
-**Table A16.** Fully trained gain over M0 (stride 3) inside the object outline and outside it (dB), mean over the 4 budgets and 3 seeds.
+**Table A16.** Fully trained gain over M0 (stride 3) inside the object outline (object) and outside it (background), in dB, mean over the 4 budgets and 3 seeds.
 
-| Clip | M1: object | M1: background | M2: object | M2: background | M3: object | M3: background |
-|---|---:|---:|---:|---:|---:|---:|
-| Jockey | +0.30 | +0.49 | −0.16 | −0.30 | +0.01 | −0.00 |
-| ShakeNDry | +0.01 | −0.21 | −0.21 | +0.12 | −0.15 | −0.17 |
-| YachtRide | −0.43 | −0.13 | −0.03 | −0.08 | −0.37 | −0.21 |
-| Bosphorus | −0.29 | −0.19 | −0.04 | +0.32 | −0.28 | −0.02 |
+| Clip | Model | Object | Background |
+|---|---|---:|---:|
+| Jockey | M1 curved | +0.30 | +0.49 |
+| Jockey | M2 shrinking | −0.16 | −0.30 |
+| Jockey | M3 both | +0.01 | −0.00 |
+| ShakeNDry | M1 curved | +0.01 | −0.21 |
+| ShakeNDry | M2 shrinking | −0.21 | +0.12 |
+| ShakeNDry | M3 both | −0.15 | −0.17 |
+| YachtRide | M1 curved | −0.43 | −0.13 |
+| YachtRide | M2 shrinking | −0.03 | −0.08 |
+| YachtRide | M3 both | −0.37 | −0.21 |
+| Bosphorus | M1 curved | −0.29 | −0.19 |
+| Bosphorus | M2 shrinking | −0.04 | +0.32 |
+| Bosphorus | M3 both | −0.28 | −0.02 |
 
-**Table A17.** Still photographs, 3,000 steps: gain over M0, mean, lowest and highest over 3 seeds (dB). Last column: M2's gain on the same clip in motion (stride 1).
+**Table A17.** Still photographs, 3,000 steps, in two parts. Part (a) gives the gain over M0 on each photograph: mean, lowest and highest over 3 seeds (dB, paired by seed); M0 PSNR is the baseline's PSNR on the still video (mean of 3 seeds). Part (b) compares M2's mean gain on the still photograph with its gain on the same clip in motion (stride 1, 3,000 steps).
 
-| Photograph | Budget | M0 PSNR (dB) | M1: mean | M1: lowest | M1: highest | M2: mean | M2: lowest | M2: highest | M3: mean | M3: lowest | M3: highest | M2 − M0 on the moving clip |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Jockey | 3,000 | 20.40 | +0.73 | −0.17 | +1.78 | +1.85 | +1.07 | +2.25 | +2.08 | +1.00 | +2.85 | +2.26 |
-| Jockey | 12,000 | 25.32 | +0.30 | +0.12 | +0.40 | +1.26 | +1.15 | +1.39 | +1.29 | +1.14 | +1.42 | +0.87 |
-| ShakeNDry | 3,000 | 22.50 | +0.13 | +0.11 | +0.14 | +0.64 | +0.55 | +0.68 | +0.60 | +0.53 | +0.67 | +0.40 |
-| ShakeNDry | 12,000 | 24.48 | +0.09 | +0.04 | +0.12 | +0.65 | +0.62 | +0.69 | +0.67 | +0.63 | +0.74 | +0.59 |
-| YachtRide | 3,000 | 21.86 | +0.33 | +0.19 | +0.46 | +0.81 | +0.61 | +1.02 | +0.89 | +0.77 | +1.11 | +0.98 |
-| YachtRide | 12,000 | 25.10 | +0.29 | +0.20 | +0.40 | +1.03 | +0.84 | +1.18 | +1.11 | +1.01 | +1.20 | +0.92 |
-| Bosphorus | 3,000 | 23.74 | +0.18 | +0.02 | +0.27 | +0.70 | +0.39 | +1.06 | +0.88 | +0.68 | +1.20 | +0.83 |
-| Bosphorus | 12,000 | 26.02 | +0.16 | +0.11 | +0.19 | +0.84 | +0.79 | +0.89 | +0.96 | +0.89 | +1.02 | +0.85 |
+*Table A17 (a). Gain over M0 on the still photographs.*
+
+| Photograph | Budget | M0 PSNR (dB) | Model | Mean | Lowest | Highest |
+|---|---:|---:|---|---:|---:|---:|
+| Jockey | 3,000 | 20.40 | M1 curved | +0.73 | −0.17 | +1.78 |
+| Jockey | 3,000 | 20.40 | M2 shrinking | +1.85 | +1.07 | +2.25 |
+| Jockey | 3,000 | 20.40 | M3 both | +2.08 | +1.00 | +2.85 |
+| Jockey | 12,000 | 25.32 | M1 curved | +0.30 | +0.12 | +0.40 |
+| Jockey | 12,000 | 25.32 | M2 shrinking | +1.26 | +1.15 | +1.39 |
+| Jockey | 12,000 | 25.32 | M3 both | +1.29 | +1.14 | +1.42 |
+| ShakeNDry | 3,000 | 22.50 | M1 curved | +0.13 | +0.11 | +0.14 |
+| ShakeNDry | 3,000 | 22.50 | M2 shrinking | +0.64 | +0.55 | +0.68 |
+| ShakeNDry | 3,000 | 22.50 | M3 both | +0.60 | +0.53 | +0.67 |
+| ShakeNDry | 12,000 | 24.48 | M1 curved | +0.09 | +0.04 | +0.12 |
+| ShakeNDry | 12,000 | 24.48 | M2 shrinking | +0.65 | +0.62 | +0.69 |
+| ShakeNDry | 12,000 | 24.48 | M3 both | +0.67 | +0.63 | +0.74 |
+| YachtRide | 3,000 | 21.86 | M1 curved | +0.33 | +0.19 | +0.46 |
+| YachtRide | 3,000 | 21.86 | M2 shrinking | +0.81 | +0.61 | +1.02 |
+| YachtRide | 3,000 | 21.86 | M3 both | +0.89 | +0.77 | +1.11 |
+| YachtRide | 12,000 | 25.10 | M1 curved | +0.29 | +0.20 | +0.40 |
+| YachtRide | 12,000 | 25.10 | M2 shrinking | +1.03 | +0.84 | +1.18 |
+| YachtRide | 12,000 | 25.10 | M3 both | +1.11 | +1.01 | +1.20 |
+| Bosphorus | 3,000 | 23.74 | M1 curved | +0.18 | +0.02 | +0.27 |
+| Bosphorus | 3,000 | 23.74 | M2 shrinking | +0.70 | +0.39 | +1.06 |
+| Bosphorus | 3,000 | 23.74 | M3 both | +0.88 | +0.68 | +1.20 |
+| Bosphorus | 12,000 | 26.02 | M1 curved | +0.16 | +0.11 | +0.19 |
+| Bosphorus | 12,000 | 26.02 | M2 shrinking | +0.84 | +0.79 | +0.89 |
+| Bosphorus | 12,000 | 26.02 | M3 both | +0.96 | +0.89 | +1.02 |
+
+*Table A17 (b). M2 − M0 on the still photograph and on the moving clip (dB).*
+
+| Clip | Budget | Still photograph (mean) | Moving clip, stride 1 |
+|---|---:|---:|---:|
+| Jockey | 3,000 | +1.85 | +2.26 |
+| Jockey | 12,000 | +1.26 | +0.87 |
+| ShakeNDry | 3,000 | +0.64 | +0.40 |
+| ShakeNDry | 12,000 | +0.65 | +0.59 |
+| YachtRide | 3,000 | +0.81 | +0.98 |
+| YachtRide | 12,000 | +1.03 | +0.92 |
+| Bosphorus | 3,000 | +0.70 | +0.83 |
+| Bosphorus | 12,000 | +0.84 | +0.85 |
 
 Data: [`still_photographs.csv`](docs/data/csv/still_photographs.csv) (the M0 PSNR and the gains of M1 to M3 on each photograph and budget).
 
@@ -804,20 +987,37 @@ Before running, four predictions were written down: no gain on the straight line
 
 All four predictions hold. On the straight line, M1 is slightly behind (it has 14% fewer Gaussians), and the seed ranges cross zero. The gain grows with the bend at both budgets. At a full turn even the worst seed gains 7.8 or 8.9 dB, far beyond the spread of about ±2 dB on the straight line. M1's Gaussians on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one (at 90°, 1.50 to 1.54 against 1.57 pixels per frame²).
 
-**Table A23.** The ball, second version, scored on the ball: M0's PSNR, and M1 − M0 as mean, lowest and highest over 3 seeds (dB).
+**Table A23.** The ball, second version, scored on the ball, in two parts: on the fitted frames and on the frames between. Each part gives M0's PSNR (mean of 3 seeds) and M1 − M0 as mean, lowest and highest over 3 seeds (dB, paired by seed).
 
-| Turn | Budget | Fitted: M0 PSNR | Fitted: M1 − M0 mean | Fitted: lowest | Fitted: highest | Between: M0 PSNR | Between: M1 − M0 mean | Between: lowest | Between: highest |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 0° (straight) | 6,000 | 25.75 | −1.10 | −2.53 | +0.93 | 25.75 | −1.10 | −2.54 | +0.94 |
-| 0° (straight) | 24,000 | 32.92 | −0.69 | −1.56 | +0.90 | 32.95 | −0.69 | −1.57 | +0.92 |
-| 90° | 6,000 | 24.21 | +0.58 | −0.35 | +1.52 | 24.22 | +0.71 | −0.26 | +1.74 |
-| 90° | 24,000 | 28.70 | +0.86 | +0.07 | +1.92 | 28.02 | +1.40 | +0.74 | +2.61 |
-| 180° | 6,000 | 23.39 | +0.86 | −0.05 | +1.75 | 22.45 | +1.85 | +0.09 | +3.38 |
-| 180° | 24,000 | 27.72 | +1.32 | +0.99 | +1.70 | 20.55 | +7.90 | +4.65 | +10.12 |
-| 270° | 6,000 | 23.67 | +0.38 | −0.01 | +1.06 | 17.16 | +6.85 | +5.36 | +9.14 |
-| 270° | 24,000 | 27.25 | +1.29 | +0.88 | +1.91 | 17.76 | +8.08 | +7.15 | +8.99 |
-| 360° (full turn) | 6,000 | 23.34 | +1.18 | +0.93 | +1.63 | 14.77 | +9.07 | +7.78 | +11.11 |
-| 360° (full turn) | 24,000 | 27.56 | +0.93 | +0.29 | +1.40 | 15.24 | +9.21 | +8.92 | +9.45 |
+*Table A23 (a). Fitted frames, on the ball.*
+
+| Turn | Budget | M0 PSNR (dB) | Mean | Lowest | Highest |
+|---|---:|---:|---:|---:|---:|
+| 0° (straight) | 6,000 | 25.75 | −1.10 | −2.53 | +0.93 |
+| 0° (straight) | 24,000 | 32.92 | −0.69 | −1.56 | +0.90 |
+| 90° | 6,000 | 24.21 | +0.58 | −0.35 | +1.52 |
+| 90° | 24,000 | 28.70 | +0.86 | +0.07 | +1.92 |
+| 180° | 6,000 | 23.39 | +0.86 | −0.05 | +1.75 |
+| 180° | 24,000 | 27.72 | +1.32 | +0.99 | +1.70 |
+| 270° | 6,000 | 23.67 | +0.38 | −0.01 | +1.06 |
+| 270° | 24,000 | 27.25 | +1.29 | +0.88 | +1.91 |
+| 360° (full turn) | 6,000 | 23.34 | +1.18 | +0.93 | +1.63 |
+| 360° (full turn) | 24,000 | 27.56 | +0.93 | +0.29 | +1.40 |
+
+*Table A23 (b). Frames between, on the ball.*
+
+| Turn | Budget | M0 PSNR (dB) | Mean | Lowest | Highest |
+|---|---:|---:|---:|---:|---:|
+| 0° (straight) | 6,000 | 25.75 | −1.10 | −2.54 | +0.94 |
+| 0° (straight) | 24,000 | 32.95 | −0.69 | −1.57 | +0.92 |
+| 90° | 6,000 | 24.22 | +0.71 | −0.26 | +1.74 |
+| 90° | 24,000 | 28.02 | +1.40 | +0.74 | +2.61 |
+| 180° | 6,000 | 22.45 | +1.85 | +0.09 | +3.38 |
+| 180° | 24,000 | 20.55 | +7.90 | +4.65 | +10.12 |
+| 270° | 6,000 | 17.16 | +6.85 | +5.36 | +9.14 |
+| 270° | 24,000 | 17.76 | +8.08 | +7.15 | +8.99 |
+| 360° (full turn) | 6,000 | 14.77 | +9.07 | +7.78 | +11.11 |
+| 360° (full turn) | 24,000 | 15.24 | +9.21 | +8.92 | +9.45 |
 
 **Table A24.** Paths of the Gaussians on the ball (mean of 3 seeds): distance from the true path, and for M1 the share that bends the right way. Only 3 to 25 Gaussians per model sit on the ball, so these numbers are rough.
 
@@ -875,33 +1075,96 @@ On the two slow boat clips, the frames between are as good as the fitted ones. O
 
 **Table A26.** Gain over M0 over the whole frame, on the fitted frames and on the frames between (dB, mean over the budgets and 3 seeds).
 
-| Clip | M1: fitted frames | M1: frames between | M2: fitted frames | M2: frames between | M3: fitted frames | M3: frames between |
-|---|---:|---:|---:|---:|---:|---:|
-| Jockey | +0.45 | +0.70 | −0.28 | −0.45 | +0.00 | −0.01 |
-| ShakeNDry | −0.19 | −0.11 | +0.09 | +0.06 | −0.16 | −0.08 |
-| YachtRide | −0.27 | −0.29 | −0.06 | −0.06 | −0.28 | −0.32 |
-| Bosphorus | −0.21 | −0.22 | +0.26 | +0.26 | −0.06 | −0.07 |
+| Clip | Model | Fitted frames | Frames between |
+|---|---|---:|---:|
+| Jockey | M1 curved | +0.45 | +0.70 |
+| Jockey | M2 shrinking | −0.28 | −0.45 |
+| Jockey | M3 both | +0.00 | −0.01 |
+| ShakeNDry | M1 curved | −0.19 | −0.11 |
+| ShakeNDry | M2 shrinking | +0.09 | +0.06 |
+| ShakeNDry | M3 both | −0.16 | −0.08 |
+| YachtRide | M1 curved | −0.27 | −0.29 |
+| YachtRide | M2 shrinking | −0.06 | −0.06 |
+| YachtRide | M3 both | −0.28 | −0.32 |
+| Bosphorus | M1 curved | −0.21 | −0.22 |
+| Bosphorus | M2 shrinking | +0.26 | +0.26 |
+| Bosphorus | M3 both | −0.06 | −0.07 |
 
-**Table A27.** Gain over M0 on the moving object in the frames between: mean, lowest and highest over 3 seeds (dB). Last column: M1 on the object in the fitted frames, for comparison.
+**Table A27.** Gain over M0 on the moving object, fully trained, stride 3, in two parts. Part (a) gives the gain on the object in the frames between: mean, lowest and highest over 3 seeds (dB, paired by seed). Part (b) sets M1's mean gain on the object in the fitted frames beside its mean gain on the object in the frames between, for comparison.
 
-| Clip | Budget | M1: mean | M1: lowest | M1: highest | M2: mean | M2: lowest | M2: highest | M3: mean | M3: lowest | M3: highest | M1 − M0, object on the fitted frames |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Jockey | 3,000 | +0.43 | +0.34 | +0.54 | −0.01 | −0.08 | +0.11 | +0.29 | +0.12 | +0.49 | +0.50 |
-| Jockey | 6,000 | +0.23 | +0.02 | +0.63 | −0.11 | −0.22 | +0.05 | −0.06 | −0.12 | +0.03 | +0.23 |
-| Jockey | 12,000 | +0.32 | +0.15 | +0.43 | −0.13 | −0.42 | +0.15 | −0.00 | −0.25 | +0.37 | +0.25 |
-| Jockey | 24,000 | +0.52 | +0.19 | +0.96 | +0.10 | −0.14 | +0.22 | +0.30 | +0.08 | +0.67 | +0.21 |
-| ShakeNDry | 3,000 | +0.18 | +0.11 | +0.22 | −0.34 | −0.58 | −0.21 | +0.00 | −0.11 | +0.14 | −0.09 |
-| ShakeNDry | 6,000 | +0.35 | −0.44 | +1.46 | −0.12 | −0.99 | +0.74 | +0.54 | +0.10 | +1.35 | +0.01 |
-| ShakeNDry | 12,000 | +0.42 | +0.17 | +0.62 | −0.01 | −0.74 | +0.36 | +0.17 | −0.03 | +0.48 | +0.11 |
-| ShakeNDry | 24,000 | +0.50 | +0.34 | +0.61 | −0.16 | −0.96 | +0.52 | +0.45 | +0.32 | +0.62 | −0.01 |
-| YachtRide | 3,000 | −0.59 | −1.22 | −0.20 | +0.04 | −0.02 | +0.09 | −0.38 | −0.70 | −0.13 | −0.55 |
-| YachtRide | 6,000 | −0.77 | −1.00 | −0.53 | −0.03 | −0.21 | +0.24 | −0.49 | −0.77 | −0.28 | −0.71 |
-| YachtRide | 12,000 | −0.37 | −0.44 | −0.30 | −0.08 | −0.13 | −0.02 | −0.46 | −0.57 | −0.30 | −0.36 |
-| YachtRide | 24,000 | −0.13 | −0.22 | −0.05 | +0.09 | −0.19 | +0.39 | −0.27 | −0.38 | −0.04 | −0.13 |
-| Bosphorus | 3,000 | −0.46 | −0.78 | −0.26 | −0.17 | −0.33 | +0.01 | −0.09 | −0.47 | +0.10 | −0.46 |
-| Bosphorus | 6,000 | −0.32 | −0.42 | −0.15 | +0.02 | −0.42 | +0.42 | −0.20 | −0.61 | +0.20 | −0.30 |
-| Bosphorus | 12,000 | −0.07 | −0.49 | +0.22 | +0.02 | −0.29 | +0.20 | −0.16 | −0.31 | +0.09 | −0.05 |
-| Bosphorus | 24,000 | −0.40 | −0.56 | −0.16 | −0.04 | −0.14 | +0.04 | −0.76 | −0.81 | −0.70 | −0.35 |
+*Table A27 (a). Gain over M0 on the moving object in the frames between.*
+
+| Clip | Budget | Model | Mean | Lowest | Highest |
+|---|---:|---|---:|---:|---:|
+| Jockey | 3,000 | M1 curved | +0.43 | +0.34 | +0.54 |
+| Jockey | 3,000 | M2 shrinking | −0.01 | −0.08 | +0.11 |
+| Jockey | 3,000 | M3 both | +0.29 | +0.12 | +0.49 |
+| Jockey | 6,000 | M1 curved | +0.23 | +0.02 | +0.63 |
+| Jockey | 6,000 | M2 shrinking | −0.11 | −0.22 | +0.05 |
+| Jockey | 6,000 | M3 both | −0.06 | −0.12 | +0.03 |
+| Jockey | 12,000 | M1 curved | +0.32 | +0.15 | +0.43 |
+| Jockey | 12,000 | M2 shrinking | −0.13 | −0.42 | +0.15 |
+| Jockey | 12,000 | M3 both | −0.00 | −0.25 | +0.37 |
+| Jockey | 24,000 | M1 curved | +0.52 | +0.19 | +0.96 |
+| Jockey | 24,000 | M2 shrinking | +0.10 | −0.14 | +0.22 |
+| Jockey | 24,000 | M3 both | +0.30 | +0.08 | +0.67 |
+| ShakeNDry | 3,000 | M1 curved | +0.18 | +0.11 | +0.22 |
+| ShakeNDry | 3,000 | M2 shrinking | −0.34 | −0.58 | −0.21 |
+| ShakeNDry | 3,000 | M3 both | +0.00 | −0.11 | +0.14 |
+| ShakeNDry | 6,000 | M1 curved | +0.35 | −0.44 | +1.46 |
+| ShakeNDry | 6,000 | M2 shrinking | −0.12 | −0.99 | +0.74 |
+| ShakeNDry | 6,000 | M3 both | +0.54 | +0.10 | +1.35 |
+| ShakeNDry | 12,000 | M1 curved | +0.42 | +0.17 | +0.62 |
+| ShakeNDry | 12,000 | M2 shrinking | −0.01 | −0.74 | +0.36 |
+| ShakeNDry | 12,000 | M3 both | +0.17 | −0.03 | +0.48 |
+| ShakeNDry | 24,000 | M1 curved | +0.50 | +0.34 | +0.61 |
+| ShakeNDry | 24,000 | M2 shrinking | −0.16 | −0.96 | +0.52 |
+| ShakeNDry | 24,000 | M3 both | +0.45 | +0.32 | +0.62 |
+| YachtRide | 3,000 | M1 curved | −0.59 | −1.22 | −0.20 |
+| YachtRide | 3,000 | M2 shrinking | +0.04 | −0.02 | +0.09 |
+| YachtRide | 3,000 | M3 both | −0.38 | −0.70 | −0.13 |
+| YachtRide | 6,000 | M1 curved | −0.77 | −1.00 | −0.53 |
+| YachtRide | 6,000 | M2 shrinking | −0.03 | −0.21 | +0.24 |
+| YachtRide | 6,000 | M3 both | −0.49 | −0.77 | −0.28 |
+| YachtRide | 12,000 | M1 curved | −0.37 | −0.44 | −0.30 |
+| YachtRide | 12,000 | M2 shrinking | −0.08 | −0.13 | −0.02 |
+| YachtRide | 12,000 | M3 both | −0.46 | −0.57 | −0.30 |
+| YachtRide | 24,000 | M1 curved | −0.13 | −0.22 | −0.05 |
+| YachtRide | 24,000 | M2 shrinking | +0.09 | −0.19 | +0.39 |
+| YachtRide | 24,000 | M3 both | −0.27 | −0.38 | −0.04 |
+| Bosphorus | 3,000 | M1 curved | −0.46 | −0.78 | −0.26 |
+| Bosphorus | 3,000 | M2 shrinking | −0.17 | −0.33 | +0.01 |
+| Bosphorus | 3,000 | M3 both | −0.09 | −0.47 | +0.10 |
+| Bosphorus | 6,000 | M1 curved | −0.32 | −0.42 | −0.15 |
+| Bosphorus | 6,000 | M2 shrinking | +0.02 | −0.42 | +0.42 |
+| Bosphorus | 6,000 | M3 both | −0.20 | −0.61 | +0.20 |
+| Bosphorus | 12,000 | M1 curved | −0.07 | −0.49 | +0.22 |
+| Bosphorus | 12,000 | M2 shrinking | +0.02 | −0.29 | +0.20 |
+| Bosphorus | 12,000 | M3 both | −0.16 | −0.31 | +0.09 |
+| Bosphorus | 24,000 | M1 curved | −0.40 | −0.56 | −0.16 |
+| Bosphorus | 24,000 | M2 shrinking | −0.04 | −0.14 | +0.04 |
+| Bosphorus | 24,000 | M3 both | −0.76 | −0.81 | −0.70 |
+
+*Table A27 (b). M1 − M0 on the moving object: fitted frames against frames between (dB, mean of 3 seeds).*
+
+| Clip | Budget | Fitted frames | Frames between |
+|---|---:|---:|---:|
+| Jockey | 3,000 | +0.50 | +0.43 |
+| Jockey | 6,000 | +0.23 | +0.23 |
+| Jockey | 12,000 | +0.25 | +0.32 |
+| Jockey | 24,000 | +0.21 | +0.52 |
+| ShakeNDry | 3,000 | −0.09 | +0.18 |
+| ShakeNDry | 6,000 | +0.01 | +0.35 |
+| ShakeNDry | 12,000 | +0.11 | +0.42 |
+| ShakeNDry | 24,000 | −0.01 | +0.50 |
+| YachtRide | 3,000 | −0.55 | −0.59 |
+| YachtRide | 6,000 | −0.71 | −0.77 |
+| YachtRide | 12,000 | −0.36 | −0.37 |
+| YachtRide | 24,000 | −0.13 | −0.13 |
+| Bosphorus | 3,000 | −0.46 | −0.46 |
+| Bosphorus | 6,000 | −0.30 | −0.32 |
+| Bosphorus | 12,000 | −0.05 | −0.07 |
+| Bosphorus | 24,000 | −0.35 | −0.40 |
 
 **Paths of the dog's Gaussians.** Points on the dog were followed with optical flow through every frame, including the ones the models never saw, and that path was compared with the path of each Gaussian on the dog (M0 and M1, all budgets, 3 seeds, Gaussians with $\sigma_t \ge 0.5$). The method was first checked on the synthetic arc (Appendix D.2), whose path is known: it gets the bending direction right 99% of the time, but positions drift by 3 to 6 pixels over 6 frames.
 
@@ -940,7 +1203,7 @@ On the dog, M1's Gaussians bend the right way 47% to 57% of the time, about what
 - CP4282 course notes, [Unit 16: 2D Gaussians for Images and Videos](https://weitsang.github.io/gaussian-splatting-notes/unit-16/); Unit 14: Compaction of 3DGS.
 - W. Smolak-Dyżewska, D. Malarz, K. Howil, J. Kaczmarczyk, M. Mazur, P. Spurek. [VeGaS: Video Gaussian Splatting](https://arxiv.org/abs/2411.11024). arXiv:2411.11024, 2024.
 - X. Zhang et al. [GaussianImage: 1000 FPS Image Representation and Compression by 2D Gaussian Splatting](https://arxiv.org/abs/2403.08551). ECCV 2024.
-- A. Mercat, M. Viitanen, J. Vanne. [UVG dataset: 50/120fps 4K sequences for video codec analysis and development](https://doi.org/10.1145/3339825.3394937). ACM MMSys 2020. (Videos under CC BY-NC 3.0.)
+- A. Mercat, M. Viitanen, J. Vanne. [UVG dataset: 50/120fps 4K sequences for video codec analysis and development](https://doi.org/10.1145/3339825.3394937). ACM MMSys 2020. [Dataset page](https://ultravideo.fi/dataset.html). (Videos under CC BY-NC 3.0.)
 - G. Farnebäck. [Two-frame motion estimation based on polynomial expansion](https://doi.org/10.1007/3-540-45103-X_50). SCIA 2003.
 - K. He, G. Gkioxari, P. Dollár, R. Girshick. [Mask R-CNN](https://arxiv.org/abs/1703.06870). ICCV 2017.
 - Z. Li, A. Aaron, I. Katsavounidis, A. Moorthy, M. Manohara. [Toward a practical perceptual video quality metric](https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652) (VMAF). Netflix Tech Blog, 2016.
@@ -948,23 +1211,3 @@ On the dog, M1's Gaussians bend the right way 47% to 57% of the time, about what
 - Z. Wang, A. Bovik, H. Sheikh, E. P. Simoncelli. [Image quality assessment: from error visibility to structural similarity](https://doi.org/10.1109/TIP.2003.819861). IEEE Transactions on Image Processing, 2004.
 
 Video frames are from the UVG data set (CC BY-NC 3.0).
-
-[^vegas]: **VeGaS: Video Gaussian Splatting** (Smolak-Dyżewska et al., 2024). A video representation built from Folded-Gaussians: the centre of each 2D slice follows a polynomial in time, and the slice shrinks as it fades. [Paper (arXiv)](https://arxiv.org/abs/2411.11024).
-
-[^psnr]: **PSNR** (peak signal-to-noise ratio) compares a reconstruction with the original as $10 \log_{10}(\mathrm{MAX}^2 / \mathrm{MSE})$, where MAX is the largest pixel value and MSE the mean squared error. Higher is better; a gain of 3 dB halves the mean squared error.
-
-[^cholesky]: **Cholesky factor.** A lower-triangular matrix $L$ with a positive diagonal such that $LL^\top$ equals the covariance. Storing $L$ (3 numbers for a 2D Gaussian) keeps the covariance symmetric and positive definite during optimization.
-
-[^adam]: **Adam** (Kingma and Ba, 2015) is a gradient-based optimizer that scales the step of each parameter using running averages of its gradient and of the squared gradient. [Paper (arXiv)](https://arxiv.org/abs/1412.6980).
-
-[^uvg]: **UVG dataset** (Mercat et al., 2020). Sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group, made for video codec analysis and development. [Dataset page](https://ultravideo.fi/dataset.html) · [Paper](https://doi.org/10.1145/3339825.3394937).
-
-[^flow]: **Optical flow** estimates how far each pixel moves from one frame to the next. Farnebäck's method approximates the neighbourhood of each pixel in both frames by a quadratic polynomial and reads the displacement from how the polynomial shifts. [Paper (Farnebäck, 2003)](https://doi.org/10.1007/3-540-45103-X_50).
-
-[^ssim]: **SSIM** (structural similarity; Wang et al., 2004) compares the local brightness, contrast and structure of two images. A value of 1 means the images are identical. [Paper](https://doi.org/10.1109/TIP.2003.819861).
-
-[^fd]: **Finite-difference check.** The hand-written gradient is compared with the change in the loss when a single parameter is nudged by a small amount. A small difference shows that the gradient is coded correctly.
-
-[^maskrcnn]: **Mask R-CNN** (He et al., 2017) detects objects in an image and outlines each one with a pixel mask. The version used here comes from torchvision and is trained on the COCO data set. [Paper (arXiv)](https://arxiv.org/abs/1703.06870).
-
-[^vmaf]: **VMAF** (Video Multimethod Assessment Fusion) is a video quality metric from Netflix. It combines several elementary quality measures with a machine-learned model trained on human ratings of video quality. [Netflix Tech Blog](https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652).
