@@ -9,7 +9,7 @@ Code: <https://github.com/ChenHongshan333/cp4282-project> · Project website: <h
 
 ## Abstract
 
-Curved paths and shrinking let a space-time Gaussian change over time, but a curved path costs extra stored numbers for every Gaussian. This project asks whether the two abilities are worth their storage when total storage is held fixed. A straight-path baseline (M0) is compared with a curved path (M1), shrinking (M2) and both together (M3) on short UVG clips at four storage budgets, with 3 seeds and paired comparisons. Reconstruction of the fitted frames is scored with PSNR against a test fixed in the proposal; the link to motion is checked with still photographs, object masks and the learned accelerations; and interpolation is scored on frames left out of the fit. After the planned 3,000 training steps, shrinking and both abilities together passed the test, while with full training the baseline caught up and all three abilities failed it. Similar early gains appeared on still photographs. On the frames between the fitted ones, the curved path gave large gains on synthetic curved motion and a gain of about 0.5 dB on the moving object in new real clips, with no consistent whole-frame gain. Reconstruction efficiency and interpolation are therefore reported separately, and the findings apply to the conditions tested.
+Curved paths and shrinking let each space-time Gaussian change over time, but a curved path costs extra storage for every Gaussian. This project asks whether these abilities are worth their storage. A straight-path baseline was compared with a curved, a shrinking and a combined model at equal total storage on short UVG clips. PSNR was measured on the fitted frames and on frames left out of the fit. After 3,000 training steps, shrinking and the combined model beat the baseline by 0.5 to 2.3 dB. With full training, however, the baseline caught up, and none of the three variants kept a consistent whole-frame gain. Similar early gains on still photographs suggest that much of the initial advantage comes from faster optimization; it cannot be attributed directly to recovering real motion. Curved paths did improve the frames left out of the fit: the gain reached about 9 dB on strongly curved synthetic motion and averaged about 0.5 dB on the moving object in new real clips, without a consistent whole-frame improvement. Under the conditions tested, folding therefore did not improve reconstruction efficiency at equal storage after full training; its clearest benefit was in interpolation, with smaller, local gains on real video.
 
 ---
 
@@ -106,7 +106,7 @@ In the picture of Section 1.1, the four models differ as follows. In M1 the path
 
 ### 3.2 Data and motion characterization
 
-All test clips are drawn from the UVG dataset (Mercat et al., 2020), sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group for video codec analysis and development. The clips are taken at 1080p and 120 frames per second and downsampled to 480×270 resolution as in Unit 16.
+All test clips are drawn from the UVG dataset (Mercat et al., 2020), sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group for video codec analysis and development and released under the CC BY-NC 3.0 licence; the video frames shown in this report come from these sequences. The clips are taken at 1080p and 120 frames per second and downsampled to 480×270 resolution as in Unit 16.
 
 Each clip spans 10 frames. At stride 1 these are consecutive frames; at stride 3, every third frame is retained (0, 3, 6, …, 27). Stride 3 widens the interval between observed frames, so the displacement between neighbouring sampled frames, and its change from one pair to the next, grow, while frame count and visual content are preserved. Each sequence is evaluated at both stride 1 and stride 3.
 
@@ -319,11 +319,11 @@ The paths of the Gaussians give no direct support for this gain: on the dog, M1'
 
 #### 5.3.2 Controlled motion test
 
-Synthetic clips show a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips (Figure 7). M0 and M1 were fitted at budgets 6,000 and 24,000, with 3 seeds and full training. The predictions were written down before running; they and their outcome are in Appendix D.2.
+Synthetic clips show a striped ball moving at a fixed speed over a still background. Its path is an arc that turns by 0°, 90°, 180°, 270° or 360° over the clip, and nothing else changes between the clips. Figure 7 shows each clip at two fitted frames and at one frame between them. M0 and M1 were fitted at budgets 6,000 and 24,000, with 3 seeds and full training. The predictions were written down before running; they and their outcome are in Appendix D.2.
 
-![The five synthetic clips at frame 0, with the true path of the ball's centre and the fitted frames](docs/figures/arc_paths.png)
+![The five synthetic clips at frames 0, 13 and 27, with the true path of the ball's centre and arrows for the direction of motion](report_assets/figure7_motion_sequence.png)
 
-**Figure 7.** The five synthetic clips at frame 0, all panels at the same pixel scale. The ball is drawn by the code that generates the clips; for display, it is shown over a light background instead of the clips' own. The grey line is the true path of the ball's centre over frames 0 to 27, the blue dots mark the ball's position at the fitted frames (0, 3, …, 27), and the blue ring marks its centre in the frame shown. The timeline below the panels marks the fitted frames in blue and the frames between, which are never fitted, in grey; the triangle marks the frame shown. The ball (radius 8 pixels) moves 3 pixels per frame, so 9 pixels between fitted frames.
+**Figure 7.** The five synthetic clips, one per row, whose paths turn by 0°, 90°, 180°, 270° and 360° over the clip, at frames 0, 13 and 27. At stride 3 the models are fitted to frames 0, 3, …, 27, so frames 0 and 27 are fitted frames (solid blue border) and frame 13 lies between them and is never fitted (dashed border). The ball is drawn from the pixels of the generated clips, shown over a light background instead of the clips' own. The grey line is the true path of the ball's centre over frames 0 to 27, and the arrows give the direction of motion along it; on the full turn the ball is back at its starting point at frame 27. In every clip the ball (radius 8 pixels) moves at the same speed, 3 pixels per frame, and nothing else changes; all panels share the same pixel scale. An animated version is at [docs/figures/arc_motion.gif](docs/figures/arc_motion.gif).
 
 ![Gain of M1 over M0 on the ball against the bend of the path](docs/figures/arc.png)
 
@@ -1191,5 +1191,3 @@ On the dog, M1's Gaussians bend the right way 47% to 57% of the time, about what
 - Z. Li, A. Aaron, I. Katsavounidis, A. Moorthy, M. Manohara. [Toward a practical perceptual video quality metric](https://medium.com/netflix-techblog/toward-a-practical-perceptual-video-quality-metric-653f208b9652) (VMAF). Netflix Tech Blog, 2016.
 - D. P. Kingma, J. Ba. [Adam: A method for stochastic optimization](https://arxiv.org/abs/1412.6980). ICLR 2015.
 - Z. Wang, A. Bovik, H. Sheikh, E. P. Simoncelli. [Image quality assessment: from error visibility to structural similarity](https://doi.org/10.1109/TIP.2003.819861). IEEE Transactions on Image Processing, 2004.
-
-Video frames are from the UVG data set (CC BY-NC 3.0).
