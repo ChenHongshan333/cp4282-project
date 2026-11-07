@@ -7,6 +7,10 @@ CP4282 3D Gaussian Splatting, AY26/27 Semester 1, National University of Singapo
 
 Code: <https://github.com/ChenHongshan333/cp4282-project> · Project website: <https://chenhongshan333.github.io/cp4282-project/> · Reproduction: Appendix A.1
 
+## Abstract
+
+Curved paths and shrinking let a space-time Gaussian change over time, but a curved path costs extra stored numbers for every Gaussian. This project asks whether the two abilities are worth their storage when total storage is held fixed. A straight-path baseline (M0) is compared with a curved path (M1), shrinking (M2) and both together (M3) on short UVG clips at four storage budgets, with 3 seeds and paired comparisons. Reconstruction of the fitted frames is scored with PSNR against a test fixed in the proposal; the link to motion is checked with still photographs, object masks and the learned accelerations; and interpolation is scored on frames left out of the fit. After the planned 3,000 training steps, shrinking and both abilities together passed the test, while with full training the baseline caught up and all three abilities failed it. Similar early gains appeared on still photographs. On the frames between the fitted ones, the curved path gave large gains on synthetic curved motion and a gain of about 0.5 dB on the moving object in new real clips, with no consistent whole-frame gain. Reconstruction efficiency and interpolation are therefore reported separately, and the findings apply to the conditions tested.
+
 ---
 
 ## 1 Background
@@ -37,7 +41,9 @@ Real-world videos frequently exhibit complex non-linear motions that cannot be a
 
 ### 1.3 VeGaS: Folded-Gaussians Representation
 
-To address the limitations of linear motion models, VeGaS (Video Gaussian Splatting; Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed **Folded-Gaussians**, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in PSNR) compared to prior video representations, with a primary application toward photorealistic video editing. PSNR (peak signal-to-noise ratio), also the main score of this project, compares a reconstruction with the original as $10 \log_{10}(\mathrm{MAX}^2 / \mathrm{MSE})$, where MAX is the largest pixel value and MSE the mean squared error. Higher is better; a gain of 3 dB halves the mean squared error.
+To address the limitations of linear motion models, VeGaS (Video Gaussian Splatting; Smolak-Dyżewska et al., 2024) extends space-time Gaussians through a novel formulation termed **Folded-Gaussians**, introducing two key modifications. First, the trajectory of the 2D slice's center is modeled using a higher-order polynomial function of time (typically 7th-degree by default) rather than a linear trajectory, allowing a single Gaussian to traverse a non-linear path. Second, spatial extent is dynamic, as the 2D slice is scaled by its temporal weight, causing the Gaussian to contract as its opacity fades. VeGaS achieves superior reconstruction quality (measured in PSNR) compared to prior video representations, with a primary application toward photorealistic video editing.
+
+PSNR (peak signal-to-noise ratio), which is also the main score of this project, compares a reconstruction with the original as $10 \log_{10}(\mathrm{MAX}^2 / \mathrm{MSE})$, where MAX is the largest pixel value and MSE the mean squared error. Higher is better; a gain of 3 dB halves the mean squared error.
 
 ### 1.4 Critical Analysis and Motivation
 
@@ -94,7 +100,7 @@ Comparing M1 against M0 evaluates the curved trajectory, and comparing M2 agains
 
 In the picture of Section 1.1, the four models differ as follows. In M1 the path of the centre through the block of frames is a parabola instead of a straight line, so the slice can change direction as it moves; the acceleration $a$ sets how strongly the path bends. In M2 the path stays straight, but the slice shrinks as it fades: its covariance is scaled by its weight $w(t)$, never below the floor $s_{\min}$, so the slice has its full size at $t_0$ and becomes smaller in the frames where it fades in and out. M3 does both.
 
-**Controlled factors across all variants.** The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. Adam (Kingma and Ba, 2015) is a gradient-based optimizer that scales the step of each parameter using running averages of its gradient and of the squared gradient. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts.
+**Controlled factors across all variants.** The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts. Adam (Kingma and Ba, 2015), the optimizer used throughout, is a gradient-based method that scales the step of each parameter using running averages of its gradient and of the squared gradient.
 
 **Higher-degree extensions.** As a supplementary extension, polynomial paths of higher degrees are evaluated. A path of degree $d$ requires $12 + 2(d - 1)$ scalars per Gaussian: degree 3 (D3) costs 16 scalars and degree 7 (D7, the VeGaS default) costs 24. Comparing degrees 1, 2, 3 and 7 (M0, M1, D3, D7) under an equal storage budget tests whether the performance gains reported in the VeGaS ablation persist once storage overhead is controlled. These models lie outside the primary 2×2 design.
 
@@ -180,7 +186,7 @@ Following the optimization methodology in Unit 14, model-specific hyperparameter
 - **Scale floor ($s_{\min}$).** Evaluated over 0.05, 0.1 and 0.2 for M2 and M3.
 - **Acceleration learning rate multiplier.** Evaluated over 0.3×, 1× and 3× the velocity learning rate for M1 and M3.
 
-All other factors are left untuned; the proposal held the learning rates of the shared parameters fixed, and Section 4 explains why they were later tuned for each model. Every combination of model, clip, temporal stride and storage budget is fitted across 3 random seeds. Model comparisons are strictly paired: each model variant is evaluated against M0 at identical clip, stride, budget and seed conditions. Results are reported as mean values across seeds alongside the range from the lowest to the highest seed.
+The proposal planned to tune only these two settings and to hold the learning rates of the shared parameters fixed. In the experiments, the velocity learning rate was added to the tuning of every model after the preliminary diagnostic (Section 4.2), and for full training it was selected again while the other two settings were kept (Section 4.3 and Appendix A.3). Every combination of model, clip, temporal stride and storage budget is fitted across 3 random seeds. Model comparisons are strictly paired: each model variant is evaluated against M0 at identical clip, stride, budget and seed conditions. Results are reported as mean values across seeds alongside the range from the lowest to the highest seed.
 
 ---
 
@@ -215,7 +221,7 @@ Each model's settings were chosen on a separate validation clip of Jockey (from 
 | M2 | 0.2 | 0.1 | — | 24.76 | +0.99 |
 | M3 | 0.1 | 0.1 | 0.3 | 24.86 | +1.09 |
 
-The settings matter little: the best and worst setting of a model differ by 0.3 to 0.6 dB. The best values for M0 and M3 lie inside the tested range, so the baseline got its own best setting. The learning rates were selected again for full training (Appendix A.3).
+Within the tested range, the best and worst setting of a model differ by 0.3 to 0.6 dB. The best values for M0 and M3 lie inside the tested range, so the baseline got its own best setting. The learning rates were selected again for full training (Appendix A.3).
 
 ### 4.4 Measurement and reporting changes
 
@@ -257,7 +263,7 @@ A probe with more Gaussians showed two warning signs. Every model was still impr
 
 **Figure 4.** Gain over M0 against storage. Dashed lines with hollow markers are the 3,000-step fits; solid lines are the fully trained ones, with the seed range. The grey band is ±0.3 dB, the margin of the test of Section 3.3. After full training most gains fall inside the band, and some fall below zero.
 
-After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below, and all three abilities fail the test (Table 4). The seeds agree closely (usually within 0.1 to 0.2 dB), so the small differences that remain are real. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.
+After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below, and all three abilities fail the test (Table 4). The seeds usually agree within 0.1 to 0.2 dB, so the small differences that remain are consistent across the 3 seeds tested; 3 seeds are too few to establish that they are statistically significant. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.
 
 **Table 4.** The test fixed in the proposal (Section 3.3), after 3,000 steps and fully trained: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips. The budget-by-budget values and judgements are in Tables A5 and A8; the judgements use the unrounded values.
 
@@ -285,7 +291,7 @@ If shrinking helped because it handles motion, it should not help when nothing m
 
 **Figure 5.** Gain over M0 on still photographs after 3,000 steps (bars show the mean, lines the range over 3 seeds). The diamond marks M2's gain on the same clip in motion. Shrinking gains about as much on a still photo as on the video.
 
-On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. The curved path also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. Neither gain comes from motion. The full results are in Appendix C.1.
+On a still photo, M2 beats M0 by 0.6 to 1.9 dB, close to its 0.4 to 2.3 dB on the moving clips, on all 4 photos and all 3 seeds. The curved path also gains about the same with and without motion; on ShakeNDry it is +0.09 dB in motion and +0.09 to +0.13 dB still. Both gains appear without motion, so they cannot be attributed to motion modeling alone. The still photographs were fitted for 3,000 steps only, so this control concerns the gains at the planned training length. The full results are in Appendix C.1.
 
 #### 5.2.3 Learned Gaussian motion and interpretation
 
@@ -325,7 +331,7 @@ Synthetic clips show a striped ball moving at a fixed speed over a still backgro
 
 On the frames between, the gain grows with the bend at both budgets: M1 is slightly behind on the straight line (it has 14% fewer Gaussians, and the seed ranges cross zero), and at a full turn even the worst seed gains 7.8 or 8.9 dB. On the fitted frames the gain stays near 1 dB whatever the bend, because the straight model passes the arc from one short Gaussian to the next and still fits every fitted frame. M1's Gaussians on the ball bend the right way 91% to 100% of the time, and their acceleration is close to the true one.
 
-The curved path works through motion, but only between the fitted frames, which compression never looks at. With a known, strongly bending path the gain is large; on the real clips it is small (about 0.5 dB on the moving object) and does not reach the whole frame.
+Within the experiments of this project, the synthetic test with known motion supports a motion-based mechanism for the curved path, and its clear gains appear mainly on the unseen frames between. The reconstruction test of Q1 scores only the fitted frames, so it does not measure these gains. With a known, strongly bending path the gain is large; on the real clips it is small (about 0.5 dB on the moving object) and does not reach the whole frame.
 
 This is the second version of the test; the first version and the precondition added before the second are described in Appendix D.2.
 
@@ -346,30 +352,6 @@ The three research questions are answered as follows.
 > **Q3.** *Does non-linear trajectory modeling improve reconstruction accuracy on unseen intermediate frames (video frame interpolation)?*
 >
 > **Answer.** A curved path improves the frames between, with stronger evidence on synthetic motion than on real video. On synthetic arcs with known motion, the gain on the frames between grows with the bend, up to about 9 dB, and the learned Gaussians bend with the known motion, which supports a motion-based mechanism in that setting. On new real clips, the moving object is drawn about 0.5 dB better on average in the unseen frames between, which meets the threshold fixed before the test. The whole frame does not improve consistently, and the path diagnostics on the real clips do not directly confirm the same mechanism. This is a local interpolation gain, separate from the reconstruction efficiency addressed in Q1.
-
-Figure 9 returns to the roadmap of Figure 2 and gives the finding of each step, the strength of its evidence and where it is reported.
-
-![Roadmap of the experiments with a short finding and the kind and strength of the evidence in each box](report_assets/figure9_findings.png)
-
-**Figure 9.** The roadmap of Figure 2, with the main finding of each step. The italic label in each box gives the kind and strength of the evidence; borders and lanes are as in Figure 2.
-
-The evidence behind each step, and where it is reported:
-
-| Step | Evidence | Reported in |
-|---|---|---|
-| Synthetic discs | Preliminary diagnostic: 4 models, 4 budgets, 3 seeds. | Section 4.2 |
-| Tuning | Validation clip, 8 cases per model. | Section 4.3 |
-| Main experiment, 3,000 steps | Reliable: 432 fits, 3 seeds. | Sections 5.1.1, 5.2.1 and 5.2.3 |
-| Still photographs | Reliable: 4 photos, 3 seeds. | Section 5.2.2 |
-| More Gaussians; longer training | Fairly reliable. | Section 5.1.2 |
-| Re-tuning for full training | Validation clip, seed 0; checked on ShakeNDry. | Appendix A.3 |
-| Main experiment, fully trained | Reliable: 192 fits, seeds agree. | Sections 5.1.2 and 5.2.1 |
-| Degree 3 and 7 | Fairly reliable; the higher terms were not tuned. | Section 5.1.2 |
-| Frames between | Exploratory; the path check is limited by 3 to 6 px of flow error. | Section 5.3.1 |
-| Synthetic arcs | Reliable: 4 predictions written first. | Section 5.3.2 |
-| Confirmatory test | Fairly reliable: rule fixed first, 9 of 12. | Section 5.3.1 |
-
-Three points in the boxes are qualified in the sections cited. The gains of the main experiment at 3,000 steps fade with full training (Section 5.1.2), and the still photographs were fitted for 3,000 steps only (Section 5.2.2). The real-video gain on the frames between was first found after looking at the data, on a small region; the dog's Gaussians do not visibly bend with the real motion, and the larger gain predicted at stride 5 did not appear in the confirmatory test (Section 5.3.1). The degree 3 and 7 results reflect a narrower tuning than the main models (Section 7).
 
 ---
 
