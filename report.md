@@ -98,7 +98,7 @@ For the curved trajectory, a quadratic path is selected as the minimal non-linea
 
 Comparing M1 against M0 evaluates the curved trajectory, and comparing M2 against M0 evaluates shrinking; these are the two main comparisons. M3 shows the combined effect; no separate pass criterion for M3 was fixed in the proposal.
 
-In the picture of Section 1.1, the four models differ as follows. In M1 the path of the centre through the block of frames is a parabola instead of a straight line, so the slice can change direction as it moves; the acceleration $a$ sets how strongly the path bends. In M2 the path stays straight, but the slice shrinks as it fades: its covariance is scaled by its weight $w(t)$, never below the floor $s_{\min}$, so the slice has its full size at $t_0$ and becomes smaller in the frames where it fades in and out. M3 does both.
+Using the geometric interpretation described in Section 1.1, the four models differ as follows. In M1 the path of the centre through the block of frames is a parabola instead of a straight line, so the slice can change direction as it moves; the acceleration $a$ sets how strongly the path bends. In M2 the path stays straight, but the slice shrinks as it fades: its covariance is scaled by its weight $w(t)$, never below the floor $s_{\min}$, so the slice has its full size at $t_0$ and becomes smaller in the frames where it fades in and out. M3 does both.
 
 **Controlled factors across all variants.** The renderer, loss objective (mean squared error across fitted frames, optimized jointly), Adam optimizer, iteration counts, spatial resolution, temporal sequence length and random seeds are held identical. For each seed, the Gaussians that two models share start from the same parameters: M1 starts from the first Gaussians of M0, with the acceleration set to zero, so at initialisation the two models differ only in the number of Gaussians. No Gaussians are added or pruned during optimization, preserving exact budgeted counts. Adam (Kingma and Ba, 2015), the optimizer used throughout, is a gradient-based method that scales the step of each parameter using running averages of its gradient and of the squared gradient.
 
@@ -106,7 +106,7 @@ In the picture of Section 1.1, the four models differ as follows. In M1 the path
 
 ### 3.2 Data and motion characterization
 
-All test clips are drawn from the UVG dataset (Mercat et al., 2020), sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group for video codec analysis and development and released under the CC BY-NC 3.0 licence; the video frames shown in this report come from these sequences. The clips are taken at 1080p and 120 frames per second and downsampled to 480×270 resolution as in Unit 16.
+All real-video test clips are drawn from the UVG dataset (Mercat et al., 2020), sixteen 4K test sequences captured at 50 or 120 frames per second by the Ultra Video Group for video codec analysis and development and released under the CC BY-NC 3.0 licence; the real-video frames shown in this report come from these sequences, while the synthetic clips of Sections 4.2 and 5.3.2 are generated separately. The clips are taken at 1080p and 120 frames per second and downsampled to 480×270 resolution as in Unit 16.
 
 Each clip spans 10 frames. At stride 1 these are consecutive frames; at stride 3, every third frame is retained (0, 3, 6, …, 27). Stride 3 widens the interval between observed frames, so the displacement between neighbouring sampled frames, and its change from one pair to the next, grow, while frame count and visual content are preserved. Each sequence is evaluated at both stride 1 and stride 3.
 
@@ -263,7 +263,7 @@ A probe with more Gaussians showed two warning signs. Every model was still impr
 
 **Figure 4.** Gain over M0 against storage. Dashed lines with hollow markers are the 3,000-step fits; solid lines are the fully trained ones, with the seed range. The grey band is ±0.3 dB, the margin of the test of Section 3.3. After full training most gains fall inside the band, and some fall below zero.
 
-After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below, and all three abilities fail the test (Table 4). The seeds usually agree within 0.1 to 0.2 dB, so the small differences that remain are consistent across the 3 seeds tested; 3 seeds are too few to establish that they are statistically significant. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.
+After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully trained, most cells are within ±0.3 dB, some above zero and some below, and all three abilities fail the test (Table 4). The seeds usually agree within 0.1 to 0.2 dB, so the small differences that remain are consistent across the 3 seeds tested. No formal test of statistical significance is reported; the differences are judged by the reported seed ranges and the rules fixed in advance. M3 leads almost nowhere. SSIM differences stay within ±0.02, and VMAF points the same way as PSNR but varies by 2 to 4 points between seeds.
 
 **Table 4.** The test fixed in the proposal (Section 3.3), after 3,000 steps and fully trained: at how many of the 4 budgets each model beats M0 by more than 0.3 dB and more than the seed spread. It needs 3 of 4 on both clips. The budget-by-budget values and judgements are in Tables A5 and A8; the judgements use the unrounded values.
 
@@ -279,7 +279,7 @@ After 3,000 steps, M2 and M3 led in all 16 cells by 0.44 to 1.62 dB. Fully train
 
 #### 5.2.1 Dependence on motion and spatial region
 
-After 3,000 steps (Section 5.1.1), on ShakeNDry, the most curved clip, M1 gains only about 0.1 dB, less than on the two straight boat clips (+0.23 to +0.28 dB). On Jockey most of M1's gain is in the background (at stride 3, +0.15 dB on the horse and +0.66 dB off it). The dog is the only place where M1 gains more on the object than off it, and there the gain is small. By the second rule of the test (Section 3.4), then, M1's gain probably does not come from curved motion.
+After 3,000 steps (Section 5.1.1), on ShakeNDry, the most curved clip, M1 gains only about 0.1 dB, less than on the two boat clips (+0.23 to +0.28 dB). On Jockey most of M1's gain is in the background (at stride 3, +0.15 dB on the horse and +0.66 dB off it). On ShakeNDry, M1 gains more on the dog than on the background (+0.24 and +0.28 dB against +0.07 and +0.10 dB at strides 1 and 3), but the gain remains small; a similarly small lead of the object over the background also appears on YachtRide and on Bosphorus at stride 3 (Table A15). M1 also gains +0.23 to +0.24 dB over the whole frame on Bosphorus, the straight-motion control (Table A6). By the second rule of the test (Section 3.4), then, M1's gain probably does not come from curved motion.
 
 Fully trained (Section 5.1.2), the small differences that remain do not follow the motion. M1 leads only on Jockey, and mostly in the background (+0.33 to +0.69 dB, against +0.21 to +0.50 dB on the horse). M2 leads only on Bosphorus, the straightest clip, again in the background. The object-versus-background tables are in Appendix C.1.
 
@@ -307,7 +307,7 @@ As noted in Section 3.5, this analysis was added after the main results.
 
 At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …; its Gaussians can still be drawn at those times. An exploratory look at the fully trained models found that on the shaking dog, M1 and M3 drew these frames between 0.2 and 0.5 dB better than M0, while on the fitted frames they were level. This was found after looking at the data, and it covered a small region (Appendix D.3).
 
-To test it, a rule was fixed before running anything else and applied to three real clips not used before: ShakeNDry from frame 30, where the dog is still shaking, and Jockey from frames 120 and 200, where the horse is galloping. M0 and M1 were fitted at strides 3 and 5 and budgets 6,000 and 24,000, with 3 seeds and full training. Only the moving object in the frames between is scored. A cell passes if M1 beats M0 for all 3 seeds, and with 9 or more of the 12 cells passing, the curved path counts as a real gain for the frames between. It was also predicted that the gain would be larger at stride 5 than at stride 3. The full rule is in Appendix D.1.
+To test it, a rule was fixed before running anything else and applied to three real clips not used before: ShakeNDry from frame 30, where the dog is still shaking, and Jockey from frames 120 and 200, where the horse is galloping. M0 and M1 were fitted at strides 3 and 5 and budgets 6,000 and 24,000, with 3 seeds and full training. Only the scores on the moving object in the unseen intermediate frames are used for the confirmatory pass criterion; the other scores are reported as supplementary results. A cell passes if M1 beats M0 for all 3 seeds, and with 9 or more of the 12 cells passing, the curved path counts as a real gain for the frames between. It was also predicted that the gain would be larger at stride 5 than at stride 3. The full rule is in Appendix D.1.
 
 ![M1 minus M0 on the frames between for the 12 cells of the confirmatory test: the moving object above, the whole frame below](docs/figures/confirm.png)
 
@@ -930,7 +930,7 @@ This group gives the material for Section 5.3. The confirmatory test on real cli
 
 #### D.1 Real-video confirmation
 
-> **The rule, fixed before the runs.** Only the moving object in the frames between is scored. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. It was also predicted that the gain would be larger at stride 5 than at stride 3.
+> **The rule, fixed before the runs.** Only the scores on the moving object in the unseen intermediate frames are used for the confirmatory pass criterion; the whole-frame and other scores are reported as supplementary results and play no part in it. There are 12 cells (3 clips × 2 strides × 2 budgets), and a cell passes if M1 beats M0 for all 3 seeds. With 9 or more passing cells, the curved path counts as a real gain for the frames between; with 3 or fewer, there is no gain; anything in between counts as partly true. It was also predicted that the gain would be larger at stride 5 than at stride 3.
 
 If the curved path had no effect, a cell would pass by luck one time in eight. At stride 5 the motion may be too large for either model to follow.
 
@@ -1026,7 +1026,7 @@ The second version moves the ball 9 pixels between fitted frames, makes it small
 
 At stride 3, a model is fitted to frames 0, 3, 6, … and never sees frames 1, 2, 4, 5, …. Its Gaussians can still be drawn at any time, so those frames were drawn from the 192 fully trained models and compared with the real ones.
 
-On the shaking dog, the curved models draw the frames between better: M1 and M3 are 0.2 to 0.5 dB ahead of M0, while on the fitted frames they are level. All 3 seeds are positive at three of the four budgets. M2, which does not curve, shows no such gain, and on the two straight boat clips the curved path makes the frames between worse. This was the first result that matched the starting expectation. It was found after looking at the data, though; it covers a small region, and at one budget the seeds disagree (−0.44 to +1.46 dB). Section 5.3 tests it on new real clips and on synthetic arcs.
+On the shaking dog, the curved models draw the frames between better: M1 and M3 are 0.2 to 0.5 dB ahead of M0, while on the fitted frames they are level. All 3 seeds are positive at three of the four budgets. M2, which does not curve, shows no such gain, and on the two boat clips the curved path makes the frames between worse. This was the first result that matched the starting expectation. It was found after looking at the data, though; it covers a small region, and at one budget the seeds disagree (−0.44 to +1.46 dB). Section 5.3 tests it on new real clips and on synthetic arcs.
 
 ![M0 frames between against fitted frames; M1 on the moving object in the frames between](docs/figures/unseen.png)
 
