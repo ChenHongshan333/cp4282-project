@@ -9,7 +9,7 @@ Code: <https://github.com/ChenHongshan333/cp4282-project> · Project website: <h
 
 ## Abstract
 
-Curved paths and shrinking let each space-time Gaussian change over time, but a curved path costs extra storage for every Gaussian. This project asks whether these abilities are worth their storage. A straight-path baseline was compared with a curved, a shrinking and a combined model at equal total storage on short UVG clips. PSNR was measured on the fitted frames and on frames left out of the fit. After 3,000 training steps, shrinking and the combined model beat the baseline by 0.5 to 2.3 dB. With full training, however, the baseline caught up, and none of the three variants kept a consistent whole-frame gain. Similar early gains on still photographs suggest that much of the initial advantage comes from faster optimization; it cannot be attributed directly to recovering real motion. Curved paths did improve the frames left out of the fit: the gain reached about 9 dB on strongly curved synthetic motion and averaged about 0.5 dB on the moving object in new real clips, without a consistent whole-frame improvement. Under the conditions tested, folding therefore did not improve reconstruction efficiency at equal storage after full training; its clearest benefit was in interpolation, with smaller, local gains on real video.
+Curved paths and shrinking allow each space-time Gaussian to evolve over time; however, curved paths incur extra storage overhead for every Gaussian. To evaluate whether these capabilities provide a net benefit under a fixed storage budget, a straight-path baseline was compared against curved, shrinking, and combined models under equal total storage constraints on short UVG clips. PSNR was measured both on fitted frames and on frames held out during fitting. After 3,000 training steps, both shrinking and the combined model outperformed the baseline by 0.5 to 2.3 dB. With full training, however, the baseline caught up, and none of the three variants maintained a consistent whole-frame advantage. Crucially, similar early gains observed on still photographs suggest that much of this initial edge stems from faster optimization rather than the recovery of true physical motion. On the other hand, curved paths did improve temporal interpolation on held-out frames—achieving up to approximately 9 dB gain on strongly curved synthetic motion and averaging approximately 0.5 dB on moving objects in real clips, albeit without consistent whole-frame improvements. Under the tested conditions, folding thus fails to improve overall reconstruction efficiency at equal storage once fully trained; its primary benefit lies in interpolation, with modest, localized gains on real-world video.
 
 ---
 
@@ -369,7 +369,7 @@ The changes from the plan in the proposal are recorded in Appendix A.5.
 
 ### AI use
 
-I used Claude (Anthropic) to discuss the experimental design, write and check code, run and analyse experiments, and draft the text and figures of the project website and of this report. I made and checked the decisions on the research questions, the models, the clips, the budgets, the tests and the conclusions.
+Claude (Anthropic) was used to discuss the experimental design, write and check code, run and analyse experiments, and draft the text and figures of the project website and of this report. Decisions on the research questions, the models, the clips, the budgets, the tests and the conclusions were made and checked by the author.
 
 ---
 
