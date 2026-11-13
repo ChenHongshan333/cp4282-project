@@ -445,3 +445,17 @@ figure.roadmap .rm-lane-main { fill: var(--accent); }
 figure.roadmap .rm-hl { fill: var(--ink); }
 figure.roadmap .rm-qtag { font-weight: 700; }
 figure.roadmap .rm-hl-bg { fill: #f1eff8; }
+
+/* ---- reconstruction videos (assets/js/recon.js) ---- */
+.recon .controls { gap: 8px 16px; }
+.recon-view video { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--rule); border-radius: 4px; cursor: pointer; }
+.recon-view video:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recon-bar .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.recon-bar .r-seek { flex: 1 1 180px; width: auto; min-width: 120px; }
+.recon .r-readout { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.recon .r-kind { font-weight: 600; padding: 1px 7px; border-radius: 10px; color: #fff; }
+.recon .r-kind.fitted { background: #1c5cab; }
+.recon .r-kind.unseen { background: #b3540e; }
+.recon .r-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.recon .r-note { font-family: var(--sans); font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 10px 0 0; }
+@media (max-width: 600px) { .recon .seg button { padding: 4px 8px; } .recon .control { flex-wrap: wrap; } }
