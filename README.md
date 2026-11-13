@@ -46,23 +46,37 @@ numbers per Gaussian has fewer Gaussians.
 ## Repository layout
 
 ```
-gaussian_image_video.py   course program (Unit 16): 2D renderer and gradient kernels, unchanged
-stg/                      this project; stg/__init__.py gives one line per module
-  model.py, slicing.py    the four models and slicing a space-time Gaussian at time t
-  kernels.py, render.py   the course kernels with all frames in one launch; `stg.check` compares them
-  fit.py, run.py          one fit
-  sweep.py                every experiment of the project, by stage
-  unseen.py               PSNR on the frames between the fitted ones
-  analyze_*.py            analyses of each stage
-  figures.py, appendix_tables.py, export_site.py, export_videos.py
-                          figures, tables, data and videos of the website and the report
-docs/                     the website (GitHub Pages): index.html, figures/, data/, media/recon/
-report.md                 the report text; cp4282_final_report.pdf is the final version
-PROGRESS.md               working log of every step (in Chinese)
-slurm/array.sh            one fit per Slurm array task
-data/uvg/<Sequence>/      UVG .yuv file or frame images (not in the repository)
-data/masks/<Sequence>/    hand-drawn object masks, <frame>.png (not in the repository)
-runs/<stage>/<run>/       config.json, metrics.json, params.npz (not in the repository)
+cp4282-project/
+├── gaussian_image_video.py      course program (Unit 16): 2D renderer and gradients, unchanged
+├── stg/                         this project (stg/__init__.py gives one line per module)
+│   ├── model.py                 stored parameters, the four models, the storage budget
+│   ├── slicing.py               slicing a space-time Gaussian at time t, and its backward pass
+│   ├── kernels.py               course kernels, all frames in one launch
+│   ├── render.py                rendering a clip and the gradient of the loss
+│   ├── check.py                 finite-difference checks and comparison with the course kernels
+│   ├── fit.py · run.py          Adam over a clip · one fit
+│   ├── sweep.py                 every experiment of the project, by stage
+│   ├── data.py                  UVG loader with frame stride, synthetic clips
+│   ├── unseen.py                PSNR on the frames between the fitted ones
+│   ├── analyze_*.py             analyses of each stage
+│   ├── figures.py               figures of the website and the report
+│   ├── appendix_tables.py       appendix tables and CSV files
+│   ├── export_site.py           data of the website
+│   └── export_videos.py         reconstruction videos of the website
+├── docs/                        the website (GitHub Pages)
+│   ├── index.html
+│   ├── assets/                  style and scripts
+│   ├── figures/                 figures (PNG and PDF)
+│   ├── data/                    tables, CSV files, runs.json
+│   └── media/recon/             reconstruction videos
+├── report.md                    the report text
+├── cp4282_final_report.pdf      the final report
+├── PROGRESS.md                  working log of every step (in Chinese)
+├── slurm/array.sh               one fit per Slurm array task
+├── data/                        not in the repository
+│   ├── uvg/<Sequence>/          UVG .yuv file or frame images
+│   └── masks/<Sequence>/        hand-drawn object masks, <frame>.png
+└── runs/<stage>/<run>/          config.json, metrics.json, params.npz (not in the repository)
 ```
 
 ## Setup
