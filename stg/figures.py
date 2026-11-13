@@ -437,26 +437,41 @@ def fig_training(runs: Runs, out: Path, plt):
 
 
 def fig_still(runs: Runs, out: Path, plt):
-    """Gains on still photographs against the same clips in motion (3000 iterations, stride 1)."""
-    still, test = runs.where(stage="still"), runs.where(stage="test", stride=1, frames=10, start=0)
-    fig, axes = plt.subplots(1, 2, figsize=(9.6, 2.8), sharey=True)
-    width = 0.2
-    for ax, b in zip(axes, (3000, 12000)):
-        x = np.arange(len(SEQUENCES))
-        ax.axhline(0, color=MUTED, lw=0.8)
-        for i, m in enumerate(MODELS[1:]):
-            g = np.array([still.where(sequence=f"still_{s}", budget=b).gain(m) for s in SEQUENCES])
-            ax.bar(x + (i - 1) * width, g[:, 0], width * 0.9, color=COLOUR[m], label=f"{m} on the still photo")
-            ax.errorbar(x + (i - 1) * width, g[:, 0], yerr=[g[:, 0] - g[:, 1], g[:, 2] - g[:, 0]], fmt="none",
-                        ecolor=INK, elinewidth=0.8, capsize=2)
-        moving = [test.where(sequence=s, budget=b).gain("M2")[0] for s in SEQUENCES]
-        ax.plot(x, moving, ls="none", marker="D", ms=6, color="white", mec=INK, mew=1.4, label="M2 on the moving clip")
-        ax.set_xticks(x)
-        ax.set_xticklabels(SEQUENCES)
-        ax.grid(axis="x", visible=False)
-        ax.set_title(f"budget {b:,}", loc="left")
-    axes[0].set_ylabel("PSNR gain over M0 (dB)")
-    axes[1].legend(loc="upper right")
+    """Gains of M1 and M2 over M0 on still photographs and on the same clips in motion.
+
+    Both use 3000 iterations, the same budget and the same seeds; the moving clip is the 10-frame
+    test clip at stride 1. Each gain is model - M0 paired by seed: mean, lowest and highest of 3 seeds.
+    """
+    iters = 3000
+    still = runs.where(stage="still", iterations=iters)
+    test = runs.where(stage="test", stride=1, frames=10, start=0, iterations=iters)
+    budgets, models = (3000, 12000), ("M1", "M2")
+    fig, axes = plt.subplots(2, 2, figsize=(9.6, 5.0), sharey=True)
+    width, x = 0.36, np.arange(len(SEQUENCES))
+    for row, m in enumerate(models):
+        for col, b in enumerate(budgets):
+            ax = axes[row, col]
+            ax.axhline(0, color=MUTED, lw=0.8)
+            for k, (cells, label, solid) in enumerate((
+                    ([still.where(sequence=f"still_{s}", budget=b) for s in SEQUENCES], "still photograph", False),
+                    ([test.where(sequence=s, budget=b) for s in SEQUENCES], "moving clip (stride 1)", True))):
+                for c in cells:     # three seeds of both models, paired by seed
+                    if sorted(c.seeds(m, "psnr")) != sorted(c.seeds("M0", "psnr")) or len(c.seeds(m, "psnr")) != 3:
+                        raise ValueError(f"unpaired seeds for {m} at budget {b}")
+                g = np.array([c.gain(m) for c in cells])
+                pos = x + (k - 0.5) * width
+                ax.bar(pos, g[:, 0], width * 0.9, color=COLOUR[m] if solid else "white", edgecolor=COLOUR[m],
+                       hatch=None if solid else "////", lw=1.0, label=label)
+                ax.errorbar(pos, g[:, 0], yerr=[g[:, 0] - g[:, 1], g[:, 2] - g[:, 0]], fmt="none",
+                            ecolor=INK, elinewidth=0.8, capsize=2)
+            ax.set_xticks(x)
+            ax.set_xticklabels(SEQUENCES)
+            ax.grid(axis="x", visible=False)
+            ax.set_title(f"{LABEL[m]}, budget {b:,}", loc="left")
+            if col == 0:
+                ax.set_ylabel(f"{m} {MINUS} M0 PSNR (dB)")
+            else:
+                ax.legend(loc="upper right")
     fig.tight_layout()
     save(fig, out, "still")
     plt.close(fig)
